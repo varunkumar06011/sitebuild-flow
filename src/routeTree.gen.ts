@@ -10,33 +10,115 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApprovalsRouteImport } from './routes/approvals'
+import { Route as GatePassRouteImport } from './routes/gate-pass'
+import { Route as ProcurementRouteImport } from './routes/procurement'
+import { Route as QualityRouteImport } from './routes/quality'
+import { Route as RegistersRouteImport } from './routes/registers'
+import { Route as TraceabilityRouteImport } from './routes/traceability'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApprovalsRoute = ApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GatePassRoute = GatePassRouteImport.update({
+  id: '/gate-pass',
+  path: '/gate-pass',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProcurementRoute = ProcurementRouteImport.update({
+  id: '/procurement',
+  path: '/procurement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QualityRoute = QualityRouteImport.update({
+  id: '/quality',
+  path: '/quality',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegistersRoute = RegistersRouteImport.update({
+  id: '/registers',
+  path: '/registers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TraceabilityRoute = TraceabilityRouteImport.update({
+  id: '/traceability',
+  path: '/traceability',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/approvals': typeof ApprovalsRoute
+  '/gate-pass': typeof GatePassRoute
+  '/procurement': typeof ProcurementRoute
+  '/quality': typeof QualityRoute
+  '/registers': typeof RegistersRoute
+  '/traceability': typeof TraceabilityRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/approvals': typeof ApprovalsRoute
+  '/gate-pass': typeof GatePassRoute
+  '/procurement': typeof ProcurementRoute
+  '/quality': typeof QualityRoute
+  '/registers': typeof RegistersRoute
+  '/traceability': typeof TraceabilityRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/approvals': typeof ApprovalsRoute
+  '/gate-pass': typeof GatePassRoute
+  '/procurement': typeof ProcurementRoute
+  '/quality': typeof QualityRoute
+  '/registers': typeof RegistersRoute
+  '/traceability': typeof TraceabilityRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/approvals'
+    | '/gate-pass'
+    | '/procurement'
+    | '/quality'
+    | '/registers'
+    | '/traceability'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/approvals'
+    | '/gate-pass'
+    | '/procurement'
+    | '/quality'
+    | '/registers'
+    | '/traceability'
+  id:
+    | '__root__'
+    | '/'
+    | '/approvals'
+    | '/gate-pass'
+    | '/procurement'
+    | '/quality'
+    | '/registers'
+    | '/traceability'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApprovalsRoute: typeof ApprovalsRoute
+  GatePassRoute: typeof GatePassRoute
+  ProcurementRoute: typeof ProcurementRoute
+  QualityRoute: typeof QualityRoute
+  RegistersRoute: typeof RegistersRoute
+  TraceabilityRoute: typeof TraceabilityRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +130,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/approvals': {
+      id: '/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof ApprovalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gate-pass': {
+      id: '/gate-pass'
+      path: '/gate-pass'
+      fullPath: '/gate-pass'
+      preLoaderRoute: typeof GatePassRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/procurement': {
+      id: '/procurement'
+      path: '/procurement'
+      fullPath: '/procurement'
+      preLoaderRoute: typeof ProcurementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quality': {
+      id: '/quality'
+      path: '/quality'
+      fullPath: '/quality'
+      preLoaderRoute: typeof QualityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/registers': {
+      id: '/registers'
+      path: '/registers'
+      fullPath: '/registers'
+      preLoaderRoute: typeof RegistersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/traceability': {
+      id: '/traceability'
+      path: '/traceability'
+      fullPath: '/traceability'
+      preLoaderRoute: typeof TraceabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApprovalsRoute: ApprovalsRoute,
+  GatePassRoute: GatePassRoute,
+  ProcurementRoute: ProcurementRoute,
+  QualityRoute: QualityRoute,
+  RegistersRoute: RegistersRoute,
+  TraceabilityRoute: TraceabilityRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
