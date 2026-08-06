@@ -9,6 +9,9 @@ lerna-debug.log*
 
 node_modules
 dist
+.env
+.env.*
+!.env.example
 dist-ssr
 .output
 .vinxi
@@ -19,6 +22,9 @@ dist-ssr
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
+
+# Vercel
+.vercel/
 
 # Editor directories and files
 .vscode/*

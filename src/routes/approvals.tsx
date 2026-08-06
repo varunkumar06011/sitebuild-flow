@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { REQUISITIONS, approverFor, canApprove, inr, ROLE_SUMMARY } from "@/lib/erp-data";
 import { useRole } from "@/lib/role-context";
+import { requireAuth } from "@/lib/auth-guards";
 import { toast } from "sonner";
 import { Lock } from "lucide-react";
 
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/approvals")({
       },
     ],
   }),
+  beforeLoad: () => requireAuth(),
   component: Approvals,
 });
 

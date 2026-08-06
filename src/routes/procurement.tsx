@@ -18,6 +18,7 @@ import {
   type Requisition,
 } from "@/lib/erp-data";
 import { useRole } from "@/lib/role-context";
+import { requireAuth } from "@/lib/auth-guards";
 import { toast } from "sonner";
 import { FileText, Check } from "lucide-react";
 
@@ -37,6 +38,7 @@ export const Route = createFileRoute("/procurement")({
       },
     ],
   }),
+  beforeLoad: () => requireAuth(),
   component: Procurement,
 });
 

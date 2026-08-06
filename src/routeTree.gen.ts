@@ -10,16 +10,36 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as A1RouteImport } from './routes/a1'
+import { Route as A1plusRouteImport } from './routes/a1plus'
+import { Route as AdministratorRouteImport } from './routes/administrator'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as GatePassRouteImport } from './routes/gate-pass'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProcurementRouteImport } from './routes/procurement'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RegistersRouteImport } from './routes/registers'
+import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as TraceabilityRouteImport } from './routes/traceability'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A1Route = A1RouteImport.update({
+  id: '/a1',
+  path: '/a1',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A1plusRoute = A1plusRouteImport.update({
+  id: '/a1plus',
+  path: '/a1plus',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdministratorRoute = AdministratorRouteImport.update({
+  id: '/administrator',
+  path: '/administrator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApprovalsRoute = ApprovalsRouteImport.update({
@@ -30,6 +50,11 @@ const ApprovalsRoute = ApprovalsRouteImport.update({
 const GatePassRoute = GatePassRouteImport.update({
   id: '/gate-pass',
   path: '/gate-pass',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProcurementRoute = ProcurementRouteImport.update({
@@ -47,6 +72,11 @@ const RegistersRoute = RegistersRouteImport.update({
   path: '/registers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupervisorRoute = SupervisorRouteImport.update({
+  id: '/supervisor',
+  path: '/supervisor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TraceabilityRoute = TraceabilityRouteImport.update({
   id: '/traceability',
   path: '/traceability',
@@ -55,69 +85,104 @@ const TraceabilityRoute = TraceabilityRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/a1': typeof A1Route
+  '/a1plus': typeof A1plusRoute
+  '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
   '/gate-pass': typeof GatePassRoute
+  '/login': typeof LoginRoute
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/a1': typeof A1Route
+  '/a1plus': typeof A1plusRoute
+  '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
   '/gate-pass': typeof GatePassRoute
+  '/login': typeof LoginRoute
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/a1': typeof A1Route
+  '/a1plus': typeof A1plusRoute
+  '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
   '/gate-pass': typeof GatePassRoute
+  '/login': typeof LoginRoute
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/a1'
+    | '/a1plus'
+    | '/administrator'
     | '/approvals'
     | '/gate-pass'
+    | '/login'
     | '/procurement'
     | '/quality'
     | '/registers'
+    | '/supervisor'
     | '/traceability'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/a1'
+    | '/a1plus'
+    | '/administrator'
     | '/approvals'
     | '/gate-pass'
+    | '/login'
     | '/procurement'
     | '/quality'
     | '/registers'
+    | '/supervisor'
     | '/traceability'
   id:
     | '__root__'
     | '/'
+    | '/a1'
+    | '/a1plus'
+    | '/administrator'
     | '/approvals'
     | '/gate-pass'
+    | '/login'
     | '/procurement'
     | '/quality'
     | '/registers'
+    | '/supervisor'
     | '/traceability'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  A1Route: typeof A1Route
+  A1plusRoute: typeof A1plusRoute
+  AdministratorRoute: typeof AdministratorRoute
   ApprovalsRoute: typeof ApprovalsRoute
   GatePassRoute: typeof GatePassRoute
+  LoginRoute: typeof LoginRoute
   ProcurementRoute: typeof ProcurementRoute
   QualityRoute: typeof QualityRoute
   RegistersRoute: typeof RegistersRoute
+  SupervisorRoute: typeof SupervisorRoute
   TraceabilityRoute: typeof TraceabilityRoute
 }
 
@@ -128,6 +193,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a1': {
+      id: '/a1'
+      path: '/a1'
+      fullPath: '/a1'
+      preLoaderRoute: typeof A1RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a1plus': {
+      id: '/a1plus'
+      path: '/a1plus'
+      fullPath: '/a1plus'
+      preLoaderRoute: typeof A1plusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/administrator': {
+      id: '/administrator'
+      path: '/administrator'
+      fullPath: '/administrator'
+      preLoaderRoute: typeof AdministratorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/approvals': {
@@ -142,6 +228,13 @@ declare module '@tanstack/react-router' {
       path: '/gate-pass'
       fullPath: '/gate-pass'
       preLoaderRoute: typeof GatePassRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/procurement': {
@@ -165,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegistersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/supervisor': {
+      id: '/supervisor'
+      path: '/supervisor'
+      fullPath: '/supervisor'
+      preLoaderRoute: typeof SupervisorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/traceability': {
       id: '/traceability'
       path: '/traceability'
@@ -177,13 +277,28 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  A1Route: A1Route,
+  A1plusRoute: A1plusRoute,
+  AdministratorRoute: AdministratorRoute,
   ApprovalsRoute: ApprovalsRoute,
   GatePassRoute: GatePassRoute,
+  LoginRoute: LoginRoute,
   ProcurementRoute: ProcurementRoute,
   QualityRoute: QualityRoute,
   RegistersRoute: RegistersRoute,
+  SupervisorRoute: SupervisorRoute,
   TraceabilityRoute: TraceabilityRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

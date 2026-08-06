@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { RoleProvider } from "../lib/role-context";
+import { authStore } from "../lib/auth-store";
 import { Toaster } from "../components/ui/sonner";
 
 
@@ -131,6 +132,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    authStore.init();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

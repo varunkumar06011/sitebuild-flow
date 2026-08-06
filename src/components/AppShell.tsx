@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -8,21 +8,23 @@ import {
   BadgeCheck,
   Users,
   HardHat,
+  LogOut,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useRole } from "@/lib/role-context";
-import { ROLES, ROLE_SUMMARY } from "@/lib/erp-data";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ROLE_NAV, ROLE_SUMMARY } from "@/lib/erp-data";
+import { Button } from "@/components/ui/button";
 
-const NAV = [
-  { to: "/", label: "Overview", icon: LayoutDashboard },
-  { to: "/procurement", label: "Procurement", icon: ClipboardList },
-  { to: "/approvals", label: "Approvals", icon: ShieldCheck },
-  { to: "/gate-pass", label: "Gate Pass", icon: ScanLine },
-  { to: "/traceability", label: "Traceability", icon: Boxes },
-  { to: "/quality", label: "Quality Control", icon: BadgeCheck },
-  { to: "/registers", label: "Registers & Labour", icon: Users },
-] as const;
+const ICON_MAP: Record<string, typeof HardHat> = {
+  LayoutDashboard,
+  ClipboardList,
+  ShieldCheck,
+  ScanLine,
+  Boxes,
+  BadgeCheck,
+  Users,
+  HardHat,
+};
 
 export function AppShell({
   title,
@@ -33,7 +35,14 @@ export function AppShell({
   subtitle: string;
   children: ReactNode;
 }) {
-  const { role, setRole } = useRole();
+  const { role, logout } = useRole();
+  const navigate = useNavigate();
+  const navItems = ROLE_NAV[role] ?? [];
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
 
   return (
     <div className="flex min-h-screen bg-background font-sans">
@@ -48,27 +57,40 @@ export function AppShell({
           </div>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 px-3">
-          {NAV.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              activeOptions={{ exact: to === "/" }}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              activeProps={{
-                className:
-                  "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
-              }}
-            >
-              <Icon className="size-4" />
-              {label}
-            </Link>
-          ))}
+          {navItems.map(({ to, label, icon }) => {
+            const Icon = ICON_MAP[icon] ?? LayoutDashboard;
+            return (
+              <Link
+                key={to}
+                to={to}
+                activeOptions={{ exact: to === "/" || to === `/${role.toLowerCase().replace("+", "plus")}` }}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                activeProps={{
+                  className:
+                    "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
+                }}
+              >
+                <Icon className="size-4" />
+                {label}
+              </Link>
+            );
+          })}
         </nav>
-        <div className="m-3 rounded-xl bg-surface p-3 text-xs text-muted-foreground">
-          <p className="font-semibold text-foreground">Approval limits</p>
-          <p className="mt-1.5">₹0 – 50,000 · Administrator</p>
-          <p>₹50,001 – 5,00,000 · A1</p>
-          <p>Above ₹5,00,000 · A1+</p>
+        <div className="m-3 space-y-3">
+          <div className="rounded-xl bg-surface p-3 text-xs text-muted-foreground">
+            <p className="font-semibold text-foreground">Signed in as</p>
+            <p className="mt-1 font-bold text-primary">{role}</p>
+            <p className="mt-0.5">{ROLE_SUMMARY[role].limit}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={handleLogout}
+          >
+            <LogOut className="mr-2 size-4" />
+            Sign out
+          </Button>
         </div>
       </aside>
 
@@ -81,29 +103,21 @@ export function AppShell({
             </div>
             <div className="flex items-center gap-3">
               <div className="hidden text-right sm:block">
-                <p className="text-xs font-medium text-muted-foreground">Signed in as</p>
-                <p className="text-xs text-muted-foreground">{ROLE_SUMMARY[role].limit}</p>
+                <p className="text-xs font-medium text-muted-foreground">Role</p>
+                <p className="text-xs font-bold text-primary">{role}</p>
               </div>
-              <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
-                <SelectTrigger className="w-[170px] bg-card">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="mr-1.5 size-3.5" />
+                Logout
+              </Button>
             </div>
           </div>
           <nav className="flex gap-1 overflow-x-auto border-t border-border px-3 py-2 lg:hidden">
-            {NAV.map(({ to, label }) => (
+            {navItems.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
-                activeOptions={{ exact: to === "/" }}
+                activeOptions={{ exact: to === "/" || to === `/${role.toLowerCase().replace("+", "plus")}` }}
                 className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground"
                 activeProps={{ className: "bg-accent text-accent-foreground font-semibold" }}
               >

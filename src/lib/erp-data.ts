@@ -368,3 +368,59 @@ export const PROGRESS = [
   { block: "OPD Block", pct: 81 },
   { block: "Diagnostics", pct: 35 },
 ];
+
+export type NavRoute = {
+  to: string;
+  label: string;
+  icon: string;
+};
+
+export const ROLE_NAV: Record<Role, NavRoute[]> = {
+  Supervisor: [
+    { to: "/supervisor", label: "My Dashboard", icon: "LayoutDashboard" },
+    { to: "/procurement", label: "Procurement", icon: "ClipboardList" },
+    { to: "/gate-pass", label: "Gate Pass", icon: "ScanLine" },
+    { to: "/traceability", label: "Traceability", icon: "Boxes" },
+    { to: "/quality", label: "Quality Control", icon: "BadgeCheck" },
+    { to: "/registers", label: "Registers & Labour", icon: "Users" },
+  ],
+  Administrator: [
+    { to: "/administrator", label: "Dashboard", icon: "LayoutDashboard" },
+    { to: "/procurement", label: "Procurement", icon: "ClipboardList" },
+    { to: "/approvals", label: "Approvals", icon: "ShieldCheck" },
+    { to: "/gate-pass", label: "Gate Pass", icon: "ScanLine" },
+    { to: "/traceability", label: "Traceability", icon: "Boxes" },
+    { to: "/quality", label: "Quality Control", icon: "BadgeCheck" },
+    { to: "/registers", label: "Registers & Labour", icon: "Users" },
+  ],
+  A1: [
+    { to: "/a1", label: "Dashboard", icon: "LayoutDashboard" },
+    { to: "/procurement", label: "Procurement", icon: "ClipboardList" },
+    { to: "/approvals", label: "Approvals", icon: "ShieldCheck" },
+    { to: "/traceability", label: "Traceability", icon: "Boxes" },
+    { to: "/quality", label: "Quality Control", icon: "BadgeCheck" },
+    { to: "/registers", label: "Registers & Labour", icon: "Users" },
+  ],
+  "A1+": [
+    { to: "/a1plus", label: "Dashboard", icon: "LayoutDashboard" },
+    { to: "/procurement", label: "Procurement", icon: "ClipboardList" },
+    { to: "/approvals", label: "Approvals", icon: "ShieldCheck" },
+    { to: "/traceability", label: "Traceability", icon: "Boxes" },
+    { to: "/quality", label: "Quality Control", icon: "BadgeCheck" },
+    { to: "/registers", label: "Registers & Labour", icon: "Users" },
+  ],
+};
+
+export const ROLE_DASHBOARD_ROUTE: Record<Role, string> = {
+  Supervisor: "/supervisor",
+  Administrator: "/administrator",
+  A1: "/a1",
+  "A1+": "/a1plus",
+};
+
+export const ROLE_LOGIN_CREDENTIALS: Record<Role, { username: string; password: string }> = {
+  Supervisor: { username: "supervisor", password: "site123" },
+  Administrator: { username: "admin", password: "admin123" },
+  A1: { username: "a1", password: "a1pass123" },
+  "A1+": { username: "a1plus", password: "final123" },
+};

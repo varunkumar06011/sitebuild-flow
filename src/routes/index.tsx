@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/erp-data";
 import { useRole } from "@/lib/role-context";
 import { ROLE_SUMMARY } from "@/lib/erp-data";
+import { authStore } from "@/lib/auth-store";
 import { ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -33,6 +34,19 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
+  beforeLoad: () => {
+    const state = authStore.getState();
+    if (state.isAuthenticated && state.role) {
+      const routes = {
+        Supervisor: "/supervisor",
+        Administrator: "/administrator",
+        A1: "/a1",
+        "A1+": "/a1plus",
+      } as const;
+      throw redirect({ to: routes[state.role] });
+    }
+    throw redirect({ to: "/login" });
+  },
   component: Overview,
 });
 
@@ -44,7 +58,7 @@ function Overview() {
   return (
     <AppShell
       title="Site control centre"
-      subtitle="Ashwini Multi-speciality Hospital · Phase 2 · 320 beds"
+      subtitle="Vgrand Multi-speciality Hospital · Phase 2 · 320 beds"
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Open requisitions" value={String(REQUISITIONS.length)} note="Across 4 blocks" />
