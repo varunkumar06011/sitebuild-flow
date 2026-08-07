@@ -60,14 +60,14 @@ export const ROLE_THEME: Record<
   },
 };
 
-export const ROLE_PORTAL_PATH: Record<Role, string> = {
+export const ROLE_PORTAL_PATH: Record<Role, "/portal/supervisor" | "/portal/administrator" | "/portal/a1" | "/portal/a1plus"> = {
   Supervisor: "/portal/supervisor",
   Administrator: "/portal/administrator",
   A1: "/portal/a1",
   "A1+": "/portal/a1plus",
 };
 
-export const ROLE_LOGIN_PATH: Record<Role, string> = {
+export const ROLE_LOGIN_PATH: Record<Role, "/login/supervisor" | "/login/administrator" | "/login/a1" | "/login/a1plus"> = {
   Supervisor: "/login/supervisor",
   Administrator: "/login/administrator",
   A1: "/login/a1",
