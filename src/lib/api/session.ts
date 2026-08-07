@@ -5,6 +5,7 @@ import { checkServerEnv } from "../env-check";
 import type { Role } from "../erp-data";
 import { getStartContext } from "@tanstack/start-storage-context";
 
+// Authenticated user shape derived from the JWT session token.
 export type SessionUser = {
   id: string;
   name: string;
@@ -14,6 +15,7 @@ export type SessionUser = {
 
 const COOKIE_NAME = "meditrust_session";
 
+// Returns the JWT signing secret from env, throwing if unset.
 function getJwtSecret(): string {
   const secret = process.env["APP_JWT_SECRET"];
   if (!secret) {
@@ -23,10 +25,12 @@ function getJwtSecret(): string {
   return secret;
 }
 
+// Hashes a session token with bcrypt for safe storage lookup.
 async function hashToken(token: string): Promise<string> {
   return bcrypt.hash(token, 10);
 }
 
+// Reads the session cookie from the current request context, with a fallback to getCookie.
 async function readSessionCookie(): Promise<string | undefined> {
   // Try getStartContext first (works for SSR/GET and serverFn POST)
   try {
@@ -55,6 +59,7 @@ async function readSessionCookie(): Promise<string | undefined> {
   return undefined;
 }
 
+// Returns the current session user if the JWT is valid and the session is active, else null.
 export async function getSessionUser(): Promise<SessionUser | null> {
   const token = await readSessionCookie();
   if (!token) return null;
@@ -93,6 +98,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   }
 }
 
+// Returns the current session user or throws if no valid session exists.
 export async function requireSessionUser(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) {

@@ -1,3 +1,4 @@
+// Material traceability page showing each batch's full document chain from supplier to installed location.
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
@@ -38,6 +39,7 @@ const CHAIN = [
   "Photos",
 ];
 
+// Main traceability page rendering batch cards with supplier, invoice, MTC and lab report details.
 function Traceability() {
   const { data: batchData } = useQuery({ queryKey: ["batches"], queryFn: () => fetchBatches({ data: {} }) });
   const batches = batchData?.data ?? [];
@@ -90,6 +92,7 @@ function Traceability() {
   );
 }
 
+// Small label/value pair component used in the batch detail grid.
 function Field({ k, v }: { k: string; v: string }) {
   return (
     <div>

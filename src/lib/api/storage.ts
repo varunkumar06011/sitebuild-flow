@@ -9,6 +9,7 @@ const PHOTO_MIMES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_DOC_SIZE = 10 * 1024 * 1024;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 
+// Zod schema validating a file upload request (bucket, path, MIME type, base64 data).
 const uploadSchema = z.object({
   bucket: z.enum(["documents", "photos"]),
   path: z.string().min(1),
@@ -16,6 +17,7 @@ const uploadSchema = z.object({
   fileData: z.string(),
 });
 
+// Uploads a base64-encoded file to Supabase storage with MIME and size validation, then logs the action.
 export const uploadFile = createServerFn({ method: "POST" })
   .validator(uploadSchema)
   .handler(async ({ data, context }) => {
@@ -53,12 +55,14 @@ export const uploadFile = createServerFn({ method: "POST" })
     return { success: true, path: data.path };
   });
 
+// Zod schema validating a signed-URL request (bucket, path, optional expiry).
 const signedUrlSchema = z.object({
   bucket: z.enum(["documents", "photos"]),
   path: z.string().min(1),
   expirySec: z.number().optional(),
 });
 
+// Generates a time-limited signed URL for a stored file and logs the view action.
 export const getSignedUrl = createServerFn({ method: "GET" })
   .validator(signedUrlSchema)
   .handler(async ({ data, context }) => {

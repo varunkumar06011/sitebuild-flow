@@ -1,3 +1,4 @@
+// Administrator role portal landing page describing within-limit approvals and management duties.
 import { createFileRoute } from "@tanstack/react-router";
 import { RolePortalLanding } from "@/components/RolePortal";
 

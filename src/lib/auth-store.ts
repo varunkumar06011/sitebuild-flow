@@ -1,5 +1,6 @@
 import type { Role } from "./erp-data";
 
+// Shape of the client-side authentication state persisted to localStorage.
 export type AuthState = {
   role: Role | null;
   name: string | null;
@@ -11,6 +12,7 @@ const STORAGE_KEY = "meditrust-auth-user";
 let state: AuthState = { role: null, name: null, isAuthenticated: false };
 const listeners = new Set<() => void>();
 
+// Notifies all subscribed listeners that auth state has changed.
 function notify() {
   listeners.forEach((l) => l());
 }
@@ -28,6 +30,7 @@ if (typeof window !== "undefined") {
   }
 }
 
+// Lightweight reactive auth store backed by localStorage, used for client-side route guards.
 export const authStore = {
   getState: () => state,
 

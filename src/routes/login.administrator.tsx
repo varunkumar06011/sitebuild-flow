@@ -15,6 +15,7 @@ export const Route = createFileRoute("/login/administrator")({
     ],
   }),
   beforeLoad: () => {
+    if (typeof window === "undefined") return;
     const s = authStore.getState();
     if (s.isAuthenticated && s.role) throw redirect({ to: ROLE_DASHBOARD[s.role] });
   },

@@ -1,3 +1,4 @@
+// Organization settings page for viewing and editing company profile, GST and contact details.
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
+// Main settings page with a form for organization profile fields, editable by A1+ roles.
 function SettingsPage() {
   const { role } = useRole();
   const queryClient = useQueryClient();
@@ -67,6 +69,7 @@ function SettingsPage() {
     }
   }, [settings]);
 
+  // Persists the organization settings form via the API and refreshes the query cache.
   const handleSave = async () => {
     if (!form.name.trim()) {
       toast.error("Organization name is required");
@@ -154,7 +157,7 @@ function SettingsPage() {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="ocity">City</Label>
               <Input

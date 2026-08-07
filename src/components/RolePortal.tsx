@@ -9,6 +9,7 @@ import {
   Lock,
   User,
   Check,
+  Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useRole } from "@/lib/role-context";
+import { loginUser } from "@/lib/auth-server";
 import {
   ROLE_SUMMARY,
   ROLE_LOGIN_CREDENTIALS,
@@ -196,23 +198,39 @@ export function RolePortalLanding({
 }
 
 export function RoleLoginPortal({ role }: { role: Role }) {
-  const navigate = useNavigate();
   useRedirectIfAuthenticated();
-  const { login } = useRole();
+  const { setUser } = useRole();
   const theme = ROLE_THEME[role];
   const Icon = ROLE_ICONS[role];
   const creds = ROLE_LOGIN_CREDENTIALS[role];
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim() === creds.username && password === creds.password) {
-      login(role);
-      toast.success(`Welcome back, ${role}`);
-      navigate({ to: ROLE_DASHBOARD[role] });
-    } else {
-      toast.error(`Invalid ${role} credentials`);
+    setLoading(true);
+    try {
+      const result = await loginUser({ data: { username, password } });
+      if (result.success) {
+        if (result.user.role !== role) {
+          toast.error(`These credentials belong to ${result.user.role}, not ${role}. Use the ${result.user.role} login page.`);
+          setLoading(false);
+          return;
+        }
+        setUser({ role: result.user.role, name: result.user.name });
+        toast.success(`Welcome back, ${result.user.name}`);
+        document.cookie = `meditrust_session=${encodeURIComponent(result.token)}; path=/; max-age=${result.maxAge}; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
+        window.location.href = ROLE_DASHBOARD[result.user.role as Role];
+      } else {
+        toast.error(result.error);
+        if (result.locked) setPassword("");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      toast.error(err instanceof Error ? err.message : "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -258,9 +276,17 @@ export function RoleLoginPortal({ role }: { role: Role }) {
               />
             </div>
           </div>
-          <Button type="submit" className="w-full">
-            Sign in as {role}
-            <ArrowRight className="ml-2 size-4" />
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" /> Signing in...
+              </>
+            ) : (
+              <>
+                Sign in as {role}
+                <ArrowRight className="ml-2 size-4" />
+              </>
+            )}
           </Button>
         </form>
 

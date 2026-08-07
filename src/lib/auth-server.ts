@@ -6,7 +6,9 @@ import { supabaseServer } from "./supabase-server";
 import { checkServerEnv } from "./env-check";
 import type { Role } from "./erp-data";
 import { getStartContext } from "@tanstack/start-storage-context";
+import { checkRateLimit, getClientIp, LOGIN_RATE_LIMIT } from "./rate-limiter";
 
+// Represents the authenticated user shape returned to the client.
 export type AuthUser = {
   id: string;
   name: string;
@@ -14,6 +16,7 @@ export type AuthUser = {
   phone: string | null;
 };
 
+// Discriminated union describing the outcome of a login attempt.
 export type LoginResult =
   | { success: true; user: AuthUser; token: string; maxAge: number }
   | { success: false; error: string; locked?: boolean };
@@ -22,6 +25,7 @@ const COOKIE_NAME = "meditrust_session";
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
 
+// Retrieves the JWT signing secret from env, throwing if it is missing.
 function getJwtSecret(): string {
   const secret = process.env["APP_JWT_SECRET"];
   if (!secret) {
@@ -31,10 +35,12 @@ function getJwtSecret(): string {
   return secret;
 }
 
+// Returns the configured JWT expiry duration, defaulting to 12 hours.
 function getJwtExpiry(): string {
   return process.env["APP_JWT_EXPIRY"] || "12h";
 }
 
+// Converts a human-readable expiry string (e.g. "12h") into milliseconds.
 function parseExpiryToMs(expiry: string): number {
   const match = /^(\d+)(s|m|h|d)$/.exec(expiry);
   if (!match) return 12 * 60 * 60 * 1000;
@@ -49,10 +55,12 @@ function parseExpiryToMs(expiry: string): number {
   return num * (multipliers[unit] ?? 12 * 60 * 60 * 1000);
 }
 
+// Hashes a session token with bcrypt so the raw token is never stored.
 async function hashToken(token: string): Promise<string> {
   return bcrypt.hash(token, 10);
 }
 
+// Reads the session JWT from the request cookie, trying SSR context then RPC fallback.
 async function readSessionCookie(): Promise<string | undefined> {
   // Try getStartContext first (works for SSR/GET)
   try {
@@ -87,11 +95,23 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+// Server function that validates credentials, enforces lockout, and issues a JWT session.
 export const loginUser = createServerFn({ method: "POST" })
   .validator(loginSchema)
   .handler(
     async ({ data }): Promise<LoginResult> => {
       const { username, password } = data;
+
+      // IP-based rate limiting to prevent brute-force across multiple accounts
+      const ip = getClientIp();
+      const rateLimit = checkRateLimit(`login:${ip}`, LOGIN_RATE_LIMIT.maxRequests, LOGIN_RATE_LIMIT.windowMs);
+      if (!rateLimit.allowed) {
+        const retryAfter = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+        return {
+          success: false,
+          error: `Too many login attempts. Try again in ${retryAfter} seconds.`,
+        };
+      }
 
       const { data: user, error } = await supabaseServer
         .from("users")
@@ -179,6 +199,7 @@ export const loginUser = createServerFn({ method: "POST" })
     },
   );
 
+// Server function that checks the session cookie and returns the current auth state.
 export const verifySession = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ authenticated: boolean; user: AuthUser | null }> => {
     const token = await readSessionCookie();
@@ -232,6 +253,7 @@ export const verifySession = createServerFn({ method: "GET" }).handler(
   },
 );
 
+// Server function that revokes the active session in the database.
 export const logoutUser = createServerFn({ method: "POST" }).handler(
   async (): Promise<{ success: boolean }> => {
     const token = await readSessionCookie();
@@ -251,6 +273,7 @@ export const logoutUser = createServerFn({ method: "POST" }).handler(
   },
 );
 
+// Server function that returns the authenticated user for the current session, or null.
 export const getCurrentUser = createServerFn({ method: "GET" }).handler(
   async (): Promise<AuthUser | null> => {
     const token = await readSessionCookie();

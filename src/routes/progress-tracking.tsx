@@ -1,3 +1,4 @@
+// Progress tracking page for supervisors to update status, completion and photos of assigned cells.
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -50,6 +51,7 @@ const STATUS_LABELS: Record<string, string> = {
   on_hold: "On Hold",
 };
 
+// Main progress tracking page showing assigned cells with filter, edit and history actions.
 function ProgressTrackingPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editingCell, setEditingCell] = useState<any | null>(null);
@@ -153,6 +155,7 @@ function ProgressTrackingPage() {
   );
 }
 
+// Dialog for editing a cell's status, completion percentage, remarks and photo upload.
 function CellEditDialog({ cell, onClose, onSaved }: { cell: any; onClose: () => void; onSaved: () => void }) {
   const [status, setStatus] = useState(cell.status);
   const [pct, setPct] = useState(cell.completion_pct);
@@ -161,6 +164,7 @@ function CellEditDialog({ cell, onClose, onSaved }: { cell: any; onClose: () => 
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Persists the updated cell status, completion and remarks via the API.
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -185,6 +189,7 @@ function CellEditDialog({ cell, onClose, onSaved }: { cell: any; onClose: () => 
     }
   };
 
+  // Reads a photo file as base64 and uploads it as evidence for the cell.
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -285,6 +290,7 @@ function CellEditDialog({ cell, onClose, onSaved }: { cell: any; onClose: () => 
   );
 }
 
+// Dialog showing the change history and uploaded photos for a single cell.
 function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }) {
   const { data: histData } = useQuery({
     queryKey: ["cellHistory", cell.id],
@@ -331,7 +337,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
           {photos.length > 0 && (
             <div>
               <p className="text-sm font-medium mb-2">Photos</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {photos.map((p: any) => (
                   <SignedPhoto key={p.id} path={p.storage_path} caption={p.caption} />
                 ))}
@@ -344,6 +350,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
   );
 }
 
+// Renders a single cell photo by fetching its signed URL from storage.
 function SignedPhoto({ path, caption }: { path: string; caption?: string | null }) {
   const { data } = useQuery({
     queryKey: ["signedUrl", path],

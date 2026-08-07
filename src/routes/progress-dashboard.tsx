@@ -1,3 +1,4 @@
+// Progress dashboard page showing block-level roll-ups and a drill-down table of all tracked cells.
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -47,6 +48,7 @@ const STATUS_LABELS: Record<string, string> = {
   on_hold: "On Hold",
 };
 
+// Main dashboard page with block summary cards, filters and a cell-level drill-down table.
 function ProgressDashboardPage() {
   const { data: dashData } = useQuery({
     queryKey: ["progressDashboard"],
@@ -182,6 +184,7 @@ function ProgressDashboardPage() {
   );
 }
 
+// Dialog showing the change history and uploaded photos for a single cell.
 function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }) {
   const { data: histData } = useQuery({
     queryKey: ["cellHistory", cell.id],
@@ -226,7 +229,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
           {photos.length > 0 && (
             <div>
               <p className="text-sm font-medium mb-2">Photos</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {photos.map((p: any) => (
                   <SignedPhoto key={p.id} path={p.storage_path} caption={p.caption} />
                 ))}
@@ -239,6 +242,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
   );
 }
 
+// Renders a single cell photo by fetching its signed URL from storage.
 function SignedPhoto({ path, caption }: { path: string; caption?: string | null }) {
   const { data } = useQuery({
     queryKey: ["signedUrl", path],

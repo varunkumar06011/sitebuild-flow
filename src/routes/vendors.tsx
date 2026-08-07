@@ -1,3 +1,4 @@
+// Vendor management page for maintaining vendor master data, payments, outstanding tracking and proof of bill.
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -56,6 +57,7 @@ export const Route = createFileRoute("/vendors")({
   component: VendorsPage,
 });
 
+// Main vendor page with searchable vendor table, add/edit dialog, payment recording and history.
 function VendorsPage() {
   const { role } = useRole();
   const queryClient = useQueryClient();
@@ -137,6 +139,7 @@ function VendorsPage() {
   });
   const historyPayments = historyData?.data ?? [];
 
+// Opens the vendor create dialog with an empty form.
   const openCreate = () => {
     setEditing(null);
     setForm({ name: "", gst_number: "", address: "", city: "", state: "", pincode: "", phone: "", email: "", materials_purchased: "", total_amount: "", payment_method: "" });
@@ -144,6 +147,7 @@ function VendorsPage() {
     setDialogOpen(true);
   };
 
+// Opens the vendor edit dialog pre-filled with the selected vendor's data.
   const openEdit = (v: any) => {
     setEditing(v);
     setForm({
@@ -163,6 +167,7 @@ function VendorsPage() {
     setDialogOpen(true);
   };
 
+// Creates a new material category via the API and selects it in the vendor form.
   const handleCreateCategory = async () => {
     if (!newCategory.trim()) {
       toast.error("Enter a category name");
@@ -187,6 +192,7 @@ function VendorsPage() {
     setCreatingCategory(false);
   };
 
+// Saves the vendor form, creating a new vendor or updating an existing one.
   const handleSave = async () => {
     if (!form.name.trim()) {
       toast.error("Vendor name is required");
@@ -233,6 +239,7 @@ function VendorsPage() {
     setSaving(false);
   };
 
+// Opens the add-payment dialog for the selected vendor.
   const openAddPayment = (v: any) => {
     setPaymentVendor(v);
     setPaymentForm({ amount: "", payment_type: "", approved_by: "", notes: "" });
@@ -240,11 +247,13 @@ function VendorsPage() {
     setPaymentDialogOpen(true);
   };
 
+// Opens the payment history dialog for the selected vendor.
   const openPaymentHistory = (v: any) => {
     setHistoryVendor(v);
     setHistoryDialogOpen(true);
   };
 
+// Uploads payment proof, records the vendor payment and refreshes vendor/payment queries.
   const handlePaymentSave = async () => {
     if (!paymentVendor) return;
     if (!paymentForm.amount || Number(paymentForm.amount) <= 0) {
@@ -316,6 +325,7 @@ function VendorsPage() {
     setPaymentSaving(false);
   };
 
+// Generates a signed URL and opens the payment proof file in a new tab.
   const handleViewProof = async (proofPath: string) => {
     const result = await getSignedUrl({ data: { bucket: "documents", path: proofPath } });
     if (result.success && result.url) {
@@ -354,70 +364,126 @@ function VendorsPage() {
           </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="pb-2 font-semibold">Name</th>
-                <th className="pb-2 font-semibold">Materials</th>
-                <th className="pb-2 text-right font-semibold">Total</th>
-                <th className="pb-2 text-right font-semibold">Paid</th>
-                <th className="pb-2 text-right font-semibold">Outstanding</th>
-                <th className="pb-2 font-semibold">Method</th>
-                {canManage && <th className="pb-2" />}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {vendors.length === 0 && (
-                <tr>
-                  <td colSpan={canManage ? 7 : 6} className="py-8 text-center text-muted-foreground">
-                    No vendors found.
-                  </td>
+        <div className="mt-4">
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[900px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="pb-2 font-semibold">Name</th>
+                  <th className="pb-2 font-semibold">Materials</th>
+                  <th className="pb-2 text-right font-semibold">Total</th>
+                  <th className="pb-2 text-right font-semibold">Paid</th>
+                  <th className="pb-2 text-right font-semibold">Outstanding</th>
+                  <th className="pb-2 font-semibold">Method</th>
+                  {canManage && <th className="pb-2" />}
                 </tr>
-              )}
-              {vendors.map((v: any) => (
-                <tr key={v.id} className="align-middle">
-                  <td className="py-3">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="size-4 text-muted-foreground" />
-                      <div>
-                        <span className="font-medium">{v.name}</span>
-                        {v.gst_number && (
-                          <p className="font-mono text-xs text-muted-foreground">{v.gst_number}</p>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 text-muted-foreground">{v.materials_purchased ?? "—"}</td>
-                  <td className="py-3 text-right font-mono font-semibold">{inr(v.total_amount ?? 0)}</td>
-                  <td className="py-3 text-right font-mono text-success">{inr(v.amount_paid ?? 0)}</td>
-                  <td className="py-3 text-right font-mono">
-                    <span className={(v.outstanding_amount ?? 0) > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}>
-                      {inr(v.outstanding_amount ?? 0)}
-                    </span>
-                  </td>
-                  <td className="py-3 text-muted-foreground">{v.payment_method ?? "—"}</td>
-                  {canManage && (
+              </thead>
+              <tbody className="divide-y divide-border">
+                {vendors.length === 0 && (
+                  <tr>
+                    <td colSpan={canManage ? 7 : 6} className="py-8 text-center text-muted-foreground">
+                      No vendors found.
+                    </td>
+                  </tr>
+                )}
+                {vendors.map((v: any) => (
+                  <tr key={v.id} className="align-middle">
                     <td className="py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        {(v.outstanding_amount ?? 0) > 0 && (
-                          <Button variant="ghost" size="sm" onClick={() => openAddPayment(v)} title="Add payment">
-                            <IndianRupee className="size-3.5" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => openPaymentHistory(v)} title="Payment history">
-                          <FileText className="size-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(v)} title="Edit vendor">
-                          <Pencil className="size-3.5" />
-                        </Button>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="size-4 text-muted-foreground" />
+                        <div>
+                          <span className="font-medium">{v.name}</span>
+                          {v.gst_number && (
+                            <p className="font-mono text-xs text-muted-foreground">{v.gst_number}</p>
+                          )}
+                        </div>
                       </div>
                     </td>
+                    <td className="py-3 text-muted-foreground">{v.materials_purchased ?? "—"}</td>
+                    <td className="py-3 text-right font-mono font-semibold">{inr(v.total_amount ?? 0)}</td>
+                    <td className="py-3 text-right font-mono text-success">{inr(v.amount_paid ?? 0)}</td>
+                    <td className="py-3 text-right font-mono">
+                      <span className={(v.outstanding_amount ?? 0) > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}>
+                        {inr(v.outstanding_amount ?? 0)}
+                      </span>
+                    </td>
+                    <td className="py-3 text-muted-foreground">{v.payment_method ?? "—"}</td>
+                    {canManage && (
+                      <td className="py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          {(v.outstanding_amount ?? 0) > 0 && (
+                            <Button variant="ghost" size="sm" onClick={() => openAddPayment(v)} title="Add payment">
+                              <IndianRupee className="size-3.5" />
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" onClick={() => openPaymentHistory(v)} title="Payment history">
+                            <FileText className="size-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(v)} title="Edit vendor">
+                            <Pencil className="size-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {vendors.length === 0 && (
+              <p className="py-8 text-center text-sm text-muted-foreground">No vendors found.</p>
+            )}
+            {vendors.map((v: any) => (
+              <div key={v.id} className="rounded-xl border border-border p-4">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="size-4 text-muted-foreground" />
+                    <div>
+                      <span className="font-medium">{v.name}</span>
+                      {v.gst_number && (
+                        <p className="font-mono text-xs text-muted-foreground">{v.gst_number}</p>
+                      )}
+                    </div>
+                  </div>
+                  {canManage && (
+                    <div className="flex items-center gap-1">
+                      {(v.outstanding_amount ?? 0) > 0 && (
+                        <Button variant="ghost" size="sm" className="size-8 p-0" onClick={() => openAddPayment(v)} aria-label="Add payment">
+                          <IndianRupee className="size-3.5" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" className="size-8 p-0" onClick={() => openPaymentHistory(v)} aria-label="Payment history">
+                        <FileText className="size-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="size-8 p-0" onClick={() => openEdit(v)} aria-label="Edit vendor">
+                        <Pencil className="size-3.5" />
+                      </Button>
+                    </div>
                   )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                </div>
+                {v.materials_purchased && (
+                  <p className="mb-2 text-xs text-muted-foreground">{v.materials_purchased}</p>
+                )}
+                <div className="grid grid-cols-3 gap-2 border-t border-border pt-2 text-center text-xs">
+                  <div><p className="text-muted-foreground">Total</p><p className="font-mono font-semibold">{inr(v.total_amount ?? 0)}</p></div>
+                  <div><p className="text-muted-foreground">Paid</p><p className="font-mono text-success">{inr(v.amount_paid ?? 0)}</p></div>
+                  <div>
+                    <p className="text-muted-foreground">Outstanding</p>
+                    <p className={`font-mono ${(v.outstanding_amount ?? 0) > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
+                      {inr(v.outstanding_amount ?? 0)}
+                    </p>
+                  </div>
+                </div>
+                {v.payment_method && (
+                  <p className="mt-2 text-xs text-muted-foreground">Method: {v.payment_method}</p>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </Card>
 
@@ -505,7 +571,7 @@ function VendorsPage() {
               <Label htmlFor="vaddr">Address</Label>
               <Input id="vaddr" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="vcity">City</Label>
                 <Input id="vcity" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
@@ -642,41 +708,61 @@ function VendorsPage() {
             {historyPayments.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">No payments recorded yet.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="pb-2 font-semibold">Date</th>
-                      <th className="pb-2 text-right font-semibold">Amount</th>
-                      <th className="pb-2 font-semibold">Type</th>
-                      <th className="pb-2 font-semibold">Approved by</th>
-                      <th className="pb-2 font-semibold">Proof</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {historyPayments.map((p: any) => (
-                      <tr key={p.id} className="align-middle">
-                        <td className="py-2.5 text-xs text-muted-foreground">
-                          {new Date(p.payment_date).toLocaleDateString("en-IN")}
-                        </td>
-                        <td className="py-2.5 text-right font-mono font-semibold">{inr(p.amount)}</td>
-                        <td className="py-2.5">
-                          <StatusPill tone="info">{p.payment_type}</StatusPill>
-                        </td>
-                        <td className="py-2.5 text-xs">
-                          <span className="font-medium">{p.approved_by_name}</span>
-                          <span className="text-muted-foreground"> ({p.approved_by_role})</span>
-                        </td>
-                        <td className="py-2.5">
-                          <Button variant="ghost" size="sm" onClick={() => handleViewProof(p.proof_path)}>
-                            <FileText className="size-3.5" />
-                          </Button>
-                        </td>
+              <>
+                {/* Desktop table */}
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                        <th className="pb-2 font-semibold">Date</th>
+                        <th className="pb-2 text-right font-semibold">Amount</th>
+                        <th className="pb-2 font-semibold">Type</th>
+                        <th className="pb-2 font-semibold">Approved by</th>
+                        <th className="pb-2 font-semibold">Proof</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {historyPayments.map((p: any) => (
+                        <tr key={p.id} className="align-middle">
+                          <td className="py-2.5 text-xs text-muted-foreground">
+                            {new Date(p.payment_date).toLocaleDateString("en-IN")}
+                          </td>
+                          <td className="py-2.5 text-right font-mono font-semibold">{inr(p.amount)}</td>
+                          <td className="py-2.5">
+                            <StatusPill tone="info">{p.payment_type}</StatusPill>
+                          </td>
+                          <td className="py-2.5 text-xs">
+                            <span className="font-medium">{p.approved_by_name}</span>
+                            <span className="text-muted-foreground"> ({p.approved_by_role})</span>
+                          </td>
+                          <td className="py-2.5">
+                            <Button variant="ghost" size="sm" onClick={() => handleViewProof(p.proof_path)}>
+                              <FileText className="size-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Mobile cards */}
+                <div className="space-y-3 sm:hidden">
+                  {historyPayments.map((p: any) => (
+                    <div key={p.id} className="rounded-lg border border-border p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="font-mono text-sm font-semibold">{inr(p.amount)}</span>
+                        <StatusPill tone="info">{p.payment_type}</StatusPill>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(p.payment_date).toLocaleDateString("en-IN")} · {p.approved_by_name} ({p.approved_by_role})
+                      </p>
+                      <Button variant="ghost" size="sm" className="mt-2 h-7 px-2 text-xs" onClick={() => handleViewProof(p.proof_path)}>
+                        <FileText className="mr-1 size-3" /> View proof
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </DialogContent>
@@ -695,45 +781,71 @@ function VendorsPage() {
             {allPayments.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">No payments recorded yet.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="pb-2 font-semibold">Vendor</th>
-                      <th className="pb-2 font-semibold">Date</th>
-                      <th className="pb-2 text-right font-semibold">Amount</th>
-                      <th className="pb-2 font-semibold">Type</th>
-                      <th className="pb-2 font-semibold">Approved by</th>
-                      <th className="pb-2 font-semibold">Recorded by</th>
-                      <th className="pb-2 font-semibold">Proof</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {allPayments.map((p: any) => (
-                      <tr key={p.id} className="align-middle">
-                        <td className="py-2.5 font-medium">{p.vendor_name}</td>
-                        <td className="py-2.5 text-xs text-muted-foreground">
-                          {new Date(p.payment_date).toLocaleDateString("en-IN")}
-                        </td>
-                        <td className="py-2.5 text-right font-mono font-semibold">{inr(p.amount)}</td>
-                        <td className="py-2.5">
-                          <StatusPill tone="info">{p.payment_type}</StatusPill>
-                        </td>
-                        <td className="py-2.5 text-xs">
-                          <span className="font-medium">{p.approved_by_name}</span>
-                          <span className="text-muted-foreground"> ({p.approved_by_role})</span>
-                        </td>
-                        <td className="py-2.5 text-xs text-muted-foreground">{p.created_by_name}</td>
-                        <td className="py-2.5">
-                          <Button variant="ghost" size="sm" onClick={() => handleViewProof(p.proof_path)}>
-                            <FileText className="size-3.5" />
-                          </Button>
-                        </td>
+              <>
+                {/* Desktop table */}
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                        <th className="pb-2 font-semibold">Vendor</th>
+                        <th className="pb-2 font-semibold">Date</th>
+                        <th className="pb-2 text-right font-semibold">Amount</th>
+                        <th className="pb-2 font-semibold">Type</th>
+                        <th className="pb-2 font-semibold">Approved by</th>
+                        <th className="pb-2 font-semibold">Recorded by</th>
+                        <th className="pb-2 font-semibold">Proof</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {allPayments.map((p: any) => (
+                        <tr key={p.id} className="align-middle">
+                          <td className="py-2.5 font-medium">{p.vendor_name}</td>
+                          <td className="py-2.5 text-xs text-muted-foreground">
+                            {new Date(p.payment_date).toLocaleDateString("en-IN")}
+                          </td>
+                          <td className="py-2.5 text-right font-mono font-semibold">{inr(p.amount)}</td>
+                          <td className="py-2.5">
+                            <StatusPill tone="info">{p.payment_type}</StatusPill>
+                          </td>
+                          <td className="py-2.5 text-xs">
+                            <span className="font-medium">{p.approved_by_name}</span>
+                            <span className="text-muted-foreground"> ({p.approved_by_role})</span>
+                          </td>
+                          <td className="py-2.5 text-xs text-muted-foreground">{p.created_by_name}</td>
+                          <td className="py-2.5">
+                            <Button variant="ghost" size="sm" onClick={() => handleViewProof(p.proof_path)}>
+                              <FileText className="size-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Mobile cards */}
+                <div className="space-y-3 sm:hidden">
+                  {allPayments.map((p: any) => (
+                    <div key={p.id} className="rounded-lg border border-border p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="font-medium">{p.vendor_name}</span>
+                        <span className="font-mono text-sm font-semibold">{inr(p.amount)}</span>
+                      </div>
+                      <div className="mb-2 flex items-center gap-2">
+                        <StatusPill tone="info">{p.payment_type}</StatusPill>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(p.payment_date).toLocaleDateString("en-IN")}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Approved by {p.approved_by_name} ({p.approved_by_role}) · Recorded by {p.created_by_name}
+                      </p>
+                      <Button variant="ghost" size="sm" className="mt-2 h-7 px-2 text-xs" onClick={() => handleViewProof(p.proof_path)}>
+                        <FileText className="mr-1 size-3" /> View proof
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </DialogContent>

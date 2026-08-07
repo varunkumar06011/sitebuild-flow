@@ -9,6 +9,7 @@
 -- ----------------------------------------------------------------------------
 -- Enums
 -- ----------------------------------------------------------------------------
+-- Payment method enum for vendor payments.
 DO $$ BEGIN
   CREATE TYPE payment_method AS ENUM ('Cash', 'Cheque', 'UPI', 'NEFT', 'RTGS', 'IMPS');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -16,6 +17,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- ----------------------------------------------------------------------------
 -- Add payment-tracking columns to vendors
 -- ----------------------------------------------------------------------------
+-- Adds materials/amount tracking columns to vendors for payment summaries.
 ALTER TABLE vendors
   ADD COLUMN IF NOT EXISTS materials_purchased text,
   ADD COLUMN IF NOT EXISTS total_amount    numeric NOT NULL DEFAULT 0,
@@ -26,6 +28,7 @@ ALTER TABLE vendors
 -- ----------------------------------------------------------------------------
 -- Material categories table (selectable + creatable on the fly)
 -- ----------------------------------------------------------------------------
+-- Stores selectable material categories used when recording vendor purchases.
 CREATE TABLE IF NOT EXISTS material_categories (
   id          uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   name        text UNIQUE NOT NULL,
@@ -33,6 +36,7 @@ CREATE TABLE IF NOT EXISTS material_categories (
   created_at  timestamptz NOT NULL DEFAULT now()
 );
 
+-- Enable RLS and revoke direct access on material_categories.
 ALTER TABLE material_categories ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON material_categories FROM anon, authenticated;
 
@@ -61,6 +65,7 @@ ON CONFLICT (name) DO NOTHING;
 -- ----------------------------------------------------------------------------
 -- Vendor payments table (individual payment records)
 -- ----------------------------------------------------------------------------
+-- Stores individual vendor payment records with approver and proof-of-bill.
 CREATE TABLE IF NOT EXISTS vendor_payments (
   id            uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   vendor_id     uuid NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
@@ -77,19 +82,24 @@ CREATE TABLE IF NOT EXISTS vendor_payments (
 -- ----------------------------------------------------------------------------
 -- Indexes
 -- ----------------------------------------------------------------------------
+-- Speeds up listing payments for a given vendor.
 CREATE INDEX IF NOT EXISTS idx_vendor_payments_vendor_id ON vendor_payments(vendor_id);
+-- Speeds up listing payments approved by a given user.
 CREATE INDEX IF NOT EXISTS idx_vendor_payments_approved_by ON vendor_payments(approved_by);
+-- Speeds up sorting payments by date.
 CREATE INDEX IF NOT EXISTS idx_vendor_payments_created_at ON vendor_payments(created_at);
 
 -- ----------------------------------------------------------------------------
 -- RLS
 -- ----------------------------------------------------------------------------
+-- Enable RLS and revoke direct access on vendor_payments.
 ALTER TABLE vendor_payments ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON vendor_payments FROM anon, authenticated;
 
 -- ----------------------------------------------------------------------------
 -- Trigger: auto-update vendor amount_paid / outstanding on payment insert
 -- ----------------------------------------------------------------------------
+-- Recomputes vendor amount_paid and outstanding_amount when a payment is inserted.
 CREATE OR REPLACE FUNCTION update_vendor_payment_totals()
 RETURNS trigger AS $$
 BEGIN
@@ -103,6 +113,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_vendor_payment_insert ON vendor_payments;
+-- Fires after each payment insert to keep vendor totals in sync.
 CREATE TRIGGER trg_vendor_payment_insert
   AFTER INSERT ON vendor_payments
   FOR EACH ROW

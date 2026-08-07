@@ -1,3 +1,4 @@
+// Supervisor role portal landing page describing site execution workflow from PR to material receipt.
 import { createFileRoute } from "@tanstack/react-router";
 import { RolePortalLanding } from "@/components/RolePortal";
 

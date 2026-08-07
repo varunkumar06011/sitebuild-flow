@@ -1,14 +1,17 @@
+// Administrator dashboard route: requires Administrator role and renders the within-limit approval dashboard.
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { approverFor, inr, ROLE_SUMMARY } from "@/lib/erp-data";
 import { requireRole } from "@/lib/auth-guards";
-import { fetchRequisitions, updateRequisitionStage } from "@/lib/api/requisitions";
+import { fetchRequisitions, type RequisitionRow } from "@/lib/api/requisitions";
 import { fetchInspections } from "@/lib/api/inspections";
 import { fetchProgress } from "@/lib/api/progress";
 import { useRole } from "@/lib/role-context";
+import { useApprovalActions } from "@/hooks/use-approval-actions";
+import { ApprovalQueueItem } from "@/components/approval/ApprovalQueueItem";
+import { DecisionHistory } from "@/components/approval/DecisionHistory";
 import {
   ShieldCheck,
   ArrowUpRight,
@@ -17,8 +20,6 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/administrator")({
   head: () => ({
@@ -28,46 +29,26 @@ export const Route = createFileRoute("/administrator")({
   component: AdministratorDashboard,
 });
 
+// Administrator dashboard showing within-limit approvals, escalated items, progress, and QC snapshot.
 function AdministratorDashboard() {
-  const [decided, setDecided] = useState<Record<string, "Approved" | "Rejected">>({});
   const { name } = useRole();
+  const actions = useApprovalActions();
 
-  const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
+  const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }), refetchInterval: 15000 });
   const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
 
-  const requisitions = reqData?.data ?? [];
+  const requisitions: RequisitionRow[] = reqData?.data ?? [];
   const inspections = inspData?.data ?? [];
   const progress = progData?.data ?? [];
 
-  const withinLimit = requisitions.filter((r: any) => approverFor(r.amount) === "Administrator");
+  const withinLimit = requisitions.filter((r) => approverFor(r.amount) === "Administrator");
   const pendingApproval = withinLimit.filter(
-    (r: any) => r.stage === "Admin" && !decided[r.id],
+    (r) => r.stage === "Admin" && !actions.decided[r.id],
   );
-  const totalCommitted = requisitions.filter((r: any) => r.stage === "Completed").reduce(
-    (s: number, r: any) => s + r.amount,
-    0,
-  );
-
-  const handleApprove = async (id: string, prNumber: string, expectedStage: string) => {
-    const result = await updateRequisitionStage({ data: { id, newStage: "PO", expectedStage } });
-    if (result.success) {
-      setDecided((d) => ({ ...d, [id]: "Approved" }));
-      toast.success(`${prNumber} approved`);
-    } else {
-      toast.error(result.error ?? "Failed to approve");
-    }
-  };
-
-  const handleReject = async (id: string, prNumber: string, expectedStage: string) => {
-    const result = await updateRequisitionStage({ data: { id, newStage: "Quotation", expectedStage } });
-    if (result.success) {
-      setDecided((d) => ({ ...d, [id]: "Rejected" }));
-      toast.error(`${prNumber} sent back`);
-    } else {
-      toast.error(result.error ?? "Failed to reject");
-    }
-  };
+  const totalCommitted = requisitions
+    .filter((r) => r.stage === "Completed")
+    .reduce((s, r) => s + r.amount, 0);
 
   return (
     <AppShell
@@ -86,7 +67,7 @@ function AdministratorDashboard() {
         <StatCard
           icon={CheckCircle2}
           label="Approved Today"
-          value={String(Object.values(decided).filter((v) => v === "Approved").length)}
+          value={String(Object.values(actions.decided).filter((v) => v === "Approved").length)}
           note="This session"
           tone="success"
         />
@@ -100,7 +81,7 @@ function AdministratorDashboard() {
         <StatCard
           icon={Users}
           label="Vendors Managed"
-          value={String(new Set(requisitions.map((r: any) => r.vendor_name).filter(Boolean)).size)}
+          value={String(new Set(requisitions.map((r) => r.vendor_name).filter(Boolean)).size)}
           note="Active suppliers"
           tone="info"
         />
@@ -108,55 +89,21 @@ function AdministratorDashboard() {
 
       {/* Approval queue */}
       <Card className="mt-6 p-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-bold">Approvals within your limit</h2>
           <Link to="/approvals" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
             Open full queue <ArrowUpRight className="size-3.5" />
           </Link>
         </div>
         <div className="mt-4 space-y-3">
-          {withinLimit.map((r: any) => {
-            const status = decided[r.id];
-            return (
-              <div
-                key={r.id}
-                className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border p-4"
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold">{r.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {r.pr_number} · {r.vendor_name ?? "—"} · {r.block}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="font-mono text-sm font-semibold">{inr(r.amount)}</span>
-                  {status ? (
-                    <StatusPill tone={status === "Approved" ? "success" : "danger"}>
-                      {status}
-                    </StatusPill>
-                  ) : r.stage === "Admin" ? (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApprove(r.id, r.pr_number, r.stage)}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleReject(r.id, r.pr_number, r.stage)}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  ) : (
-                    <StatusPill tone="info">{r.stage}</StatusPill>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {withinLimit.map((r) => (
+            <ApprovalQueueItem
+              key={r.id}
+              requisition={r}
+              role="Administrator"
+              actions={actions}
+            />
+          ))}
         </div>
       </Card>
 
@@ -167,7 +114,7 @@ function AdministratorDashboard() {
           Items above ₹50,000 are outside your approval limit.
         </p>
         <div className="mt-4 space-y-3">
-          {requisitions.filter((r: any) => approverFor(r.amount) !== "Administrator").map((r: any) => (
+          {requisitions.filter((r) => approverFor(r.amount) !== "Administrator").map((r) => (
             <div
               key={r.id}
               className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-dashed border-border p-4"
@@ -183,7 +130,7 @@ function AdministratorDashboard() {
                   <Lock className="size-3.5" />
                   Needs {approverFor(r.amount)}
                 </span>
-                <StatusPill tone={r.stage === "A1" ? "warning" : "info"}>{r.stage}</StatusPill>
+                <StatusPill tone={r.stage === "A1" || r.stage === "A1+" ? "warning" : "info"}>{r.stage}</StatusPill>
               </div>
             </div>
           ))}
@@ -197,7 +144,7 @@ function AdministratorDashboard() {
           <div className="mt-4 space-y-4">
             {progress.map((p: any) => (
               <div key={p.block}>
-                <div className="flex justify-between text-xs font-medium">
+                <div className="flex justify-between gap-2 text-xs font-medium">
                   <span>{p.block}</span>
                   <span className="text-muted-foreground">{p.pct}%</span>
                 </div>
@@ -213,7 +160,7 @@ function AdministratorDashboard() {
           <h2 className="text-sm font-bold">Quality snapshot</h2>
           <div className="mt-4 space-y-3">
             {inspections.map((i: any) => (
-              <div key={i.id} className="flex items-start justify-between gap-3">
+              <div key={i.id} className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{i.activity}</p>
                   <p className="text-xs text-muted-foreground">{i.location}</p>
@@ -228,10 +175,14 @@ function AdministratorDashboard() {
           </div>
         </Card>
       </div>
+
+      {/* Decision history */}
+      <DecisionHistory requisitions={requisitions} />
     </AppShell>
   );
 }
 
+// Stat card with an icon, colored accent bar, label, value, and note.
 function StatCard({
   icon: Icon,
   label,

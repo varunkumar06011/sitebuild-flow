@@ -4,6 +4,7 @@ import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
 
+// Fetches a paginated list of visitor log entries ordered by most recent check-in.
 export const fetchVisitors = createServerFn({ method: "GET" })
   .validator((input: { page?: number; limit?: number }) => input)
   .handler(async ({ data, context }) => {
@@ -21,6 +22,7 @@ export const fetchVisitors = createServerFn({ method: "GET" })
     return { data: visitors ?? [], total: count ?? 0, page, limit };
   });
 
+// Fetches a paginated list of vehicle log entries ordered by most recent entry.
 export const fetchVehicles = createServerFn({ method: "GET" })
   .validator((input: { page?: number; limit?: number }) => input)
   .handler(async ({ data, context }) => {
@@ -38,6 +40,7 @@ export const fetchVehicles = createServerFn({ method: "GET" })
     return { data: vehicles ?? [], total: count ?? 0, page, limit };
   });
 
+// Fetches a paginated list of labour attendance records, optionally filtered by date.
 export const fetchLabour = createServerFn({ method: "GET" })
   .validator((input: { page?: number; limit?: number; date?: string }) => input)
   .handler(async ({ data, context }) => {
@@ -59,6 +62,7 @@ export const fetchLabour = createServerFn({ method: "GET" })
     return { data: labour ?? [], total: count ?? 0, page, limit };
   });
 
+// Checks out a visitor by recording the exit timestamp (only if not already checked out).
 export const checkOutVisitor = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
@@ -76,6 +80,7 @@ export const checkOutVisitor = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+// Checks out a vehicle by recording the exit timestamp (only if not already checked out).
 export const checkOutVehicle = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {

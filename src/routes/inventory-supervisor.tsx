@@ -1,3 +1,4 @@
+// Inventory material movement route: requires auth and renders the stock in/out/adjustment form.
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/inventory-supervisor")({
   component: InventorySupervisorPage,
 });
 
+// Page for searching inventory items and logging stock in, out, or adjustment transactions.
 function InventorySupervisorPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -61,6 +63,7 @@ function InventorySupervisorPage() {
 
   const selectedItem = items.find((i: any) => i.item_id === form.item_id);
 
+  // Validates the movement form, submits the transaction, and refreshes the item list on success.
   const handleSubmit = async () => {
     if (!form.item_id) {
       toast.error("Select an item");
@@ -149,7 +152,7 @@ function InventorySupervisorPage() {
             {/* Transaction type */}
             <div className="space-y-2">
               <Label htmlFor="itype">Movement type *</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, type: "in" })}

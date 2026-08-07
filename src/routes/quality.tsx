@@ -1,3 +1,4 @@
+// Quality control page displaying inspection checklists, pass/fail results, rectification notes and photo evidence.
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/quality")({
   component: Quality,
 });
 
+// Main quality page rendering inspection cards with checklist items and rectification details.
 function Quality() {
   const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
   const inspections = inspData?.data ?? [];

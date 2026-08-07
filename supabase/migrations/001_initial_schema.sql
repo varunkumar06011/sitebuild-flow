@@ -14,30 +14,37 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ----------------------------------------------------------------------------
 -- Enums
 -- ----------------------------------------------------------------------------
+-- User role enum (Supervisor, Administrator, A1, A1+).
 DO $$ BEGIN
   CREATE TYPE user_role AS ENUM ('Supervisor', 'Administrator', 'A1', 'A1+');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Procurement pipeline stages from PR raised to completion.
 DO $$ BEGIN
   CREATE TYPE procurement_stage AS ENUM ('PR', 'Quotation', 'Admin', 'A1', 'PO', 'Material Received', 'Invoice', 'Payment', 'Completed');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Gate pass lifecycle statuses (awaiting OTP, verified, exited).
 DO $$ BEGIN
   CREATE TYPE gate_pass_status AS ENUM ('Awaiting OTP', 'OTP Verified', 'Exited');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Gate pass type (returnable vs non-returnable material).
 DO $$ BEGIN
   CREATE TYPE gate_pass_type AS ENUM ('Returnable', 'Non-returnable');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- OTP delivery channel (SMS or in-app notification).
 DO $$ BEGIN
   CREATE TYPE otp_channel AS ENUM ('sms', 'in_app');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Material batch verification status.
 DO $$ BEGIN
   CREATE TYPE batch_status AS ENUM ('Verified', 'Pending MTC', 'Under Test');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Quality control inspection outcome.
 DO $$ BEGIN
   CREATE TYPE inspection_result AS ENUM ('Pass', 'Fail', 'Re-inspection');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -247,12 +254,19 @@ CREATE TABLE IF NOT EXISTS gate_pass_sequences (
 -- ----------------------------------------------------------------------------
 -- Indexes
 -- ----------------------------------------------------------------------------
+-- Speeds up filtering requisitions by pipeline stage.
 CREATE INDEX IF NOT EXISTS idx_requisitions_stage ON requisitions(stage);
+-- Speeds up listing requisitions raised by a given user.
 CREATE INDEX IF NOT EXISTS idx_requisitions_raised_by ON requisitions(raised_by);
+-- Speeds up listing gate passes requested by a given user.
 CREATE INDEX IF NOT EXISTS idx_gate_passes_requested_by ON gate_passes(requested_by);
+-- Speeds up fetching a user's unread notifications.
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read);
+-- Speeds up audit log lookups by entity type and id.
 CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log(entity_type, entity_id);
+-- Speeds up session lookup by token hash (auth validation).
 CREATE INDEX IF NOT EXISTS idx_sessions_token_hash ON sessions(token_hash);
+-- Speeds up listing a user's active/revoked sessions.
 CREATE INDEX IF NOT EXISTS idx_sessions_user_revoked ON sessions(user_id, revoked);
 
 -- ----------------------------------------------------------------------------
@@ -267,6 +281,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS audit_log_immutable ON audit_log;
+-- Blocks any UPDATE or DELETE on audit_log to keep it immutable.
 CREATE TRIGGER audit_log_immutable
   BEFORE UPDATE OR DELETE ON audit_log
   FOR EACH ROW

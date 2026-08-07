@@ -10,6 +10,7 @@
 -- ----------------------------------------------------------------------------
 -- Add new columns to gate_passes
 -- ----------------------------------------------------------------------------
+-- Extends gate_passes with person, vehicle, material list and editable date/time.
 ALTER TABLE gate_passes
   ADD COLUMN IF NOT EXISTS person_name       text,
   ADD COLUMN IF NOT EXISTS vehicle_type      text,
@@ -25,12 +26,14 @@ ALTER TABLE gate_passes
 -- ----------------------------------------------------------------------------
 -- Global gate pass sequence (single row — never resets monthly)
 -- ----------------------------------------------------------------------------
+-- Single-row table holding the global gate pass counter (never resets).
 CREATE TABLE IF NOT EXISTS gate_pass_global_seq (
   id        int PRIMARY KEY DEFAULT 1,
   last_seq  bigint NOT NULL DEFAULT 0,
   CONSTRAINT single_row CHECK (id = 1)
 );
 
+-- Seed the singleton sequence row.
 INSERT INTO gate_pass_global_seq (id, last_seq) VALUES (1, 0)
   ON CONFLICT (id) DO NOTHING;
 
@@ -43,6 +46,7 @@ SET last_seq = GREATEST(last_seq, COALESCE(
 -- ----------------------------------------------------------------------------
 -- Replace next_gp_number() with global sequential format: GP/0001
 -- ----------------------------------------------------------------------------
+-- Atomically increments the global counter and returns the next GP/0001 number.
 CREATE OR REPLACE FUNCTION next_gp_number()
 RETURNS text AS $$
 DECLARE
@@ -61,11 +65,15 @@ $$ LANGUAGE plpgsql;
 
 -- Enable RLS on the new table
 ALTER TABLE gate_pass_global_seq ENABLE ROW LEVEL SECURITY;
+-- Revoke direct access on the sequence table from anon and authenticated.
 REVOKE ALL ON gate_pass_global_seq FROM anon, authenticated;
 
 -- ----------------------------------------------------------------------------
 -- Index for searching gate passes by person name or gp_number
 -- ----------------------------------------------------------------------------
+-- Speeds up lookups of gate passes by gp_number.
 CREATE INDEX IF NOT EXISTS idx_gate_passes_gp_number ON gate_passes(gp_number);
+-- Speeds up searching gate passes by person name.
 CREATE INDEX IF NOT EXISTS idx_gate_passes_person_name ON gate_passes(person_name);
+-- Speeds up filtering gate passes by status.
 CREATE INDEX IF NOT EXISTS idx_gate_passes_status ON gate_passes(status);

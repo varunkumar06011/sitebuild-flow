@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "sonner";
 
+// Maps navigation icon string names to their corresponding lucide-react components.
 const ICON_MAP: Record<string, typeof HardHat> = {
   LayoutDashboard,
   ClipboardList,
@@ -49,6 +50,7 @@ const ICON_MAP: Record<string, typeof HardHat> = {
   Package,
 };
 
+// Top-level layout shell with sidebar navigation, header, notifications, and logout.
 export function AppShell({
   title,
   subtitle,
@@ -70,13 +72,19 @@ export function AppShell({
   const unreadCount = notifData?.data?.length ?? 0;
   const notifications = notifData?.data ?? [];
 
+  // Clears the session cookie and redirects to the login page.
   const handleLogout = async () => {
-    await logoutUser();
+    try {
+      await logoutUser();
+    } catch {
+      // server call may fail if session is already invalid — continue anyway
+    }
     document.cookie = "meditrust_session=; path=/; max-age=0; samesite=lax";
     logout();
     window.location.href = "/login";
   };
 
+  // Marks all unread notifications as read and refreshes the notification list.
   const handleMarkAllRead = async () => {
     const result = await markAllNotificationsRead();
     if (result.success) {
@@ -88,7 +96,14 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen bg-background font-sans">
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+      {/* Skip to content link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+      >
+        Skip to content
+      </a>
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex" aria-label="Main navigation">
         <div className="flex items-center gap-2.5 px-5 py-6">
           <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <HardHat className="size-5" />
@@ -98,7 +113,7 @@ export function AppShell({
             <p className="text-xs text-muted-foreground">Hospital Construction</p>
           </div>
         </div>
-        <nav className="flex flex-1 flex-col gap-0.5 px-3">
+        <nav className="flex flex-1 flex-col gap-0.5 px-3" aria-label="Primary">
           {navItems.map(({ to, label, icon }) => {
             const Icon = ICON_MAP[icon] ?? LayoutDashboard;
             return (
@@ -111,6 +126,7 @@ export function AppShell({
                   className:
                     "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
                 }}
+                aria-current="page"
               >
                 <Icon className="size-4" />
                 {label}
@@ -129,6 +145,7 @@ export function AppShell({
             size="sm"
             className="w-full"
             onClick={handleLogout}
+            aria-label="Sign out"
           >
             <LogOut className="mr-2 size-4" />
             Sign out
@@ -146,10 +163,18 @@ export function AppShell({
             <div className="flex items-center gap-3">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="relative"
+                    aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+                  >
                     <Bell className="size-4" />
                     {unreadCount > 0 && (
-                      <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                      <span
+                        className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground"
+                        aria-hidden="true"
+                      >
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     )}
@@ -185,13 +210,13 @@ export function AppShell({
                 <p className="text-xs font-medium text-muted-foreground">Role</p>
                 <p className="text-xs font-bold text-primary">{role}</p>
               </div>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
+              <Button variant="outline" size="sm" onClick={handleLogout} aria-label="Logout">
                 <LogOut className="mr-1.5 size-3.5" />
                 Logout
               </Button>
             </div>
           </div>
-          <nav className="flex gap-1 overflow-x-auto border-t border-border px-3 py-2 lg:hidden">
+          <nav className="flex gap-1 overflow-x-auto border-t border-border px-3 py-2 lg:hidden" aria-label="Mobile navigation">
             {navItems.map(({ to, label }) => (
               <Link
                 key={to}
@@ -199,18 +224,20 @@ export function AppShell({
                 activeOptions={{ exact: to === "/" || to === `/${role.toLowerCase().replace("+", "plus")}` }}
                 className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground"
                 activeProps={{ className: "bg-accent text-accent-foreground font-semibold" }}
+                aria-current="page"
               >
                 {label}
               </Link>
             ))}
           </nav>
         </header>
-        <main className="flex-1 px-5 py-6 md:px-8">{children}</main>
+        <main id="main-content" className="flex-1 px-5 py-6 md:px-8" role="main">{children}</main>
       </div>
     </div>
   );
 }
 
+// Small colored badge that displays a status label with a tone-based background.
 export function StatusPill({
   tone = "neutral",
   children,

@@ -1,3 +1,4 @@
+// Progress configuration page for setting up blocks, floors, categories, work items, cell groups and supervisor assignments.
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -53,6 +54,7 @@ const TABS: { id: Tab; label: string; icon: typeof Building2 }[] = [
   { id: "assignments", label: "Supervisor Assignments", icon: UserCheck },
 ];
 
+// Main config page with tabbed sections for each hierarchy entity type.
 function ProgressConfigPage() {
   const [tab, setTab] = useState<Tab>("blocks");
 
@@ -94,6 +96,7 @@ function ProgressConfigPage() {
   );
 }
 
+// Tab component for creating and listing top-level construction blocks.
 function BlocksTab() {
   const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
   const [open, setOpen] = useState(false);
@@ -103,6 +106,7 @@ function BlocksTab() {
 
   const blocks = hier?.blocks ?? [];
 
+  // Creates a new block via the API and refreshes the hierarchy query.
   const handleCreate = async () => {
     if (!name.trim()) return;
     try {
@@ -156,6 +160,7 @@ function BlocksTab() {
   );
 }
 
+// Tab component for creating and listing floors within blocks.
 function FloorsTab() {
   const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
   const [open, setOpen] = useState(false);
@@ -168,6 +173,7 @@ function FloorsTab() {
   const floors = hier?.floors ?? [];
   const blockMap = new Map(blocks.map((b: any) => [b.id, b.name]));
 
+  // Creates a new floor under the selected block via the API.
   const handleCreate = async () => {
     if (!blockId) { toast.error("Select a block"); return; }
     if (!name.trim()) { toast.error("Enter a name"); return; }
@@ -229,6 +235,7 @@ function FloorsTab() {
   );
 }
 
+// Tab component for creating and listing work categories (e.g. Civil, MEP).
 function CategoriesTab() {
   const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
   const [open, setOpen] = useState(false);
@@ -238,6 +245,7 @@ function CategoriesTab() {
 
   const categories = hier?.categories ?? [];
 
+  // Creates a new category via the API and refreshes the hierarchy query.
   const handleCreate = async () => {
     if (!name.trim()) return;
     try {
@@ -289,6 +297,7 @@ function CategoriesTab() {
   );
 }
 
+// Tab component for creating and listing work items under categories.
 function WorkItemsTab() {
   const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
   const [open, setOpen] = useState(false);
@@ -301,6 +310,7 @@ function WorkItemsTab() {
   const workItems = hier?.workItems ?? [];
   const catMap = new Map(categories.map((c: any) => [c.id, c.name]));
 
+  // Creates a new work item under the selected category via the API.
   const handleCreate = async () => {
     if (!categoryId) { toast.error("Select a category"); return; }
     if (!name.trim()) { toast.error("Enter a name"); return; }
@@ -362,6 +372,7 @@ function WorkItemsTab() {
   );
 }
 
+// Tab component for creating cell groups that auto-generate individual tracking cells.
 function CellGroupsTab() {
   const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
   const [open, setOpen] = useState(false);
@@ -376,6 +387,7 @@ function CellGroupsTab() {
   const categories = hier?.categories ?? [];
   const workItems = (hier?.workItems ?? []).filter((w: any) => categories.some((c: any) => c.id === w.category_id));
 
+  // Creates a new cell group with the specified cell count via the API.
   const handleCreate = async () => {
     if (!blockId || !floorId || !workItemId) { toast.error("Select all fields"); return; }
     try {
@@ -453,6 +465,7 @@ function CellGroupsTab() {
   );
 }
 
+// Tab component for assigning supervisors to blocks or specific floors.
 function AssignmentsTab() {
   const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
   const { data: supData } = useQuery({ queryKey: ["supervisors"], queryFn: () => fetchSupervisors() });
@@ -466,6 +479,7 @@ function AssignmentsTab() {
   const floors = (hier?.floors ?? []).filter((f: any) => f.block_id === blockId);
   const supervisors = supData?.data ?? [];
 
+  // Assigns the selected supervisor to a block (and optional floor) via the API.
   const handleAssign = async () => {
     if (!supervisorId || !blockId) { toast.error("Select supervisor and block"); return; }
     try {

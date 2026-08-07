@@ -1,16 +1,19 @@
+// A1+ dashboard route: requires A1+ role and renders the final authority dashboard.
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { approverFor, inr, ROLE_SUMMARY } from "@/lib/erp-data";
 import { requireRole } from "@/lib/auth-guards";
-import { fetchRequisitions, updateRequisitionStage } from "@/lib/api/requisitions";
+import { fetchRequisitions, type RequisitionRow } from "@/lib/api/requisitions";
 import { fetchInspections } from "@/lib/api/inspections";
 import { fetchProgress } from "@/lib/api/progress";
 import { fetchBatches } from "@/lib/api/batches";
 import { fetchGatePasses } from "@/lib/api/gate-passes";
 import { fetchLabour } from "@/lib/api/registers";
+import { useApprovalActions } from "@/hooks/use-approval-actions";
+import { ApprovalQueueItem } from "@/components/approval/ApprovalQueueItem";
+import { DecisionHistory } from "@/components/approval/DecisionHistory";
 import {
   Crown,
   ArrowUpRight,
@@ -19,8 +22,6 @@ import {
   Boxes,
   Users,
 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/a1plus")({
   head: () => ({
@@ -30,17 +31,18 @@ export const Route = createFileRoute("/a1plus")({
   component: A1PlusDashboard,
 });
 
+// A1+ dashboard showing full approval queue, high-value items, and organization overview.
 function A1PlusDashboard() {
-  const [decided, setDecided] = useState<Record<string, "Approved" | "Rejected">>({});
+  const actions = useApprovalActions("A1+");
 
-  const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
+  const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }), refetchInterval: 15000 });
   const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
   const { data: batchData } = useQuery({ queryKey: ["batches"], queryFn: () => fetchBatches({ data: {} }) });
   const { data: gpData } = useQuery({ queryKey: ["gatePasses"], queryFn: () => fetchGatePasses({ data: {} }) });
   const { data: labourData } = useQuery({ queryKey: ["labour"], queryFn: () => fetchLabour({ data: {} }) });
 
-  const requisitions = reqData?.data ?? [];
+  const requisitions: RequisitionRow[] = reqData?.data ?? [];
   const inspections = inspData?.data ?? [];
   const progress = progData?.data ?? [];
   const batches = batchData?.data ?? [];
@@ -48,37 +50,16 @@ function A1PlusDashboard() {
   const labour = labourData?.data ?? [];
 
   const allPending = requisitions.filter(
-    (r: any) => (r.stage === "Admin" || r.stage === "A1") && !decided[r.id],
+    (r) => (r.stage === "Admin" || r.stage === "A1" || r.stage === "A1+") && !actions.decided[r.id],
   );
-  const highValue = requisitions.filter((r: any) => approverFor(r.amount) === "A1+");
-  const totalCommitted = requisitions.reduce((s: number, r: any) => s + r.amount, 0);
-  const completedValue = requisitions.filter((r: any) => r.stage === "Completed").reduce(
-    (s: number, r: any) => s + r.amount,
-    0,
-  );
+  const highValue = requisitions.filter((r) => approverFor(r.amount) === "A1+");
+  const totalCommitted = requisitions.reduce((s, r) => s + r.amount, 0);
+  const completedValue = requisitions
+    .filter((r) => r.stage === "Completed")
+    .reduce((s, r) => s + r.amount, 0);
   const pendingBatches = batches.filter((b: any) => b.status !== "Verified");
   const activeGatePasses = gatePasses.filter((g: any) => g.status !== "Exited");
   const totalLabour = labour.reduce((s: number, l: any) => s + l.present, 0);
-
-  const handleApprove = async (id: string, prNumber: string, expectedStage: string) => {
-    const result = await updateRequisitionStage({ data: { id, newStage: "PO", expectedStage } });
-    if (result.success) {
-      setDecided((d) => ({ ...d, [id]: "Approved" }));
-      toast.success(`${prNumber} approved by A1+ (final)`);
-    } else {
-      toast.error(result.error ?? "Failed to approve");
-    }
-  };
-
-  const handleReject = async (id: string, prNumber: string, expectedStage: string) => {
-    const result = await updateRequisitionStage({ data: { id, newStage: "Quotation", expectedStage } });
-    if (result.success) {
-      setDecided((d) => ({ ...d, [id]: "Rejected" }));
-      toast.error(`${prNumber} rejected by A1+`);
-    } else {
-      toast.error(result.error ?? "Failed to reject");
-    }
-  };
 
   return (
     <AppShell
@@ -119,7 +100,7 @@ function A1PlusDashboard() {
 
       {/* Full approval queue — A1+ can approve everything */}
       <Card className="mt-6 p-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-bold">Full approval queue</h2>
           <Link to="/approvals" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
             Open approvals <ArrowUpRight className="size-3.5" />
@@ -129,50 +110,16 @@ function A1PlusDashboard() {
           As A1+ you have final authority over all approval tiers.
         </p>
         <div className="mt-4 space-y-3">
-          {allPending.map((r: any) => {
-            const status = decided[r.id];
-            const need = approverFor(r.amount);
-            return (
-              <div
-                key={r.id}
-                className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border p-4"
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold">{r.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {r.pr_number} · {r.vendor_name ?? "—"} · {r.block}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="font-mono text-sm font-semibold">{inr(r.amount)}</span>
-                  <StatusPill tone={need === "A1+" ? "danger" : need === "A1" ? "warning" : "info"}>
-                    Was {need}
-                  </StatusPill>
-                  {status ? (
-                    <StatusPill tone={status === "Approved" ? "success" : "danger"}>
-                      {status}
-                    </StatusPill>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApprove(r.id, r.pr_number, r.stage)}
-                      >
-                        Final Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleReject(r.id, r.pr_number, r.stage)}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {allPending.map((r) => (
+            <ApprovalQueueItem
+              key={r.id}
+              requisition={r}
+              role="A1+"
+              actions={actions}
+              approveLabel="Final Approve"
+              allowOverride
+            />
+          ))}
           {allPending.length === 0 && (
             <p className="py-6 text-center text-sm text-muted-foreground">
               No pending approvals — all clear.
@@ -184,35 +131,59 @@ function A1PlusDashboard() {
       {/* High-value items */}
       <Card className="mt-6 p-5">
         <h2 className="text-sm font-bold">High-value procurements (above ₹5,00,000)</h2>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[700px] text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="pb-2 font-semibold">PR</th>
-                <th className="pb-2 font-semibold">Item</th>
-                <th className="pb-2 text-right font-semibold">Value</th>
-                <th className="pb-2 font-semibold">Stage</th>
-                <th className="pb-2 font-semibold">Vendor</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {highValue.map((r: any) => (
-                <tr key={r.id} className="align-middle">
-                  <td className="py-3 font-mono text-xs">{r.pr_number}</td>
-                  <td className="py-3 font-medium">{r.title}</td>
-                  <td className="py-3 text-right font-mono font-semibold">{inr(r.amount)}</td>
-                  <td className="py-3">
-                    <StatusPill
-                      tone={r.stage === "Completed" ? "success" : r.stage === "Invoice" ? "info" : "warning"}
-                    >
-                      {r.stage}
-                    </StatusPill>
-                  </td>
-                  <td className="py-3 text-muted-foreground">{r.vendor_name ?? "—"}</td>
+        <div className="mt-4">
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[700px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="pb-2 font-semibold">PR</th>
+                  <th className="pb-2 font-semibold">Item</th>
+                  <th className="pb-2 text-right font-semibold">Value</th>
+                  <th className="pb-2 font-semibold">Stage</th>
+                  <th className="pb-2 font-semibold">Vendor</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {highValue.map((r) => (
+                  <tr key={r.id} className="align-middle">
+                    <td className="py-3 font-mono text-xs">{r.pr_number}</td>
+                    <td className="py-3 font-medium">{r.title}</td>
+                    <td className="py-3 text-right font-mono font-semibold">{inr(r.amount)}</td>
+                    <td className="py-3">
+                      <StatusPill
+                        tone={r.stage === "Completed" ? "success" : r.stage === "Invoice" ? "info" : "warning"}
+                      >
+                        {r.stage}
+                      </StatusPill>
+                    </td>
+                    <td className="py-3 text-muted-foreground">{r.vendor_name ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {highValue.map((r) => (
+              <div key={r.id} className="rounded-xl border border-border p-4">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="font-mono text-xs text-muted-foreground">{r.pr_number}</span>
+                  <StatusPill
+                    tone={r.stage === "Completed" ? "success" : r.stage === "Invoice" ? "info" : "warning"}
+                  >
+                    {r.stage}
+                  </StatusPill>
+                </div>
+                <p className="mb-1 font-medium leading-snug">{r.title}</p>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-sm font-semibold">{inr(r.amount)}</span>
+                  <span className="text-xs text-muted-foreground">{r.vendor_name ?? "—"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </Card>
 
@@ -223,7 +194,7 @@ function A1PlusDashboard() {
           <div className="mt-4 space-y-4">
             {progress.map((p: any) => (
               <div key={p.block}>
-                <div className="flex justify-between text-xs font-medium">
+                <div className="flex justify-between gap-2 text-xs font-medium">
                   <span>{p.block}</span>
                   <span className="text-muted-foreground">{p.pct}%</span>
                 </div>
@@ -239,7 +210,7 @@ function A1PlusDashboard() {
           <h2 className="text-sm font-bold">Quality status</h2>
           <div className="mt-4 space-y-3">
             {inspections.map((i: any) => (
-              <div key={i.id} className="flex items-start justify-between gap-3">
+              <div key={i.id} className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{i.activity}</p>
                   <p className="text-xs text-muted-foreground">{i.location}</p>
@@ -257,37 +228,41 @@ function A1PlusDashboard() {
         <Card className="p-5">
           <h2 className="text-sm font-bold">Site operations</h2>
           <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between gap-2 text-sm">
               <span className="text-muted-foreground">Active gate passes</span>
               <span className="font-mono font-semibold">{activeGatePasses.length}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between gap-2 text-sm">
               <span className="text-muted-foreground">Pending traceability</span>
               <span className="font-mono font-semibold">{pendingBatches.length}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between gap-2 text-sm">
               <span className="text-muted-foreground">Total labour on site</span>
               <span className="font-mono font-semibold">{totalLabour}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between gap-2 text-sm">
               <span className="text-muted-foreground">Total vendors</span>
               <span className="font-mono font-semibold">
-                {new Set(requisitions.map((r: any) => r.vendor_name).filter(Boolean)).size}
+                {new Set(requisitions.map((r) => r.vendor_name).filter(Boolean)).size}
               </span>
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between gap-2 text-sm">
               <span className="text-muted-foreground">Completed POs</span>
               <span className="font-mono font-semibold">
-                {requisitions.filter((r: any) => r.stage === "Completed").length}
+                {requisitions.filter((r) => r.stage === "Completed").length}
               </span>
             </div>
           </div>
         </Card>
       </div>
+
+      {/* Decision history */}
+      <DecisionHistory requisitions={requisitions} />
     </AppShell>
   );
 }
 
+// Stat card with an icon, colored accent bar, label, value, and note.
 function StatCard({
   icon: Icon,
   label,

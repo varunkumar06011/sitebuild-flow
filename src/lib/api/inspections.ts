@@ -4,6 +4,7 @@ import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
 
+// Fetches a paginated list of QC inspections with optional result filter.
 export const fetchInspections = createServerFn({ method: "GET" })
   .validator((input: { page?: number; limit?: number; result?: string }) => input)
   .handler(async ({ data, context }) => {
@@ -25,6 +26,7 @@ export const fetchInspections = createServerFn({ method: "GET" })
     return { data: inspections ?? [], total: count ?? 0, page, limit };
   });
 
+// Zod schema validating inspection creation fields (QC number, activity, checklist, result).
 const inspectionSchema = z.object({
   qc_number: z.string().min(1),
   activity: z.string().min(1),
@@ -36,6 +38,7 @@ const inspectionSchema = z.object({
   rectification: z.string().nullable().optional(),
 });
 
+// Creates a new QC inspection record and logs the action to the audit trail.
 export const createInspection = createServerFn({ method: "POST" })
   .validator(inspectionSchema)
   .handler(async ({ data, context }) => {

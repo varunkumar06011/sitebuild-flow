@@ -4,6 +4,7 @@ import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
 
+// Fetches the single organization settings row (name, GST, address, logo, etc.).
 export const fetchOrgSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireSessionUser();
@@ -21,6 +22,7 @@ export const fetchOrgSettings = createServerFn({ method: "GET" })
     return { success: true, data };
   });
 
+// Zod schema validating organization settings fields (name, GST, address, contact, logo).
 const settingsSchema = z.object({
   name: z.string().min(1),
   gst_number: z.string().optional(),
@@ -33,6 +35,7 @@ const settingsSchema = z.object({
   logo_url: z.string().optional(),
 });
 
+// Creates or updates the organization settings row (A1/A1+ only) and logs the action.
 export const updateOrgSettings = createServerFn({ method: "POST" })
   .validator(settingsSchema)
   .handler(async ({ data, context }) => {

@@ -1,12 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import crypto from "crypto";
-import bcrypt from "bcryptjs";
 import { supabaseServer } from "../supabase-server";
-import { requireSessionUser, type SessionUser } from "./session";
+import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
-import { isFirebaseConfigured } from "../env-check";
+import { verifyFirebasePhoneToken, normalizePhone } from "../firebase-verify";
+import { checkRateLimit, getClientIp } from "../rate-limiter";
 
+// Shape of a gate pass row returned to the client, with joined names and material details.
 export type GatePassRow = {
   id: string;
   gp_number: string;
@@ -42,10 +42,21 @@ export type GatePassRow = {
   photo_proof_path: string | null;
   gp_date: string | null;
   gp_time: string | null;
+  batch_id: string | null;
+  requisition_id: string | null;
 };
 
+// Fetches a paginated list of gate passes with requester, approver, and vendor names joined.
 export const fetchGatePasses = createServerFn({ method: "GET" })
-  .validator((input: { page?: number; limit?: number; status?: string; requestedBy?: string }) => input)
+  .validator(
+    (input: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      requestedBy?: string;
+      search?: string;
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
     const user = await requireSessionUser();
     const page = data.page ?? 1;
@@ -54,19 +65,30 @@ export const fetchGatePasses = createServerFn({ method: "GET" })
 
     let query = supabaseServer
       .from("gate_passes")
-      .select("id, gp_number, material, qty, carrier, vehicle, type, status, approver_phone, otp_channel, requested_by, requested_at, exit_time, approved_by, vendor_id, from_location, to_location, invoice_number, invoice_value, purpose, pdf_path, person_name, vehicle_type, driver_name, driver_mobile, material_movement, material_list, remarks, photo_proof_path, gp_date, gp_time", { count: "exact" })
+      .select(
+        "id, gp_number, material, qty, carrier, vehicle, type, status, approver_phone, otp_channel, requested_by, requested_at, exit_time, approved_by, vendor_id, from_location, to_location, invoice_number, invoice_value, purpose, pdf_path, person_name, vehicle_type, driver_name, driver_mobile, material_movement, material_list, remarks, photo_proof_path, gp_date, gp_time, batch_id, requisition_id",
+        { count: "exact" },
+      )
       .order("requested_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (data.status) query = query.eq("status", data.status);
     if (data.requestedBy) query = query.eq("requested_by", data.requestedBy);
+    if (data.search) {
+      const s = data.search.replace(/[,.()\\]/g, " ").trim();
+      if (s) {
+        query = query.or(`gp_number.ilike.%${s}%,person_name.ilike.%${s}%,material.ilike.%${s}%`);
+      }
+    }
 
     const { data: passes, count } = await query;
 
-    const userIds = [...new Set([
-      ...(passes ?? []).map((p: any) => p.requested_by).filter(Boolean),
-      ...(passes ?? []).map((p: any) => p.approved_by).filter(Boolean),
-    ])];
+    const userIds = [
+      ...new Set([
+        ...(passes ?? []).map((p: any) => p.requested_by).filter(Boolean),
+        ...(passes ?? []).map((p: any) => p.approved_by).filter(Boolean),
+      ]),
+    ];
     const vendorIds = [...new Set((passes ?? []).map((p: any) => p.vendor_id).filter(Boolean))];
 
     const [{ data: users }, { data: vendors }] = await Promise.all([
@@ -98,9 +120,9 @@ export const fetchGatePasses = createServerFn({ method: "GET" })
         requested_at: p.requested_at,
         exit_time: p.exit_time,
         approved_by: p.approved_by,
-        approved_by_name: p.approved_by ? userMap.get(p.approved_by) ?? null : null,
+        approved_by_name: p.approved_by ? (userMap.get(p.approved_by) ?? null) : null,
         vendor_id: p.vendor_id,
-        vendor_name: p.vendor_id ? vendorMap.get(p.vendor_id) ?? null : null,
+        vendor_name: p.vendor_id ? (vendorMap.get(p.vendor_id) ?? null) : null,
         from_location: p.from_location,
         to_location: p.to_location,
         invoice_number: p.invoice_number,
@@ -117,6 +139,8 @@ export const fetchGatePasses = createServerFn({ method: "GET" })
         photo_proof_path: p.photo_proof_path,
         gp_date: p.gp_date,
         gp_time: p.gp_time,
+        batch_id: p.batch_id ?? null,
+        requisition_id: p.requisition_id ?? null,
       })),
       total: count ?? 0,
       page,
@@ -124,6 +148,7 @@ export const fetchGatePasses = createServerFn({ method: "GET" })
     };
   });
 
+// Zod schema validating gate pass creation fields (material, carrier, approver, vendor).
 const createSchema = z.object({
   material: z.string().optional(),
   qty: z.string().optional(),
@@ -147,15 +172,17 @@ const createSchema = z.object({
   photo_proof_path: z.string().nullable().optional(),
   gp_date: z.string().optional(),
   gp_time: z.string().optional(),
+  batch_id: z.string().uuid().nullable().optional(),
+  requisition_id: z.string().uuid().nullable().optional(),
 });
 
+// Creates a new gate pass with an auto-generated GP number and logs the action.
 export const createGatePass = createServerFn({ method: "POST" })
   .validator(createSchema)
   .handler(async ({ data, context }) => {
     const user = await requireSessionUser();
 
-    const { data: seqResult, error: seqError } = await supabaseServer
-      .rpc("next_gp_number");
+    const { data: seqResult, error: seqError } = await supabaseServer.rpc("next_gp_number");
 
     if (seqError || !seqResult) {
       return { success: false, error: "Failed to generate gate pass number" };
@@ -167,7 +194,13 @@ export const createGatePass = createServerFn({ method: "POST" })
       .from("gate_passes")
       .insert({
         gp_number: gpNumber,
-        material: data.material ?? (data.material_list.length > 0 ? data.material_list.map((m: { name: string; qty: string }) => `${m.name} (${m.qty})`).join(", ") : "—"),
+        material:
+          data.material ??
+          (data.material_list.length > 0
+            ? data.material_list
+                .map((m: { name: string; qty: string }) => `${m.name} (${m.qty})`)
+                .join(", ")
+            : "—"),
         qty: data.qty ?? "—",
         carrier: data.carrier ?? null,
         vehicle: data.vehicle ?? null,
@@ -191,6 +224,8 @@ export const createGatePass = createServerFn({ method: "POST" })
         photo_proof_path: data.photo_proof_path ?? null,
         gp_date: data.gp_date ?? new Date().toISOString().split("T")[0],
         gp_time: data.gp_time ?? new Date().toTimeString().split(" ")[0],
+        batch_id: data.batch_id ?? null,
+        requisition_id: data.requisition_id ?? null,
       })
       .select("id, gp_number")
       .single();
@@ -207,10 +242,66 @@ export const createGatePass = createServerFn({ method: "POST" })
     return { success: true, id: gp.id, gp_number: gp.gp_number };
   });
 
-const sendOtpSchema = z.object({ gatePassId: z.string().uuid() });
+// Rate limit for OTP sends: 5 per minute per IP, 3 per 10 minutes per gate pass.
+const OTP_IP_LIMIT = { maxRequests: 5, windowMs: 60 * 1000 };
+const OTP_GP_LIMIT = { maxRequests: 3, windowMs: 10 * 60 * 1000 };
 
-export const sendOtp = createServerFn({ method: "POST" })
-  .validator(sendOtpSchema)
+const precheckOtpSendSchema = z.object({ gatePassId: z.string().uuid() });
+
+// Pre-checks whether an OTP send is allowed (rate limit + gate pass state).
+// The client must call this before triggering Firebase Phone Auth SMS.
+export const precheckOtpSend = createServerFn({ method: "POST" })
+  .validator(precheckOtpSendSchema)
+  .handler(async ({ data, context }) => {
+    await requireSessionUser();
+
+    const { data: gp } = await supabaseServer
+      .from("gate_passes")
+      .select("id, status, approver_phone")
+      .eq("id", data.gatePassId)
+      .single();
+
+    if (!gp) return { allowed: false, error: "Gate pass not found" };
+    if (gp.status !== "Awaiting OTP")
+      return { allowed: false, error: "OTP already verified or pass exited" };
+    if (!gp.approver_phone)
+      return { allowed: false, error: "No approver phone set on this gate pass" };
+
+    const ip = getClientIp();
+    const ipResult = checkRateLimit(
+      `otp:ip:${ip}`,
+      OTP_IP_LIMIT.maxRequests,
+      OTP_IP_LIMIT.windowMs,
+    );
+    if (!ipResult.allowed) {
+      return { allowed: false, error: "Too many OTP requests from your IP. Please wait a minute." };
+    }
+
+    const gpResult = checkRateLimit(
+      `otp:gp:${data.gatePassId}`,
+      OTP_GP_LIMIT.maxRequests,
+      OTP_GP_LIMIT.windowMs,
+    );
+    if (!gpResult.allowed) {
+      return {
+        allowed: false,
+        error: "Too many OTP sends for this gate pass. Please wait 10 minutes.",
+      };
+    }
+
+    return { allowed: true, phone: gp.approver_phone };
+  });
+
+const verifyPhoneOtpSchema = z.object({
+  gatePassId: z.string().uuid(),
+  idToken: z.string().min(1),
+});
+
+// Verifies a Firebase Phone-Auth ID token, checks the verified phone matches the
+// approver (who must be an Administrator/A1/A1+), and marks the gate pass as
+// "OTP Verified". The OTP SMS itself is sent client-side via Firebase Phone Auth.
+export const verifyPhoneOtp = createServerFn({ method: "POST" })
+  .validator(verifyPhoneOtpSchema)
   .handler(async ({ data, context }) => {
     const user = await requireSessionUser();
 
@@ -221,118 +312,67 @@ export const sendOtp = createServerFn({ method: "POST" })
       .single();
 
     if (!gp) return { success: false, error: "Gate pass not found" };
-    if (gp.status !== "Awaiting OTP") return { success: false, error: "OTP already verified or pass exited" };
+    if (gp.status !== "Awaiting OTP")
+      return { success: false, error: "Gate pass is not awaiting OTP" };
 
-    const otp = crypto.randomInt(100000, 999999).toString();
-    const otpHash = await bcrypt.hash(otp, 10);
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const projectId = process.env["VITE_FIREBASE_PROJECT_ID"];
+    if (!projectId) return { success: false, error: "Firebase project not configured" };
 
-    const channel = isFirebaseConfigured() ? "sms" : "in_app";
-
-    await supabaseServer
-      .from("gate_passes")
-      .update({
-        otp_hash: otpHash,
-        otp_expires_at: otpExpiresAt,
-        otp_attempts: 0,
-        otp_locked: false,
-        otp_channel: channel,
-      })
-      .eq("id", data.gatePassId);
-
-    if (channel === "in_app") {
-      await supabaseServer.from("notifications").insert({
-        user_id: user.id,
-        type: "otp",
-        title: `OTP for ${gp.gp_number}`,
-        body: `Your OTP is ${otp}`,
-        data: { gate_pass_id: data.gatePassId, gp_number: gp.gp_number },
-      });
+    let tokenPhone: string;
+    try {
+      const payload = await verifyFirebasePhoneToken(data.idToken, projectId);
+      tokenPhone = payload.phone_number;
+    } catch (e) {
+      return { success: false, error: (e as Error).message ?? "Invalid Firebase token" };
     }
 
-    await logAction(user, "send_otp", "gate_pass", gp.id, {
-      gp_number: gp.gp_number,
-      channel,
-      phone: gp.approver_phone,
-    });
-
-    return {
-      success: true,
-      channel,
-      otp: channel === "in_app" ? otp : undefined,
-      message: channel === "sms"
-        ? `OTP sent to ${gp.approver_phone}`
-        : "OTP sent via in-app notification (SMS not configured)",
-    };
-  });
-
-const verifyOtpSchema = z.object({
-  gatePassId: z.string().uuid(),
-  otp: z.string().length(6),
-});
-
-export const verifyOtp = createServerFn({ method: "POST" })
-  .validator(verifyOtpSchema)
-  .handler(async ({ data, context }) => {
-    const user = await requireSessionUser();
-
-    const { data: gp } = await supabaseServer
-      .from("gate_passes")
-      .select("id, gp_number, status, otp_hash, otp_expires_at, otp_attempts, otp_locked")
-      .eq("id", data.gatePassId)
-      .single();
-
-    if (!gp) return { success: false, error: "Gate pass not found" };
-    if (gp.status !== "Awaiting OTP") return { success: false, error: "Gate pass is not awaiting OTP" };
-    if (gp.otp_locked) return { success: false, error: "OTP locked due to too many attempts. Please resend." };
-
-    const now = new Date();
-    if (gp.otp_expires_at && new Date(gp.otp_expires_at) < now) {
-      return { success: false, error: "OTP expired. Please resend." };
-    }
-
-    if (!gp.otp_hash) {
-      return { success: false, error: "No OTP has been sent. Please send OTP first." };
-    }
-
-    const newAttempts = (gp.otp_attempts ?? 0) + 1;
-    const match = await bcrypt.compare(data.otp, gp.otp_hash);
-
-    if (!match) {
-      const shouldLock = newAttempts >= 5;
-      await supabaseServer
-        .from("gate_passes")
-        .update({
-          otp_attempts: newAttempts,
-          otp_locked: shouldLock,
-        })
-        .eq("id", data.gatePassId);
-
+    if (normalizePhone(tokenPhone) !== normalizePhone(gp.approver_phone)) {
       await logAction(user, "otp_failed", "gate_pass", gp.id, {
         gp_number: gp.gp_number,
-        attempts: newAttempts,
-        locked: shouldLock,
+        reason: "phone_mismatch",
+        token_phone: tokenPhone,
+        approver_phone: gp.approver_phone,
       });
+      return {
+        success: false,
+        error: "Verified phone does not match the approver for this gate pass",
+      };
+    }
 
-      if (shouldLock) {
-        return { success: false, error: "Too many wrong attempts. OTP locked. Please resend." };
-      }
-      return { success: false, error: `Wrong OTP. ${5 - newAttempts} attempt(s) remaining.` };
+    // Verify the approver phone belongs to an authorized role (Administrator/A1/A1+).
+    const { data: approver } = await supabaseServer
+      .from("users")
+      .select("id, role")
+      .in("role", ["Administrator", "A1", "A1+"])
+      .filter("phone", "eq", gp.approver_phone)
+      .limit(1)
+      .maybeSingle();
+
+    if (!approver) {
+      await logAction(user, "otp_failed", "gate_pass", gp.id, {
+        gp_number: gp.gp_number,
+        reason: "approver_not_authorized",
+        approver_phone: gp.approver_phone,
+      });
+      return {
+        success: false,
+        error: "The approver phone is not registered to an authorized admin (Administrator/A1/A1+)",
+      };
     }
 
     await supabaseServer
       .from("gate_passes")
       .update({
         status: "OTP Verified",
-        otp_hash: null,
-        otp_attempts: 0,
-        otp_locked: false,
-        approved_by: user.id,
+        otp_channel: "sms",
+        approved_by: approver.id,
       })
       .eq("id", data.gatePassId);
 
     await logAction(user, "otp_verified", "gate_pass", gp.id, {
       gp_number: gp.gp_number,
+      phone: tokenPhone,
+      approved_by_role: approver.role,
     });
 
     return { success: true };
@@ -340,6 +380,7 @@ export const verifyOtp = createServerFn({ method: "POST" })
 
 const recordExitSchema = z.object({ gatePassId: z.string().uuid() });
 
+// Marks a gate pass as "Exited" with a timestamp once OTP is verified.
 export const recordExit = createServerFn({ method: "POST" })
   .validator(recordExitSchema)
   .handler(async ({ data, context }) => {
@@ -352,7 +393,8 @@ export const recordExit = createServerFn({ method: "POST" })
       .single();
 
     if (!gp) return { success: false, error: "Gate pass not found" };
-    if (gp.status !== "OTP Verified") return { success: false, error: "Gate pass must be OTP Verified before exit" };
+    if (gp.status !== "OTP Verified")
+      return { success: false, error: "Gate pass must be OTP Verified before exit" };
 
     const now = new Date().toISOString();
 
@@ -374,6 +416,7 @@ export const recordExit = createServerFn({ method: "POST" })
     return { success: true, exit_time: now };
   });
 
+// Fetches the audit-log timeline (actions, users, timestamps) for a single gate pass.
 export const fetchGatePassTimeline = createServerFn({ method: "GET" })
   .validator((input: { gatePassId: string }) => input)
   .handler(async ({ data, context }) => {
@@ -403,6 +446,7 @@ export const fetchGatePassTimeline = createServerFn({ method: "GET" })
     }));
   });
 
+// Generates a time-limited signed URL for a gate pass PDF stored in Supabase.
 export const getGatePassSignedUrl = createServerFn({ method: "GET" })
   .validator((input: { gatePassId: string }) => input)
   .handler(async ({ data, context }) => {
@@ -418,8 +462,7 @@ export const getGatePassSignedUrl = createServerFn({ method: "GET" })
       return { success: false, error: "No PDF available" };
     }
 
-    const { data: urlData, error } = await supabaseServer
-      .storage
+    const { data: urlData, error } = await supabaseServer.storage
       .from("documents")
       .createSignedUrl(gp.pdf_path, 72 * 60 * 60);
 
@@ -472,7 +515,9 @@ export const fetchGatePassById = createServerFn({ method: "GET" })
 
     const { data: gp } = await supabaseServer
       .from("gate_passes")
-      .select("id, gp_number, material, qty, carrier, vehicle, type, status, approver_phone, otp_channel, requested_by, requested_at, exit_time, approved_by, vendor_id, from_location, to_location, invoice_number, invoice_value, purpose, pdf_path, person_name, vehicle_type, driver_name, driver_mobile, material_movement, material_list, remarks, photo_proof_path, gp_date, gp_time")
+      .select(
+        "id, gp_number, material, qty, carrier, vehicle, type, status, approver_phone, otp_channel, requested_by, requested_at, exit_time, approved_by, vendor_id, from_location, to_location, invoice_number, invoice_value, purpose, pdf_path, person_name, vehicle_type, driver_name, driver_mobile, material_movement, material_list, remarks, photo_proof_path, gp_date, gp_time, batch_id, requisition_id",
+      )
       .eq("id", data.gatePassId)
       .single();
 
@@ -481,22 +526,38 @@ export const fetchGatePassById = createServerFn({ method: "GET" })
     const userIds = [gp.requested_by, gp.approved_by].filter(Boolean);
     const vendorIds = gp.vendor_id ? [gp.vendor_id] : [];
 
-    const [{ data: users }, { data: vendors }] = await Promise.all([
-      userIds.length > 0
-        ? supabaseServer.from("users").select("id, name").in("id", userIds)
-        : Promise.resolve({ data: [], error: null }),
-      vendorIds.length > 0
-        ? supabaseServer.from("vendors").select("id, name").in("id", vendorIds)
-        : Promise.resolve({ data: [], error: null }),
-    ]);
+    const [{ data: users }, { data: vendors }, { data: batch }, { data: requisition }] =
+      await Promise.all([
+        userIds.length > 0
+          ? supabaseServer.from("users").select("id, name").in("id", userIds)
+          : Promise.resolve({ data: [], error: null }),
+        vendorIds.length > 0
+          ? supabaseServer.from("vendors").select("id, name").in("id", vendorIds)
+          : Promise.resolve({ data: [], error: null }),
+        gp.batch_id
+          ? supabaseServer
+              .from("batches")
+              .select(
+                "id, batch_number, material, supplier, manufacturer, purchase_date, invoice, challan, mtc, lab_report, status",
+              )
+              .eq("id", gp.batch_id)
+              .single()
+          : Promise.resolve({ data: null, error: null }),
+        gp.requisition_id
+          ? supabaseServer
+              .from("requisitions")
+              .select("id, pr_number, po_number, title, stage, vendor_id, amount")
+              .eq("id", gp.requisition_id)
+              .single()
+          : Promise.resolve({ data: null, error: null }),
+      ]);
 
     const userMap = new Map((users ?? []).map((u: any) => [u.id, u.name]));
     const vendorMap = new Map((vendors ?? []).map((v: any) => [v.id, v.name]));
 
     let photoUrl: string | null = null;
     if (gp.photo_proof_path) {
-      const { data: urlData } = await supabaseServer
-        .storage
+      const { data: urlData } = await supabaseServer.storage
         .from("photos")
         .createSignedUrl(gp.photo_proof_path, 60 * 60);
       photoUrl = urlData?.signedUrl ?? null;
@@ -520,9 +581,9 @@ export const fetchGatePassById = createServerFn({ method: "GET" })
         requested_at: gp.requested_at,
         exit_time: gp.exit_time,
         approved_by: gp.approved_by,
-        approved_by_name: gp.approved_by ? userMap.get(gp.approved_by) ?? null : null,
+        approved_by_name: gp.approved_by ? (userMap.get(gp.approved_by) ?? null) : null,
         vendor_id: gp.vendor_id,
-        vendor_name: gp.vendor_id ? vendorMap.get(gp.vendor_id) ?? null : null,
+        vendor_name: gp.vendor_id ? (vendorMap.get(gp.vendor_id) ?? null) : null,
         from_location: gp.from_location,
         to_location: gp.to_location,
         invoice_number: gp.invoice_number,
@@ -540,6 +601,34 @@ export const fetchGatePassById = createServerFn({ method: "GET" })
         photo_url: photoUrl,
         gp_date: gp.gp_date,
         gp_time: gp.gp_time,
-      } as GatePassRow & { photo_url: string | null },
+        batch_id: gp.batch_id ?? null,
+        requisition_id: gp.requisition_id ?? null,
+        batch: batch
+          ? {
+              batch_number: batch.batch_number,
+              material: batch.material,
+              supplier: batch.supplier,
+              manufacturer: batch.manufacturer,
+              purchase_date: batch.purchase_date,
+              invoice: batch.invoice,
+              challan: batch.challan,
+              mtc: batch.mtc,
+              lab_report: batch.lab_report,
+              status: batch.status,
+            }
+          : null,
+        requisition: requisition
+          ? {
+              pr_number: requisition.pr_number,
+              po_number: requisition.po_number ?? null,
+              title: requisition.title,
+              stage: requisition.stage,
+              amount: Number(requisition.amount),
+              vendor_name: requisition.vendor_id
+                ? (vendorMap.get(requisition.vendor_id) ?? null)
+                : null,
+            }
+          : null,
+      } as GatePassRow & { photo_url: string | null; batch: any; requisition: any },
     };
   });

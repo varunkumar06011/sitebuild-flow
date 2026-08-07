@@ -1,3 +1,4 @@
+// Root route definition: sets document head metadata, global providers, and error/404 boundaries.
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -15,6 +16,7 @@ import { RoleProvider } from "../lib/role-context";
 import { Toaster } from "../components/ui/sonner";
 
 
+// 404 fallback component shown when no route matches the current URL.
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -37,6 +39,7 @@ function NotFoundComponent() {
   );
 }
 
+// Error boundary component shown when a route throws, with retry and home options.
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
@@ -115,6 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+// Outer HTML shell that renders <head> metadata and body content for SSR.
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
@@ -129,6 +133,7 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+// Root component wrapping the app in React Query and role context providers with a toast notifier.
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 

@@ -1,3 +1,4 @@
+// Supervisor dashboard route: requires Supervisor role and renders the site operations dashboard.
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/supervisor")({
   component: SupervisorDashboard,
 });
 
+// Supervisor dashboard showing requisitions, quick actions, progress, labour, and QC alerts.
 function SupervisorDashboard() {
   const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
   const { data: gpData } = useQuery({ queryKey: ["gatePasses"], queryFn: () => fetchGatePasses({ data: {} }) });
@@ -97,7 +99,7 @@ function SupervisorDashboard() {
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-sm font-semibold">{inr(r.amount)}</span>
                   <StatusPill
-                    tone={r.stage === "Completed" ? "success" : r.stage === "Admin" || r.stage === "A1" ? "warning" : "info"}
+                    tone={r.stage === "Completed" ? "success" : r.stage === "Admin" || r.stage === "A1" || r.stage === "A1+" ? "warning" : "info"}
                   >
                     {r.stage}
                   </StatusPill>
@@ -171,6 +173,7 @@ function SupervisorDashboard() {
   );
 }
 
+// Stat card with an icon, colored accent bar, label, value, and note.
 function StatCard({
   icon: Icon,
   label,
@@ -203,6 +206,7 @@ function StatCard({
   );
 }
 
+// Link card that surfaces a quick navigation action with an icon, title, and description.
 function QuickAction({
   to,
   icon: Icon,

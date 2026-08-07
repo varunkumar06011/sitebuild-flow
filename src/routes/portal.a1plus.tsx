@@ -1,3 +1,4 @@
+// A1+ role portal landing page describing final approval authority and full system control.
 import { createFileRoute } from "@tanstack/react-router";
 import { RolePortalLanding } from "@/components/RolePortal";
 

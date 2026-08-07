@@ -1,3 +1,4 @@
+// Inventory management page: category tree, item master, stock register, low-stock alerts and ledger.
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -81,6 +82,7 @@ export const Route = createFileRoute("/inventory")({
 // ---------------------------------------------------------------------------
 // Tree node type
 // ---------------------------------------------------------------------------
+// Tree node type representing a category hierarchy entry with nested children.
 type TreeNode = {
   id: string;
   name: string;
@@ -90,6 +92,7 @@ type TreeNode = {
   children: TreeNode[];
 };
 
+// Builds a nested tree structure from a flat list of category nodes using parent_id links.
 function buildTree(nodes: any[]): TreeNode[] {
   const map = new Map<string, TreeNode>();
   const roots: TreeNode[] = [];
@@ -182,6 +185,7 @@ function TreeRow({
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
+// Main inventory page with tabs for category tree, items, stock register and transaction ledger.
 function InventoryPage() {
   const { role } = useRole();
   const queryClient = useQueryClient();
@@ -238,12 +242,14 @@ function InventoryPage() {
   const [catForm, setCatForm] = useState({ name: "", level: "category" as string });
   const [catSaving, setCatSaving] = useState(false);
 
+  // Opens the add-category dialog for a root-level category.
   const openAddRoot = () => {
     setCatParent(null);
     setCatForm({ name: "", level: "category" });
     setCatDialogOpen(true);
   };
 
+  // Opens the add-category dialog for a child node under the given parent.
   const openAddChild = (parent: TreeNode) => {
     setCatParent(parent);
     const childLvl = CHILD_LEVEL[parent.level] ?? "type";
@@ -251,6 +257,7 @@ function InventoryPage() {
     setCatDialogOpen(true);
   };
 
+  // Creates a new category node via the API and refreshes the tree on success.
   const handleCatSave = async () => {
     if (!catForm.name.trim()) {
       toast.error("Category name is required");
@@ -305,11 +312,13 @@ function InventoryPage() {
     return flat;
   }, [tree]);
 
+  // Opens the add-item dialog with the form fields reset to defaults.
   const openCreateItem = () => {
     setItemForm({ category_id: "", name: "", unit_of_measure: "", reorder_level: "0", opening_stock: "0" });
     setItemDialogOpen(true);
   };
 
+  // Creates a new inventory item via the API and refreshes items and stock queries.
   const handleItemSave = async () => {
     if (!itemForm.name.trim()) {
       toast.error("Item name is required");
@@ -439,46 +448,78 @@ function InventoryPage() {
               <Plus className="mr-1.5 size-4" /> Add item
             </Button>
           </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[700px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2 font-semibold">Item</th>
-                  <th className="pb-2 font-semibold">Category path</th>
-                  <th className="pb-2 font-semibold">Unit</th>
-                  <th className="pb-2 text-right font-semibold">Reorder lvl</th>
-                  <th className="pb-2 text-right font-semibold">Current stock</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                      No items found.
-                    </td>
+          <div className="mt-4">
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[700px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="pb-2 font-semibold">Item</th>
+                    <th className="pb-2 font-semibold">Category path</th>
+                    <th className="pb-2 font-semibold">Unit</th>
+                    <th className="pb-2 text-right font-semibold">Reorder lvl</th>
+                    <th className="pb-2 text-right font-semibold">Current stock</th>
                   </tr>
-                )}
-                {items.map((i: any) => {
-                  const isLow = Number(i.current_stock) <= Number(i.reorder_level);
-                  return (
-                    <tr key={i.item_id} className="align-middle">
-                      <td className="py-3 font-medium">{i.item_name}</td>
-                      <td className="py-3 text-xs text-muted-foreground">{i.category_path}</td>
-                      <td className="py-3 text-muted-foreground">{i.unit_of_measure ?? "—"}</td>
-                      <td className="py-3 text-right font-mono">{i.reorder_level}</td>
-                      <td className="py-3 text-right">
-                        <span className={`font-mono font-semibold ${isLow ? "text-destructive" : ""}`}>
-                          {i.current_stock}
-                        </span>
-                        {isLow && (
-                          <AlertTriangle className="ml-1 inline size-3.5 text-destructive" />
-                        )}
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {items.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                        No items found.
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  )}
+                  {items.map((i: any) => {
+                    const isLow = Number(i.current_stock) <= Number(i.reorder_level);
+                    return (
+                      <tr key={i.item_id} className="align-middle">
+                        <td className="py-3 font-medium">{i.item_name}</td>
+                        <td className="py-3 text-xs text-muted-foreground">{i.category_path}</td>
+                        <td className="py-3 text-muted-foreground">{i.unit_of_measure ?? "—"}</td>
+                        <td className="py-3 text-right font-mono">{i.reorder_level}</td>
+                        <td className="py-3 text-right">
+                          <span className={`font-mono font-semibold ${isLow ? "text-destructive" : ""}`}>
+                            {i.current_stock}
+                          </span>
+                          {isLow && (
+                            <AlertTriangle className="ml-1 inline size-3.5 text-destructive" />
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="space-y-3 md:hidden">
+              {items.length === 0 && (
+                <p className="py-8 text-center text-sm text-muted-foreground">No items found.</p>
+              )}
+              {items.map((i: any) => {
+                const isLow = Number(i.current_stock) <= Number(i.reorder_level);
+                return (
+                  <div key={i.item_id} className="rounded-xl border border-border p-4">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="font-medium">{i.item_name}</span>
+                      {isLow ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive">
+                          <AlertTriangle className="size-3.5" /> Low
+                        </span>
+                      ) : (
+                        <StatusPill tone="success">OK</StatusPill>
+                      )}
+                    </div>
+                    <p className="mb-2 text-xs text-muted-foreground">{i.category_path}</p>
+                    <div className="flex items-center justify-between border-t border-border pt-2 text-sm">
+                      <span className="text-muted-foreground">Stock: <span className={`font-mono font-semibold ${isLow ? "text-destructive" : ""}`}>{i.current_stock}</span> {i.unit_of_measure ?? ""}</span>
+                      <span className="text-xs text-muted-foreground">Reorder: {i.reorder_level}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </Card>
       )}
@@ -490,49 +531,76 @@ function InventoryPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             Current stock = opening + in − out ± adjustment (computed on read)
           </p>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[800px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2 font-semibold">Item</th>
-                  <th className="pb-2 font-semibold">Category</th>
-                  <th className="pb-2 font-semibold">Unit</th>
-                  <th className="pb-2 text-right font-semibold">Opening</th>
-                  <th className="pb-2 text-right font-semibold">Current</th>
-                  <th className="pb-2 text-right font-semibold">Reorder</th>
-                  <th className="pb-2 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {stockItems.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                      No stock data. Create items first.
-                    </td>
+          <div className="mt-4">
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[800px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="pb-2 font-semibold">Item</th>
+                    <th className="pb-2 font-semibold">Category</th>
+                    <th className="pb-2 font-semibold">Unit</th>
+                    <th className="pb-2 text-right font-semibold">Opening</th>
+                    <th className="pb-2 text-right font-semibold">Current</th>
+                    <th className="pb-2 text-right font-semibold">Reorder</th>
+                    <th className="pb-2 font-semibold">Status</th>
                   </tr>
-                )}
-                {stockItems.map((i: any) => {
-                  const isLow = Number(i.current_stock) <= Number(i.reorder_level);
-                  return (
-                    <tr key={i.item_id} className="align-middle">
-                      <td className="py-3 font-medium">{i.item_name}</td>
-                      <td className="py-3 text-xs text-muted-foreground">{i.category_path}</td>
-                      <td className="py-3 text-muted-foreground">{i.unit_of_measure ?? "—"}</td>
-                      <td className="py-3 text-right font-mono">{i.opening_stock}</td>
-                      <td className="py-3 text-right font-mono font-semibold">{i.current_stock}</td>
-                      <td className="py-3 text-right font-mono">{i.reorder_level}</td>
-                      <td className="py-3">
-                        {isLow ? (
-                          <StatusPill tone="danger">Low stock</StatusPill>
-                        ) : (
-                          <StatusPill tone="success">OK</StatusPill>
-                        )}
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {stockItems.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                        No stock data. Create items first.
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  )}
+                  {stockItems.map((i: any) => {
+                    const isLow = Number(i.current_stock) <= Number(i.reorder_level);
+                    return (
+                      <tr key={i.item_id} className="align-middle">
+                        <td className="py-3 font-medium">{i.item_name}</td>
+                        <td className="py-3 text-xs text-muted-foreground">{i.category_path}</td>
+                        <td className="py-3 text-muted-foreground">{i.unit_of_measure ?? "—"}</td>
+                        <td className="py-3 text-right font-mono">{i.opening_stock}</td>
+                        <td className="py-3 text-right font-mono font-semibold">{i.current_stock}</td>
+                        <td className="py-3 text-right font-mono">{i.reorder_level}</td>
+                        <td className="py-3">
+                          {isLow ? (
+                            <StatusPill tone="danger">Low stock</StatusPill>
+                          ) : (
+                            <StatusPill tone="success">OK</StatusPill>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="space-y-3 md:hidden">
+              {stockItems.length === 0 && (
+                <p className="py-8 text-center text-sm text-muted-foreground">No stock data. Create items first.</p>
+              )}
+              {stockItems.map((i: any) => {
+                const isLow = Number(i.current_stock) <= Number(i.reorder_level);
+                return (
+                  <div key={i.item_id} className="rounded-xl border border-border p-4">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className="font-medium">{i.item_name}</span>
+                      {isLow ? <StatusPill tone="danger">Low stock</StatusPill> : <StatusPill tone="success">OK</StatusPill>}
+                    </div>
+                    <p className="mb-2 text-xs text-muted-foreground">{i.category_path} · {i.unit_of_measure ?? "—"}</p>
+                    <div className="grid grid-cols-3 gap-2 border-t border-border pt-2 text-center text-xs">
+                      <div><p className="text-muted-foreground">Opening</p><p className="font-mono font-semibold">{i.opening_stock}</p></div>
+                      <div><p className="text-muted-foreground">Current</p><p className={`font-mono font-semibold ${isLow ? "text-destructive" : ""}`}>{i.current_stock}</p></div>
+                      <div><p className="text-muted-foreground">Reorder</p><p className="font-mono">{i.reorder_level}</p></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </Card>
       )}
@@ -544,7 +612,7 @@ function InventoryPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             Select an item to view its full transaction history.
           </p>
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Select
               value={ledgerItem?.item_id ?? ""}
               onValueChange={(val) => {
@@ -552,7 +620,7 @@ function InventoryPage() {
                 setLedgerItem(item ?? null);
               }}
             >
-              <SelectTrigger className="w-80">
+              <SelectTrigger className="w-full sm:w-80">
                 <SelectValue placeholder="Select item..." />
               </SelectTrigger>
               <SelectContent>
@@ -565,50 +633,81 @@ function InventoryPage() {
             </Select>
           </div>
           {ledgerItem && (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[700px] text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="pb-2 font-semibold">Date</th>
-                    <th className="pb-2 font-semibold">Type</th>
-                    <th className="pb-2 text-right font-semibold">Qty</th>
-                    <th className="pb-2 font-semibold">Block</th>
-                    <th className="pb-2 font-semibold">Reference</th>
-                    <th className="pb-2 font-semibold">Remarks</th>
-                    <th className="pb-2 font-semibold">By</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {ledger.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                        No transactions recorded for this item.
-                      </td>
+            <div className="mt-4">
+              {/* Desktop table */}
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[700px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="pb-2 font-semibold">Date</th>
+                      <th className="pb-2 font-semibold">Type</th>
+                      <th className="pb-2 text-right font-semibold">Qty</th>
+                      <th className="pb-2 font-semibold">Block</th>
+                      <th className="pb-2 font-semibold">Reference</th>
+                      <th className="pb-2 font-semibold">Remarks</th>
+                      <th className="pb-2 font-semibold">By</th>
                     </tr>
-                  )}
-                  {ledger.map((t: any) => (
-                    <tr key={t.id} className="align-middle">
-                      <td className="py-3 text-xs text-muted-foreground">
-                        {new Date(t.created_at).toLocaleString("en-IN")}
-                      </td>
-                      <td className="py-3">
-                        <StatusPill
-                          tone={
-                            t.type === "in" ? "success" : t.type === "out" ? "danger" : "warning"
-                          }
-                        >
-                          {t.type}
-                        </StatusPill>
-                      </td>
-                      <td className="py-3 text-right font-mono font-semibold">{t.quantity}</td>
-                      <td className="py-3 text-muted-foreground">{t.block_name}</td>
-                      <td className="py-3 font-mono text-xs">{t.reference ?? "—"}</td>
-                      <td className="py-3 text-muted-foreground">{t.remarks ?? "—"}</td>
-                      <td className="py-3 text-xs">{t.created_by_name}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {ledger.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                          No transactions recorded for this item.
+                        </td>
+                      </tr>
+                    )}
+                    {ledger.map((t: any) => (
+                      <tr key={t.id} className="align-middle">
+                        <td className="py-3 text-xs text-muted-foreground">
+                          {new Date(t.created_at).toLocaleString("en-IN")}
+                        </td>
+                        <td className="py-3">
+                          <StatusPill
+                            tone={
+                              t.type === "in" ? "success" : t.type === "out" ? "danger" : "warning"
+                            }
+                          >
+                            {t.type}
+                          </StatusPill>
+                        </td>
+                        <td className="py-3 text-right font-mono font-semibold">{t.quantity}</td>
+                        <td className="py-3 text-muted-foreground">{t.block_name}</td>
+                        <td className="py-3 font-mono text-xs">{t.reference ?? "—"}</td>
+                        <td className="py-3 text-muted-foreground">{t.remarks ?? "—"}</td>
+                        <td className="py-3 text-xs">{t.created_by_name}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="space-y-3 md:hidden">
+                {ledger.length === 0 && (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No transactions recorded for this item.</p>
+                )}
+                {ledger.map((t: any) => (
+                  <div key={t.id} className="rounded-xl border border-border p-4">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <StatusPill tone={t.type === "in" ? "success" : t.type === "out" ? "danger" : "warning"}>
+                        {t.type}
+                      </StatusPill>
+                      <span className="font-mono text-sm font-semibold">{t.quantity}</span>
+                    </div>
+                    <p className="mb-1 text-xs text-muted-foreground">
+                      {new Date(t.created_at).toLocaleString("en-IN")}
+                    </p>
+                    <p className="text-sm">{t.block_name ?? "—"}</p>
+                    {(t.reference || t.remarks) && (
+                      <div className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
+                        {t.reference && <p>Ref: <span className="font-mono">{t.reference}</span></p>}
+                        {t.remarks && <p>{t.remarks}</p>}
+                      </div>
+                    )}
+                    <p className="mt-1 text-xs text-muted-foreground">By {t.created_by_name}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </Card>

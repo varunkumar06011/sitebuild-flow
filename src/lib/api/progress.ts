@@ -3,6 +3,7 @@ import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
 
+// Fetches all block-level progress percentages ordered by block name.
 export const fetchProgress = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireSessionUser();
@@ -17,6 +18,7 @@ export const fetchProgress = createServerFn({ method: "GET" })
     return { data: data ?? [] };
   });
 
+// Creates or updates a block's progress percentage (admin and above only).
 export const updateProgress = createServerFn({ method: "POST" })
   .validator((input: { block: string; pct: number }) => input)
   .handler(async ({ data, context }) => {

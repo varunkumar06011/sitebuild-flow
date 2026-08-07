@@ -6,6 +6,7 @@ import { logAction } from "./audit";
 
 const PAYMENT_METHODS = ["Cash", "Cheque", "UPI", "NEFT", "RTGS", "IMPS"] as const;
 
+// Fetches a paginated list of vendors with optional name/GST search.
 export const fetchVendors = createServerFn({ method: "GET" })
   .validator((input: { page?: number; limit?: number; search?: string }) => input)
   .handler(async ({ data, context }) => {
@@ -29,6 +30,7 @@ export const fetchVendors = createServerFn({ method: "GET" })
     return { data: vendors ?? [], total: count ?? 0, page, limit };
   });
 
+// Zod schema validating vendor creation fields (name, GST, address, payment method, amounts).
 const vendorSchema = z.object({
   name: z.string().min(1),
   gst_number: z.string().optional(),
@@ -43,6 +45,7 @@ const vendorSchema = z.object({
   payment_method: z.enum(PAYMENT_METHODS).optional(),
 });
 
+// Creates a new vendor with initialized payment totals (admin and above only).
 export const createVendor = createServerFn({ method: "POST" })
   .validator(vendorSchema)
   .handler(async ({ data, context }) => {
@@ -73,6 +76,7 @@ export const createVendor = createServerFn({ method: "POST" })
     return { success: true, id: vendor.id };
   });
 
+// Updates vendor fields, recalculating outstanding balance when total_amount changes (admin and above only).
 export const updateVendor = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().uuid(), ...vendorSchema.shape }))
   .handler(async ({ data, context }) => {
@@ -109,6 +113,7 @@ export const updateVendor = createServerFn({ method: "POST" })
 
 // --- Vendor Payments ---
 
+// Fetches all payments for a single vendor with approver and creator names joined.
 export const fetchVendorPayments = createServerFn({ method: "GET" })
   .validator((input: { vendorId: string }) => input)
   .handler(async ({ data, context }) => {
@@ -138,6 +143,7 @@ export const fetchVendorPayments = createServerFn({ method: "GET" })
     };
   });
 
+// Fetches a paginated list of all vendor payments with vendor and user names joined (admin and above only).
 export const fetchAllVendorPayments = createServerFn({ method: "GET" })
   .validator((input: { page?: number; limit?: number }) => input)
   .handler(async ({ data, context }) => {
@@ -184,6 +190,7 @@ export const fetchAllVendorPayments = createServerFn({ method: "GET" })
     };
   });
 
+// Zod schema validating a vendor payment record (amount, type, approver, proof path).
 const paymentSchema = z.object({
   vendor_id: z.string().uuid(),
   amount: z.number().positive(),
@@ -193,6 +200,7 @@ const paymentSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Records a vendor payment after verifying the approver is not a Supervisor (admin and above only).
 export const addVendorPayment = createServerFn({ method: "POST" })
   .validator(paymentSchema)
   .handler(async ({ data, context }) => {
@@ -242,6 +250,7 @@ export const addVendorPayment = createServerFn({ method: "POST" })
     return { success: true, id: payment.id };
   });
 
+// Fetches all non-Supervisor users eligible to approve payments.
 export const fetchApprovableUsers = createServerFn({ method: "GET" })
   .validator((input: {}) => input)
   .handler(async ({ data, context }) => {
@@ -258,6 +267,7 @@ export const fetchApprovableUsers = createServerFn({ method: "GET" })
 
 // --- Material Categories ---
 
+// Fetches all material categories ordered by name.
 export const fetchMaterialCategories = createServerFn({ method: "GET" })
   .validator((input: {}) => input)
   .handler(async ({ data, context }) => {
@@ -271,6 +281,7 @@ export const fetchMaterialCategories = createServerFn({ method: "GET" })
     return { data: categories ?? [] };
   });
 
+// Creates a new material category and logs the action.
 export const createMaterialCategory = createServerFn({ method: "POST" })
   .validator(z.object({ name: z.string().min(1) }))
   .handler(async ({ data, context }) => {

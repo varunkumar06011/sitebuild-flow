@@ -4,6 +4,7 @@
 let lastCapturedError: { error: unknown; at: number } | undefined;
 const TTL_MS = 5_000;
 
+// Stores the most recent error with a timestamp so it can be retrieved shortly after.
 function record(error: unknown) {
   lastCapturedError = { error, at: Date.now() };
 }
@@ -15,6 +16,7 @@ function record(error: unknown) {
 const CAUSE_DEPTH_LIMIT = 5;
 const DESCRIPTION_LENGTH_LIMIT = 8_000;
 
+// Serializes an error (including its cause chain) into a single readable string.
 export function describeError(error: unknown): string {
   const parts: string[] = [];
   let current: unknown = error;
@@ -31,12 +33,14 @@ export function describeError(error: unknown): string {
   return parts.join("\n").slice(0, DESCRIPTION_LENGTH_LIMIT);
 }
 
+// Appends an HTTP status code suffix to the error description when present.
 function describeStatus(error: Error): string {
   const { status, statusCode } = error as { status?: unknown; statusCode?: unknown };
   const value = status ?? statusCode;
   return typeof value === "number" ? ` (status ${value})` : "";
 }
 
+// Safely JSON-stringifies a value, falling back to String() on circular references.
 function safeStringify(value: unknown): string {
   try {
     return JSON.stringify(value) ?? String(value);
@@ -45,6 +49,7 @@ function safeStringify(value: unknown): string {
   }
 }
 
+// Type guard that returns true when the value is an Error instance.
 function isErrorLike(value: unknown): value is Error {
   return value instanceof Error;
 }
@@ -69,6 +74,7 @@ if (typeof globalThis.addEventListener === "function") {
   );
 }
 
+// Returns and clears the most recently captured error if it is still within the TTL window.
 export function consumeLastCapturedError(): unknown {
   if (!lastCapturedError) return undefined;
   if (Date.now() - lastCapturedError.at > TTL_MS) {

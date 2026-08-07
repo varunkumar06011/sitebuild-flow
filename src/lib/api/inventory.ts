@@ -5,7 +5,9 @@ import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
 import type { Role } from "../erp-data";
 
+// Roles permitted to manage inventory categories and items.
 const ADMIN_ROLES: Role[] = ["Administrator", "A1", "A1+"];
+// Returns true if the given role has admin-level inventory permissions.
 function isAdmin(role: Role): boolean {
   return ADMIN_ROLES.includes(role);
 }
@@ -14,6 +16,7 @@ function isAdmin(role: Role): boolean {
 // Category tree
 // ---------------------------------------------------------------------------
 
+// Fetches the full inventory category tree ordered by sort order.
 export const fetchCategoryTree = createServerFn({ method: "GET" })
   .validator((input: {}) => input)
   .handler(async ({ data, context }) => {
@@ -27,6 +30,7 @@ export const fetchCategoryTree = createServerFn({ method: "GET" })
     return { data: nodes ?? [] };
   });
 
+// Zod schema validating a new category node (name, level, parent, sort order).
 const categorySchema = z.object({
   name: z.string().min(1),
   level: z.enum(["category", "type", "subcategory", "subtype"]),
@@ -34,20 +38,11 @@ const categorySchema = z.object({
   sort_order: z.number().optional(),
 });
 
+// Creates a new inventory category node (admin only) and logs the action.
 export const createCategoryNode = createServerFn({ method: "POST" })
   .validator(categorySchema)
   .handler(async ({ data, context }) => {
-    console.log("[createCategoryNode] handler started, data:", JSON.stringify(data));
-    try {
-      const { getStartContext } = await import("@tanstack/start-storage-context");
-      const ctx = getStartContext({ throwIfNotFound: false });
-      const req = ctx?.request as Request | undefined;
-      console.log("[createCategoryNode] request exists:", !!req, "cookie:", req?.headers.get("cookie")?.substring(0, 200));
-    } catch (e) {
-      console.log("[createCategoryNode] getStartContext error:", e);
-    }
     const user = await requireSessionUser();
-    console.log("[createCategoryNode] user:", user?.id, user?.role);
     if (!isAdmin(user.role)) {
       return { success: false, error: "Only administrators can manage categories" };
     }
@@ -86,6 +81,7 @@ export const createCategoryNode = createServerFn({ method: "POST" })
 // Items
 // ---------------------------------------------------------------------------
 
+// Fetches inventory items with current stock and resolved category paths, optional name search.
 export const fetchItems = createServerFn({ method: "GET" })
   .validator((input: { search?: string }) => input)
   .handler(async ({ data, context }) => {
@@ -132,6 +128,7 @@ export const fetchItems = createServerFn({ method: "GET" })
     };
   });
 
+// Zod schema validating a new inventory item (category, name, unit, reorder level, opening stock).
 const itemSchema = z.object({
   category_id: z.string().uuid(),
   name: z.string().min(1),
@@ -140,6 +137,7 @@ const itemSchema = z.object({
   opening_stock: z.number().min(0).optional(),
 });
 
+// Creates a new inventory item (admin only) and logs the action.
 export const createItem = createServerFn({ method: "POST" })
   .validator(itemSchema)
   .handler(async ({ data, context }) => {
@@ -176,6 +174,7 @@ export const createItem = createServerFn({ method: "POST" })
 // Transactions
 // ---------------------------------------------------------------------------
 
+// Zod schema validating an inventory transaction (in/out/adjustment with quantity and reference).
 const txSchema = z.object({
   item_id: z.string().uuid(),
   type: z.enum(["in", "out", "adjustment"]),
@@ -185,6 +184,7 @@ const txSchema = z.object({
   remarks: z.string().optional(),
 });
 
+// Records an inventory stock transaction (in/out/adjustment) and logs the action.
 export const recordTransaction = createServerFn({ method: "POST" })
   .validator(txSchema)
   .handler(async ({ data, context }) => {
@@ -220,6 +220,7 @@ export const recordTransaction = createServerFn({ method: "POST" })
 // Stock levels & low-stock alerts (admin only)
 // ---------------------------------------------------------------------------
 
+// Fetches current stock levels for all items with resolved category paths (admin only).
 export const fetchStockLevels = createServerFn({ method: "GET" })
   .validator((input: {}) => input)
   .handler(async ({ data, context }) => {
@@ -262,6 +263,7 @@ export const fetchStockLevels = createServerFn({ method: "GET" })
     };
   });
 
+// Fetches items whose current stock has fallen to or below their reorder level (admin only).
 export const fetchLowStockAlerts = createServerFn({ method: "GET" })
   .validator((input: {}) => input)
   .handler(async ({ data, context }) => {
@@ -286,6 +288,7 @@ export const fetchLowStockAlerts = createServerFn({ method: "GET" })
 // Item ledger (full transaction history for one item)
 // ---------------------------------------------------------------------------
 
+// Fetches the full transaction ledger for a single item with user and block names joined (admin only).
 export const fetchItemLedger = createServerFn({ method: "GET" })
   .validator((input: { itemId: string }) => input)
   .handler(async ({ data, context }) => {
@@ -332,6 +335,7 @@ export const fetchItemLedger = createServerFn({ method: "GET" })
 // Blocks (for the optional block_id dropdown in transaction form)
 // ---------------------------------------------------------------------------
 
+// Fetches the list of construction blocks for the transaction form's block dropdown.
 export const fetchBlocks = createServerFn({ method: "GET" })
   .validator((input: {}) => input)
   .handler(async ({ data, context }) => {

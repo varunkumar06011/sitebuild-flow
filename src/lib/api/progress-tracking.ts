@@ -5,7 +5,9 @@ import { requireSessionUser, type SessionUser } from "./session";
 import { logAction } from "./audit";
 import type { Role } from "../erp-data";
 
+// Roles permitted to manage progress hierarchy and assignments.
 const ADMIN_ROLES: Role[] = ["Administrator", "A1", "A1+"];
+// Returns true if the given role has admin-level progress permissions.
 function isAdmin(role: Role): boolean {
   return ADMIN_ROLES.includes(role);
 }
@@ -13,6 +15,7 @@ function isAdmin(role: Role): boolean {
 // ---------------------------------------------------------------------------
 // Helper: can a supervisor edit a specific cell?
 // ---------------------------------------------------------------------------
+// Checks whether a supervisor is assigned to the block/floor containing the given cell.
 async function canSupervisorEditCell(
   user: SessionUser,
   cellId: string,
@@ -54,12 +57,14 @@ async function canSupervisorEditCell(
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+// Represents a construction block in the progress tracking hierarchy.
 export type ProgressBlock = {
   id: string;
   name: string;
   sort_order: number;
 };
 
+// Represents a floor within a block in the progress tracking hierarchy.
 export type ProgressFloor = {
   id: string;
   block_id: string;
@@ -67,12 +72,14 @@ export type ProgressFloor = {
   sort_order: number;
 };
 
+// Represents a work category (e.g. civil, finishing) used to group work items.
 export type ProgressCategory = {
   id: string;
   name: string;
   sort_order: number;
 };
 
+// Represents a specific work item belonging to a category in the progress hierarchy.
 export type ProgressWorkItem = {
   id: string;
   category_id: string;
@@ -80,6 +87,7 @@ export type ProgressWorkItem = {
   sort_order: number;
 };
 
+// Represents a group of cells sharing a block/floor/work-item combination with denormalized names.
 export type ProgressCellGroup = {
   id: string;
   block_id: string;
@@ -92,6 +100,7 @@ export type ProgressCellGroup = {
   cell_count: number;
 };
 
+// Represents a single progress tracking cell with status, completion, and denormalized hierarchy names.
 export type ProgressCell = {
   id: string;
   cell_group_id: string;
@@ -108,6 +117,7 @@ export type ProgressCell = {
   category_name: string;
 };
 
+// Represents one history entry recording a status/completion change for a cell.
 export type ProgressCellHistoryEntry = {
   id: string;
   cell_id: string;
@@ -121,6 +131,7 @@ export type ProgressCellHistoryEntry = {
   created_at: string;
 };
 
+// Represents a photo uploaded as proof for a progress cell.
 export type ProgressCellPhoto = {
   id: string;
   cell_id: string;
@@ -134,11 +145,13 @@ export type ProgressCellPhoto = {
 // Hierarchy CRUD — Admin only
 // ---------------------------------------------------------------------------
 
+// Zod schema validating a named hierarchy node with a sort order.
 const nameSchema = z.object({
   name: z.string().min(1),
   sort_order: z.number().int().default(0),
 });
 
+// Creates a new progress block (admin only) and logs the action.
 export const createBlock = createServerFn({ method: "POST" })
   .validator((input: { name: string; sort_order?: number }) => input)
   .handler(async ({ data }) => {
@@ -159,6 +172,7 @@ export const createBlock = createServerFn({ method: "POST" })
     return { success: true, data: block };
   });
 
+// Creates a new floor under a block (admin only) and logs the action.
 export const createFloor = createServerFn({ method: "POST" })
   .validator(z.object({
     block_id: z.string().uuid(),
@@ -180,6 +194,7 @@ export const createFloor = createServerFn({ method: "POST" })
     return { success: true, data: floor };
   });
 
+// Creates a new work category (admin only) and logs the action.
 export const createCategory = createServerFn({ method: "POST" })
   .validator(nameSchema)
   .handler(async ({ data }) => {
@@ -197,6 +212,7 @@ export const createCategory = createServerFn({ method: "POST" })
     return { success: true, data: cat };
   });
 
+// Creates a new work item under a category (admin only) and logs the action.
 export const createWorkItem = createServerFn({ method: "POST" })
   .validator(z.object({
     category_id: z.string().uuid(),
@@ -222,6 +238,7 @@ export const createWorkItem = createServerFn({ method: "POST" })
 // Cell Group creation — Admin only (generates N cells in one transaction)
 // ---------------------------------------------------------------------------
 
+// Creates a cell group and generates N cells in one transaction (admin only).
 export const createCellGroup = createServerFn({ method: "POST" })
   .validator(z.object({
     block_id: z.string().uuid(),
@@ -273,6 +290,7 @@ export const createCellGroup = createServerFn({ method: "POST" })
 // Supervisor assignment — Admin only
 // ---------------------------------------------------------------------------
 
+// Assigns a supervisor to a block or specific floor (admin only) and logs the action.
 export const assignSupervisor = createServerFn({ method: "POST" })
   .validator(z.object({
     supervisor_id: z.string().uuid(),
@@ -305,6 +323,7 @@ export const assignSupervisor = createServerFn({ method: "POST" })
 // Fetch hierarchy — Admin & Supervisor
 // ---------------------------------------------------------------------------
 
+// Fetches the full progress hierarchy (blocks, floors, categories, work items) in parallel.
 export const fetchHierarchy = createServerFn({ method: "GET" })
   .handler(async () => {
     await requireSessionUser();
@@ -328,6 +347,7 @@ export const fetchHierarchy = createServerFn({ method: "GET" })
 // Fetch supervisors (for assignment dropdowns)
 // ---------------------------------------------------------------------------
 
+// Fetches the list of supervisor users for assignment dropdowns (admin only).
 export const fetchSupervisors = createServerFn({ method: "GET" })
   .handler(async () => {
     const user = await requireSessionUser();
@@ -346,6 +366,7 @@ export const fetchSupervisors = createServerFn({ method: "GET" })
 // Fetch my cells — Supervisor only (cells they can edit)
 // ---------------------------------------------------------------------------
 
+// Fetches the cells a supervisor is assigned to, with hierarchy names and optional status filter.
 export const fetchMyCells = createServerFn({ method: "GET" })
   .validator((input: { status?: string } | undefined) => input ?? {})
   .handler(async ({ data }) => {
@@ -444,6 +465,7 @@ export const fetchMyCells = createServerFn({ method: "GET" })
 // Update cell — Supervisor (own cells) or Admin (any cell)
 // ---------------------------------------------------------------------------
 
+// Updates a cell's status/completion, recording a history entry and audit log (assigned supervisor or admin).
 export const updateCell = createServerFn({ method: "POST" })
   .validator(z.object({
     cell_id: z.string().uuid(),
@@ -506,6 +528,7 @@ export const updateCell = createServerFn({ method: "POST" })
 // Upload cell photo — Supervisor (own cells) or Admin
 // ---------------------------------------------------------------------------
 
+// Uploads a proof photo for a cell to Supabase storage and records it in the database.
 export const uploadCellPhoto = createServerFn({ method: "POST" })
   .validator(z.object({
     cell_id: z.string().uuid(),
@@ -565,6 +588,7 @@ export const uploadCellPhoto = createServerFn({ method: "POST" })
 // Fetch cell history — Admin, or Supervisor for their own cell
 // ---------------------------------------------------------------------------
 
+// Fetches the change history and photos for a cell (admin or assigned supervisor).
 export const fetchCellHistory = createServerFn({ method: "GET" })
   .validator((input: { cell_id: string }) => input)
   .handler(async ({ data }) => {
@@ -618,6 +642,7 @@ export const fetchCellHistory = createServerFn({ method: "GET" })
 // Fetch progress dashboard — Admin only (aggregated roll-up)
 // ---------------------------------------------------------------------------
 
+// Fetches an aggregated progress dashboard with block roll-ups and a flat cell list (admin only).
 export const fetchProgressDashboard = createServerFn({ method: "GET" })
   .handler(async () => {
     const user = await requireSessionUser();

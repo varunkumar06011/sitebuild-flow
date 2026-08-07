@@ -34,6 +34,20 @@ export function approverFor(amount: number): Role {
   return "A1+";
 }
 
+// Maps a role name to the corresponding procurement stage name.
+// "Administrator" → "Admin" (the DB enum uses the short form).
+// "A1" and "A1+" match their stage names directly.
+export function stageForRole(role: Role): string {
+  if (role === "Administrator") return "Admin";
+  return role;
+}
+
+// Maps a procurement stage name to the corresponding role name.
+export function roleForStage(stage: string): Role {
+  if (stage === "Admin") return "Administrator";
+  return stage as Role;
+}
+
 export function canApprove(role: Role, amount: number): boolean {
   if (role === "Supervisor") return false;
   const need = approverFor(amount);
@@ -50,11 +64,13 @@ export const PROCUREMENT_STAGES = [
   "Quotation",
   "Admin",
   "A1",
+  "A1+",
   "PO",
   "Material Received",
   "Invoice",
   "Payment",
   "Completed",
+  "Cancelled",
 ] as const;
 export type Stage = (typeof PROCUREMENT_STAGES)[number];
 
@@ -144,5 +160,5 @@ export const ROLE_LOGIN_CREDENTIALS: Record<Role, { username: string; password: 
   Supervisor: { username: "supervisor", password: "site123" },
   Administrator: { username: "admin", password: "admin123" },
   A1: { username: "a1", password: "a1pass123" },
-  "A1+": { username: "a1plus", password: "a1plus123" },
+  "A1+": { username: "a1plus", password: "final123" },
 };

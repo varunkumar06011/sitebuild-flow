@@ -131,21 +131,33 @@ CREATE TABLE IF NOT EXISTS progress_supervisor_assignments (
 -- ----------------------------------------------------------------------------
 -- Indexes
 -- ----------------------------------------------------------------------------
+-- Speeds up listing floors under a given block.
 CREATE INDEX IF NOT EXISTS idx_progress_floors_block ON progress_floors(block_id);
+-- Speeds up listing work items under a given category.
 CREATE INDEX IF NOT EXISTS idx_progress_work_items_category ON progress_work_items(category_id);
+-- Speeds up finding cell groups for a given block.
 CREATE INDEX IF NOT EXISTS idx_progress_cell_groups_block ON progress_cell_groups(block_id);
+-- Speeds up finding cell groups for a given floor.
 CREATE INDEX IF NOT EXISTS idx_progress_cell_groups_floor ON progress_cell_groups(floor_id);
+-- Speeds up finding cell groups for a given work item.
 CREATE INDEX IF NOT EXISTS idx_progress_cell_groups_work_item ON progress_cell_groups(work_item_id);
+-- Speeds up listing cells within a cell group.
 CREATE INDEX IF NOT EXISTS idx_progress_cells_group ON progress_cells(cell_group_id);
+-- Speeds up finding cells assigned to a supervisor.
 CREATE INDEX IF NOT EXISTS idx_progress_cells_supervisor ON progress_cells(assigned_supervisor_id);
+-- Speeds up listing photos attached to a cell.
 CREATE INDEX IF NOT EXISTS idx_progress_cell_photos_cell ON progress_cell_photos(cell_id);
+-- Speeds up retrieving history for a cell.
 CREATE INDEX IF NOT EXISTS idx_progress_cell_history_cell ON progress_cell_history(cell_id);
+-- Speeds up listing assignments for a supervisor.
 CREATE INDEX IF NOT EXISTS idx_progress_supervisor_assignments_supervisor ON progress_supervisor_assignments(supervisor_id);
+-- Speeds up listing assignments for a block.
 CREATE INDEX IF NOT EXISTS idx_progress_supervisor_assignments_block ON progress_supervisor_assignments(block_id);
 
 -- ----------------------------------------------------------------------------
 -- RLS — Defense in Depth (deny all for anon/authenticated)
 -- ----------------------------------------------------------------------------
+-- Enable RLS on all progress tables (deny-all; access via service_role functions).
 ALTER TABLE progress_blocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE progress_floors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE progress_categories ENABLE ROW LEVEL SECURITY;
@@ -156,6 +168,7 @@ ALTER TABLE progress_cell_photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE progress_cell_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE progress_supervisor_assignments ENABLE ROW LEVEL SECURITY;
 
+-- Revoke all direct table access from anon and authenticated roles.
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
 
 -- ----------------------------------------------------------------------------

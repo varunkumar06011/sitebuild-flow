@@ -1,3 +1,4 @@
+// Returns a static HTML error page shown when SSR fails catastrophically.
 export function renderErrorPage(): string {
   return `<!doctype html>
 <html lang="en">
