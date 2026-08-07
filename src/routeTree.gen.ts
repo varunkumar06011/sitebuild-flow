@@ -21,6 +21,7 @@ import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RegistersRouteImport } from './routes/registers'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as TraceabilityRouteImport } from './routes/traceability'
+import { Route as LoginIndexRouteImport } from './routes/login.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -82,6 +83,11 @@ const TraceabilityRoute = TraceabilityRouteImport.update({
   path: '/traceability',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginIndexRoute = LoginIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LoginRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -90,12 +96,13 @@ export interface FileRoutesByFullPath {
   '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
   '/gate-pass': typeof GatePassRoute
-  '/login': typeof LoginRoute
+  '/login': typeof LoginRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/login/': typeof LoginIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -104,12 +111,12 @@ export interface FileRoutesByTo {
   '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
   '/gate-pass': typeof GatePassRoute
-  '/login': typeof LoginRoute
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/login': typeof LoginIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -119,12 +126,13 @@ export interface FileRoutesById {
   '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
   '/gate-pass': typeof GatePassRoute
-  '/login': typeof LoginRoute
+  '/login': typeof LoginRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/login/': typeof LoginIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +149,7 @@ export interface FileRouteTypes {
     | '/registers'
     | '/supervisor'
     | '/traceability'
+    | '/login/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -149,12 +158,12 @@ export interface FileRouteTypes {
     | '/administrator'
     | '/approvals'
     | '/gate-pass'
-    | '/login'
     | '/procurement'
     | '/quality'
     | '/registers'
     | '/supervisor'
     | '/traceability'
+    | '/login'
   id:
     | '__root__'
     | '/'
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/registers'
     | '/supervisor'
     | '/traceability'
+    | '/login/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -178,7 +188,7 @@ export interface RootRouteChildren {
   AdministratorRoute: typeof AdministratorRoute
   ApprovalsRoute: typeof ApprovalsRoute
   GatePassRoute: typeof GatePassRoute
-  LoginRoute: typeof LoginRoute
+  LoginRoute: typeof LoginRouteWithChildren
   ProcurementRoute: typeof ProcurementRoute
   QualityRoute: typeof QualityRoute
   RegistersRoute: typeof RegistersRoute
@@ -272,8 +282,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TraceabilityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login/': {
+      id: '/login/'
+      path: '/'
+      fullPath: '/login/'
+      preLoaderRoute: typeof LoginIndexRouteImport
+      parentRoute: typeof LoginRoute
+    }
   }
 }
+
+interface LoginRouteChildren {
+  LoginIndexRoute: typeof LoginIndexRoute
+}
+
+const LoginRouteChildren: LoginRouteChildren = {
+  LoginIndexRoute: LoginIndexRoute,
+}
+
+const LoginRouteWithChildren = LoginRoute._addFileChildren(LoginRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -282,7 +309,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdministratorRoute: AdministratorRoute,
   ApprovalsRoute: ApprovalsRoute,
   GatePassRoute: GatePassRoute,
-  LoginRoute: LoginRoute,
+  LoginRoute: LoginRouteWithChildren,
   ProcurementRoute: ProcurementRoute,
   QualityRoute: QualityRoute,
   RegistersRoute: RegistersRoute,
