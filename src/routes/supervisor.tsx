@@ -1,16 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  REQUISITIONS,
-  GATE_PASSES,
-  INSPECTIONS,
-  LABOUR,
-  PROGRESS,
-  inr,
-} from "@/lib/erp-data";
+import { inr } from "@/lib/erp-data";
 import { requireRole } from "@/lib/auth-guards";
+import { fetchRequisitions } from "@/lib/api/requisitions";
+import { fetchGatePasses } from "@/lib/api/gate-passes";
+import { fetchInspections } from "@/lib/api/inspections";
+import { fetchProgress } from "@/lib/api/progress";
+import { fetchLabour } from "@/lib/api/registers";
 import {
   ClipboardList,
   ScanLine,
@@ -26,18 +25,29 @@ export const Route = createFileRoute("/supervisor")({
   head: () => ({
     meta: [{ title: "Supervisor Dashboard — Meditrust ERP" }],
   }),
-  ssr: false,
-  beforeLoad: () => requireRole("Supervisor"),
+  beforeLoad: async () => { await requireRole("Supervisor"); },
   component: SupervisorDashboard,
 });
 
 function SupervisorDashboard() {
-  const myPRs = REQUISITIONS.filter((r) => r.raisedBy === "R. Kannan" || r.raisedBy === "S. Fernandes" || r.raisedBy === "P. Deshmukh");
-  const pendingAction = REQUISITIONS.filter(
-    (r) => r.stage === "Quotation" || r.stage === "PR",
+  const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
+  const { data: gpData } = useQuery({ queryKey: ["gatePasses"], queryFn: () => fetchGatePasses({ data: {} }) });
+  const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
+  const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
+  const { data: labourData } = useQuery({ queryKey: ["labour"], queryFn: () => fetchLabour({ data: {} }) });
+
+  const requisitions = reqData?.data ?? [];
+  const gatePasses = gpData?.data ?? [];
+  const inspections = inspData?.data ?? [];
+  const progress = progData?.data ?? [];
+  const labour = labourData?.data ?? [];
+
+  const myPRs = requisitions;
+  const pendingAction = requisitions.filter(
+    (r: any) => r.stage === "Quotation" || r.stage === "PR",
   );
-  const awaitingOTP = GATE_PASSES.filter((g) => g.status === "Awaiting OTP");
-  const failedQC = INSPECTIONS.filter((i) => i.result === "Fail" || i.result === "Re-inspection");
+  const awaitingOTP = gatePasses.filter((g: any) => g.status === "Awaiting OTP");
+  const failedQC = inspections.filter((i: any) => i.result === "Fail" || i.result === "Re-inspection");
 
   return (
     <AppShell
@@ -76,12 +86,12 @@ function SupervisorDashboard() {
             </Link>
           </div>
           <div className="mt-4 divide-y divide-border">
-            {myPRs.map((r) => (
+            {myPRs.map((r: any) => (
               <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{r.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {r.id} · {r.block} · raised by {r.raisedBy}
+                    {r.pr_number} · {r.block} · raised by {r.raised_by_name ?? "Unknown"}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -102,7 +112,7 @@ function SupervisorDashboard() {
           <Card className="p-5">
             <h2 className="text-sm font-bold">Block progress</h2>
             <div className="mt-4 space-y-4">
-              {PROGRESS.map((p) => (
+              {progress.map((p: any) => (
                 <div key={p.block}>
                   <div className="flex justify-between text-xs font-medium">
                     <span>{p.block}</span>
@@ -117,7 +127,7 @@ function SupervisorDashboard() {
           <Card className="p-5">
             <h2 className="text-sm font-bold">Labour on site today</h2>
             <div className="mt-4 space-y-3">
-              {LABOUR.map((l) => (
+              {labour.map((l: any) => (
                 <div key={l.trade} className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{l.trade}</span>
                   <span className="font-mono font-semibold">
@@ -135,7 +145,7 @@ function SupervisorDashboard() {
         <Card className="mt-6 p-5">
           <h2 className="text-sm font-bold">Quality alerts</h2>
           <div className="mt-4 space-y-3">
-            {failedQC.map((i) => (
+            {failedQC.map((i: any) => (
               <div
                 key={i.id}
                 className="flex items-start justify-between gap-3 rounded-xl border border-border p-4"
@@ -143,7 +153,7 @@ function SupervisorDashboard() {
                 <div className="min-w-0">
                   <p className="font-semibold">{i.activity}</p>
                   <p className="text-xs text-muted-foreground">
-                    {i.id} · {i.location} · {i.inspector}
+                    {i.qc_number} · {i.location} · {i.inspector}
                   </p>
                   {i.rectification && (
                     <p className="mt-2 text-xs text-warning-foreground">{i.rectification}</p>

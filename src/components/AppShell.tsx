@@ -1,4 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -9,11 +10,24 @@ import {
   Users,
   HardHat,
   LogOut,
+  Bell,
+  Building2,
+  Settings,
+  History,
+  CheckCheck,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useRole } from "@/lib/role-context";
 import { ROLE_NAV, ROLE_SUMMARY } from "@/lib/erp-data";
 import { Button } from "@/components/ui/button";
+import { logoutUser } from "@/lib/auth-server";
+import { fetchNotifications, markAllNotificationsRead } from "@/lib/api/notifications";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { toast } from "sonner";
 
 const ICON_MAP: Record<string, typeof HardHat> = {
   LayoutDashboard,
@@ -24,6 +38,9 @@ const ICON_MAP: Record<string, typeof HardHat> = {
   BadgeCheck,
   Users,
   HardHat,
+  Building2,
+  Settings,
+  History,
 };
 
 export function AppShell({
@@ -35,13 +52,32 @@ export function AppShell({
   subtitle: string;
   children: ReactNode;
 }) {
-  const { role, logout } = useRole();
-  const navigate = useNavigate();
+  const { role, name, logout } = useRole();
+  const queryClient = useQueryClient();
   const navItems = ROLE_NAV[role] ?? [];
 
-  const handleLogout = () => {
+  const { data: notifData } = useQuery({
+    queryKey: ["notifications", "unread"],
+    queryFn: () => fetchNotifications({ data: { unreadOnly: true, limit: 10 } }),
+    refetchInterval: 30000,
+  });
+  const unreadCount = notifData?.data?.length ?? 0;
+  const notifications = notifData?.data ?? [];
+
+  const handleLogout = async () => {
+    await logoutUser();
+    document.cookie = "meditrust_session=; path=/; max-age=0; samesite=lax";
     logout();
-    navigate({ to: "/login" });
+    window.location.href = "/login";
+  };
+
+  const handleMarkAllRead = async () => {
+    const result = await markAllNotificationsRead();
+    if (result.success) {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    } else {
+      toast.error("Failed to mark notifications");
+    }
   };
 
   return (
@@ -79,7 +115,7 @@ export function AppShell({
         <div className="m-3 space-y-3">
           <div className="rounded-xl bg-surface p-3 text-xs text-muted-foreground">
             <p className="font-semibold text-foreground">Signed in as</p>
-            <p className="mt-1 font-bold text-primary">{role}</p>
+            <p className="mt-1 font-bold text-primary">{name ?? role}</p>
             <p className="mt-0.5">{ROLE_SUMMARY[role].limit}</p>
           </div>
           <Button
@@ -102,6 +138,43 @@ export function AppShell({
               <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
             </div>
             <div className="flex items-center gap-3">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="sm" className="relative">
+                    <Bell className="size-4" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="end">
+                  <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                    <p className="text-sm font-semibold">Notifications</p>
+                    {unreadCount > 0 && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleMarkAllRead}>
+                        <CheckCheck className="mr-1 size-3" /> Mark all read
+                      </Button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <p className="py-6 text-center text-sm text-muted-foreground">No unread notifications</p>
+                    ) : (
+                      notifications.map((n: any) => (
+                        <div key={n.id} className="border-b border-border px-4 py-3 last:border-0">
+                          <p className="text-sm font-medium">{n.title}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{n.body}</p>
+                          <p className="mt-1 text-[10px] text-muted-foreground/70">
+                            {new Date(n.created_at).toLocaleString("en-IN")}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
               <div className="hidden text-right sm:block">
                 <p className="text-xs font-medium text-muted-foreground">Role</p>
                 <p className="text-xs font-bold text-primary">{role}</p>

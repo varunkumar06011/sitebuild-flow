@@ -1,43 +1,25 @@
 import type { Role } from "./erp-data";
 
-type AuthState = {
+export type AuthState = {
   role: Role | null;
+  name: string | null;
   isAuthenticated: boolean;
 };
 
-const STORAGE_KEY = "meditrust-auth";
+const STORAGE_KEY = "meditrust-auth-user";
 
-let state: AuthState = { role: null, isAuthenticated: false };
+let state: AuthState = { role: null, name: null, isAuthenticated: false };
 const listeners = new Set<() => void>();
 
 function notify() {
   listeners.forEach((l) => l());
 }
 
-let hydrated = false;
-
-function hydrate() {
-  if (hydrated || typeof window === "undefined") return;
-  hydrated = true;
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    try {
-      state = JSON.parse(saved) as AuthState;
-    } catch {
-      // ignore corrupt storage
-    }
-  }
-}
-
 export const authStore = {
-  getState: () => {
-    hydrate();
-    return state;
-  },
+  getState: () => state,
 
-  login: (role: Role) => {
-    hydrated = true;
-    state = { role, isAuthenticated: true };
+  setUser: (user: { role: Role; name: string }) => {
+    state = { role: user.role, name: user.name, isAuthenticated: true };
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
@@ -45,8 +27,7 @@ export const authStore = {
   },
 
   logout: () => {
-    hydrated = true;
-    state = { role: null, isAuthenticated: false };
+    state = { role: null, name: null, isAuthenticated: false };
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -54,8 +35,17 @@ export const authStore = {
   },
 
   init: () => {
-    hydrate();
-    notify();
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          state = JSON.parse(saved) as AuthState;
+          notify();
+        } catch {
+          // ignore corrupt storage
+        }
+      }
+    }
   },
 
   subscribe: (listener: () => void) => {

@@ -85,12 +85,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Prototype ERP for hospital construction projects: procurement, approvals, gate pass, traceability, QC and registers.",
+          "ERP for hospital construction projects: procurement, approvals, gate pass, traceability, QC and registers.",
       },
       { property: "og:title", content: "Meditrust ERP — Hospital Construction" },
       {
         property: "og:description",
-        content: "Role-based construction ERP prototype for hospital projects.",
+        content: "Role-based construction ERP for hospital projects.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

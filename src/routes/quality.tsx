@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
-import { INSPECTIONS } from "@/lib/erp-data";
-import { requireSection } from "@/lib/auth-guards";
+import { fetchInspections } from "@/lib/api/inspections";
+import { requireAuth } from "@/lib/auth-guards";
 import { Camera, Check, X } from "lucide-react";
 
 export const Route = createFileRoute("/quality")({
@@ -21,25 +22,27 @@ export const Route = createFileRoute("/quality")({
       },
     ],
   }),
-  ssr: false,
-  beforeLoad: () => requireSection("/quality"),
+  beforeLoad: async () => { await requireAuth(); },
   component: Quality,
 });
 
 function Quality() {
+  const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
+  const inspections = inspData?.data ?? [];
+
   return (
     <AppShell
       title="Quality control"
       subtitle="Inspection → Checklist → Test result → Pass/Fail → Rectification → Re-inspection"
     >
       <div className="grid gap-4 lg:grid-cols-3">
-        {INSPECTIONS.map((i) => (
+        {inspections.map((i: any) => (
           <Card key={i.id} className="flex flex-col p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-semibold">{i.activity}</p>
                 <p className="text-xs text-muted-foreground">
-                  {i.id} · {i.location}
+                  {i.qc_number} · {i.location}
                 </p>
               </div>
               <StatusPill
@@ -49,11 +52,11 @@ function Quality() {
               </StatusPill>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              {i.inspector} · {i.date}
+              {i.inspector ?? "—"} · {i.date ?? "—"}
             </p>
 
             <ul className="mt-4 space-y-2 text-sm">
-              {i.checklist.map((c) => (
+              {Array.isArray(i.checklist) && i.checklist.map((c: any) => (
                 <li key={c.item} className="flex items-start gap-2">
                   {c.ok ? (
                     <Check className="mt-0.5 size-4 shrink-0 text-success" />
@@ -73,7 +76,7 @@ function Quality() {
             )}
 
             <p className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Camera className="size-3.5" /> {i.photos} photos
+              <Camera className="size-3.5" /> {Array.isArray(i.photos) ? i.photos.length : 0} photos
             </p>
           </Card>
         ))}

@@ -1,19 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  REQUISITIONS,
-  approverFor,
-  inr,
-  ROLE_SUMMARY,
-  PROGRESS,
-  INSPECTIONS,
-  BATCHES,
-  GATE_PASSES,
-  LABOUR,
-} from "@/lib/erp-data";
+import { approverFor, inr, ROLE_SUMMARY } from "@/lib/erp-data";
 import { requireRole } from "@/lib/auth-guards";
+import { fetchRequisitions, updateRequisitionStage } from "@/lib/api/requisitions";
+import { fetchInspections } from "@/lib/api/inspections";
+import { fetchProgress } from "@/lib/api/progress";
+import { fetchBatches } from "@/lib/api/batches";
+import { fetchGatePasses } from "@/lib/api/gate-passes";
+import { fetchLabour } from "@/lib/api/registers";
 import {
   Crown,
   ArrowUpRight,
@@ -29,26 +26,59 @@ export const Route = createFileRoute("/a1plus")({
   head: () => ({
     meta: [{ title: "A1+ Dashboard — Meditrust ERP" }],
   }),
-  ssr: false,
-  beforeLoad: () => requireRole("A1+"),
+  beforeLoad: async () => { await requireRole("A1+"); },
   component: A1PlusDashboard,
 });
 
 function A1PlusDashboard() {
   const [decided, setDecided] = useState<Record<string, "Approved" | "Rejected">>({});
 
-  const allPending = REQUISITIONS.filter(
-    (r) => (r.stage === "Admin" || r.stage === "A1") && !decided[r.id],
+  const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
+  const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
+  const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
+  const { data: batchData } = useQuery({ queryKey: ["batches"], queryFn: () => fetchBatches({ data: {} }) });
+  const { data: gpData } = useQuery({ queryKey: ["gatePasses"], queryFn: () => fetchGatePasses({ data: {} }) });
+  const { data: labourData } = useQuery({ queryKey: ["labour"], queryFn: () => fetchLabour({ data: {} }) });
+
+  const requisitions = reqData?.data ?? [];
+  const inspections = inspData?.data ?? [];
+  const progress = progData?.data ?? [];
+  const batches = batchData?.data ?? [];
+  const gatePasses = gpData?.data ?? [];
+  const labour = labourData?.data ?? [];
+
+  const allPending = requisitions.filter(
+    (r: any) => (r.stage === "Admin" || r.stage === "A1") && !decided[r.id],
   );
-  const highValue = REQUISITIONS.filter((r) => approverFor(r.amount) === "A1+");
-  const totalCommitted = REQUISITIONS.reduce((s, r) => s + r.amount, 0);
-  const completedValue = REQUISITIONS.filter((r) => r.stage === "Completed").reduce(
-    (s, r) => s + r.amount,
+  const highValue = requisitions.filter((r: any) => approverFor(r.amount) === "A1+");
+  const totalCommitted = requisitions.reduce((s: number, r: any) => s + r.amount, 0);
+  const completedValue = requisitions.filter((r: any) => r.stage === "Completed").reduce(
+    (s: number, r: any) => s + r.amount,
     0,
   );
-  const pendingBatches = BATCHES.filter((b) => b.status !== "Verified");
-  const activeGatePasses = GATE_PASSES.filter((g) => g.status !== "Exited");
-  const totalLabour = LABOUR.reduce((s, l) => s + l.present, 0);
+  const pendingBatches = batches.filter((b: any) => b.status !== "Verified");
+  const activeGatePasses = gatePasses.filter((g: any) => g.status !== "Exited");
+  const totalLabour = labour.reduce((s: number, l: any) => s + l.present, 0);
+
+  const handleApprove = async (id: string, prNumber: string, expectedStage: string) => {
+    const result = await updateRequisitionStage({ data: { id, newStage: "PO", expectedStage } });
+    if (result.success) {
+      setDecided((d) => ({ ...d, [id]: "Approved" }));
+      toast.success(`${prNumber} approved by A1+ (final)`);
+    } else {
+      toast.error(result.error ?? "Failed to approve");
+    }
+  };
+
+  const handleReject = async (id: string, prNumber: string, expectedStage: string) => {
+    const result = await updateRequisitionStage({ data: { id, newStage: "Quotation", expectedStage } });
+    if (result.success) {
+      setDecided((d) => ({ ...d, [id]: "Rejected" }));
+      toast.error(`${prNumber} rejected by A1+`);
+    } else {
+      toast.error(result.error ?? "Failed to reject");
+    }
+  };
 
   return (
     <AppShell
@@ -99,7 +129,7 @@ function A1PlusDashboard() {
           As A1+ you have final authority over all approval tiers.
         </p>
         <div className="mt-4 space-y-3">
-          {allPending.map((r) => {
+          {allPending.map((r: any) => {
             const status = decided[r.id];
             const need = approverFor(r.amount);
             return (
@@ -110,7 +140,7 @@ function A1PlusDashboard() {
                 <div className="min-w-0">
                   <p className="font-semibold">{r.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {r.id} · {r.vendor} · {r.block}
+                    {r.pr_number} · {r.vendor_name ?? "—"} · {r.block}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -126,20 +156,14 @@ function A1PlusDashboard() {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        onClick={() => {
-                          setDecided((d) => ({ ...d, [r.id]: "Approved" }));
-                          toast.success(`${r.id} approved by A1+ (final)`);
-                        }}
+                        onClick={() => handleApprove(r.id, r.pr_number, r.stage)}
                       >
                         Final Approve
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => {
-                          setDecided((d) => ({ ...d, [r.id]: "Rejected" }));
-                          toast.error(`${r.id} rejected by A1+`);
-                        }}
+                        onClick={() => handleReject(r.id, r.pr_number, r.stage)}
                       >
                         Reject
                       </Button>
@@ -172,9 +196,9 @@ function A1PlusDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {highValue.map((r) => (
+              {highValue.map((r: any) => (
                 <tr key={r.id} className="align-middle">
-                  <td className="py-3 font-mono text-xs">{r.id}</td>
+                  <td className="py-3 font-mono text-xs">{r.pr_number}</td>
                   <td className="py-3 font-medium">{r.title}</td>
                   <td className="py-3 text-right font-mono font-semibold">{inr(r.amount)}</td>
                   <td className="py-3">
@@ -184,7 +208,7 @@ function A1PlusDashboard() {
                       {r.stage}
                     </StatusPill>
                   </td>
-                  <td className="py-3 text-muted-foreground">{r.vendor}</td>
+                  <td className="py-3 text-muted-foreground">{r.vendor_name ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -197,7 +221,7 @@ function A1PlusDashboard() {
         <Card className="p-5">
           <h2 className="text-sm font-bold">Block progress</h2>
           <div className="mt-4 space-y-4">
-            {PROGRESS.map((p) => (
+            {progress.map((p: any) => (
               <div key={p.block}>
                 <div className="flex justify-between text-xs font-medium">
                   <span>{p.block}</span>
@@ -214,7 +238,7 @@ function A1PlusDashboard() {
         <Card className="p-5">
           <h2 className="text-sm font-bold">Quality status</h2>
           <div className="mt-4 space-y-3">
-            {INSPECTIONS.map((i) => (
+            {inspections.map((i: any) => (
               <div key={i.id} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{i.activity}</p>
@@ -248,13 +272,13 @@ function A1PlusDashboard() {
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Total vendors</span>
               <span className="font-mono font-semibold">
-                {new Set(REQUISITIONS.map((r) => r.vendor)).size}
+                {new Set(requisitions.map((r: any) => r.vendor_name).filter(Boolean)).size}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Completed POs</span>
               <span className="font-mono font-semibold">
-                {REQUISITIONS.filter((r) => r.stage === "Completed").length}
+                {requisitions.filter((r: any) => r.stage === "Completed").length}
               </span>
             </div>
           </div>

@@ -4,17 +4,19 @@ import { authStore } from "./auth-store";
 
 type RoleCtx = {
   role: Role;
+  name: string | null;
   isAuthenticated: boolean;
   setRole: (r: Role) => void;
-  login: (r: Role) => void;
+  setUser: (user: { role: Role; name: string }) => void;
   logout: () => void;
 };
 
 const Ctx = createContext<RoleCtx>({
   role: "Administrator",
+  name: null,
   isAuthenticated: false,
   setRole: () => {},
-  login: () => {},
+  setUser: () => {},
   logout: () => {},
 });
 
@@ -31,10 +33,11 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const value = useMemo<RoleCtx>(
     () => ({
       role,
+      name: authState.name,
       isAuthenticated: authState.isAuthenticated,
       setRole: (r: Role) => setOverrideRole(r),
-      login: (r: Role) => {
-        authStore.login(r);
+      setUser: (user: { role: Role; name: string }) => {
+        authStore.setUser(user);
         setOverrideRole(null);
       },
       logout: () => {
@@ -42,7 +45,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         setOverrideRole(null);
       },
     }),
-    [role, authState.isAuthenticated],
+    [role, authState.isAuthenticated, authState.name],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -14,14 +14,17 @@ import { Route as A1RouteImport } from './routes/a1'
 import { Route as A1plusRouteImport } from './routes/a1plus'
 import { Route as AdministratorRouteImport } from './routes/administrator'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
+import { Route as AuditLogRouteImport } from './routes/audit-log'
 import { Route as GatePassRouteImport } from './routes/gate-pass'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as ProcurementRouteImport } from './routes/procurement'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RegistersRouteImport } from './routes/registers'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as TraceabilityRouteImport } from './routes/traceability'
+import { Route as VendorsRouteImport } from './routes/vendors'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
 import { Route as LoginA1RouteImport } from './routes/login.a1'
 import { Route as LoginA1plusRouteImport } from './routes/login.a1plus'
@@ -57,6 +60,11 @@ const ApprovalsRoute = ApprovalsRouteImport.update({
   path: '/approvals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuditLogRoute = AuditLogRouteImport.update({
+  id: '/audit-log',
+  path: '/audit-log',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GatePassRoute = GatePassRouteImport.update({
   id: '/gate-pass',
   path: '/gate-pass',
@@ -87,6 +95,11 @@ const RegistersRoute = RegistersRouteImport.update({
   path: '/registers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupervisorRoute = SupervisorRouteImport.update({
   id: '/supervisor',
   path: '/supervisor',
@@ -95,6 +108,11 @@ const SupervisorRoute = SupervisorRouteImport.update({
 const TraceabilityRoute = TraceabilityRouteImport.update({
   id: '/traceability',
   path: '/traceability',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VendorsRoute = VendorsRouteImport.update({
+  id: '/vendors',
+  path: '/vendors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginIndexRoute = LoginIndexRouteImport.update({
@@ -149,14 +167,17 @@ export interface FileRoutesByFullPath {
   '/a1plus': typeof A1plusRoute
   '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
+  '/audit-log': typeof AuditLogRoute
   '/gate-pass': typeof GatePassRoute
   '/login': typeof LoginRouteWithChildren
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/vendors': typeof VendorsRoute
   '/login/a1': typeof LoginA1Route
   '/login/a1plus': typeof LoginA1plusRoute
   '/login/administrator': typeof LoginAdministratorRoute
@@ -173,13 +194,16 @@ export interface FileRoutesByTo {
   '/a1plus': typeof A1plusRoute
   '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
+  '/audit-log': typeof AuditLogRoute
   '/gate-pass': typeof GatePassRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/vendors': typeof VendorsRoute
   '/login/a1': typeof LoginA1Route
   '/login/a1plus': typeof LoginA1plusRoute
   '/login/administrator': typeof LoginAdministratorRoute
@@ -197,14 +221,17 @@ export interface FileRoutesById {
   '/a1plus': typeof A1plusRoute
   '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
+  '/audit-log': typeof AuditLogRoute
   '/gate-pass': typeof GatePassRoute
   '/login': typeof LoginRouteWithChildren
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/vendors': typeof VendorsRoute
   '/login/a1': typeof LoginA1Route
   '/login/a1plus': typeof LoginA1plusRoute
   '/login/administrator': typeof LoginAdministratorRoute
@@ -223,14 +250,17 @@ export interface FileRouteTypes {
     | '/a1plus'
     | '/administrator'
     | '/approvals'
+    | '/audit-log'
     | '/gate-pass'
     | '/login'
     | '/portal'
     | '/procurement'
     | '/quality'
     | '/registers'
+    | '/settings'
     | '/supervisor'
     | '/traceability'
+    | '/vendors'
     | '/login/a1'
     | '/login/a1plus'
     | '/login/administrator'
@@ -247,13 +277,16 @@ export interface FileRouteTypes {
     | '/a1plus'
     | '/administrator'
     | '/approvals'
+    | '/audit-log'
     | '/gate-pass'
     | '/portal'
     | '/procurement'
     | '/quality'
     | '/registers'
+    | '/settings'
     | '/supervisor'
     | '/traceability'
+    | '/vendors'
     | '/login/a1'
     | '/login/a1plus'
     | '/login/administrator'
@@ -270,14 +303,17 @@ export interface FileRouteTypes {
     | '/a1plus'
     | '/administrator'
     | '/approvals'
+    | '/audit-log'
     | '/gate-pass'
     | '/login'
     | '/portal'
     | '/procurement'
     | '/quality'
     | '/registers'
+    | '/settings'
     | '/supervisor'
     | '/traceability'
+    | '/vendors'
     | '/login/a1'
     | '/login/a1plus'
     | '/login/administrator'
@@ -295,14 +331,17 @@ export interface RootRouteChildren {
   A1plusRoute: typeof A1plusRoute
   AdministratorRoute: typeof AdministratorRoute
   ApprovalsRoute: typeof ApprovalsRoute
+  AuditLogRoute: typeof AuditLogRoute
   GatePassRoute: typeof GatePassRoute
   LoginRoute: typeof LoginRouteWithChildren
   PortalRoute: typeof PortalRouteWithChildren
   ProcurementRoute: typeof ProcurementRoute
   QualityRoute: typeof QualityRoute
   RegistersRoute: typeof RegistersRoute
+  SettingsRoute: typeof SettingsRoute
   SupervisorRoute: typeof SupervisorRoute
   TraceabilityRoute: typeof TraceabilityRoute
+  VendorsRoute: typeof VendorsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -340,6 +379,13 @@ declare module '@tanstack/react-router' {
       path: '/approvals'
       fullPath: '/approvals'
       preLoaderRoute: typeof ApprovalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit-log': {
+      id: '/audit-log'
+      path: '/audit-log'
+      fullPath: '/audit-log'
+      preLoaderRoute: typeof AuditLogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gate-pass': {
@@ -384,6 +430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegistersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/supervisor': {
       id: '/supervisor'
       path: '/supervisor'
@@ -396,6 +449,13 @@ declare module '@tanstack/react-router' {
       path: '/traceability'
       fullPath: '/traceability'
       preLoaderRoute: typeof TraceabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vendors': {
+      id: '/vendors'
+      path: '/vendors'
+      fullPath: '/vendors'
+      preLoaderRoute: typeof VendorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login/': {
@@ -505,15 +565,27 @@ const rootRouteChildren: RootRouteChildren = {
   A1plusRoute: A1plusRoute,
   AdministratorRoute: AdministratorRoute,
   ApprovalsRoute: ApprovalsRoute,
+  AuditLogRoute: AuditLogRoute,
   GatePassRoute: GatePassRoute,
   LoginRoute: LoginRouteWithChildren,
   PortalRoute: PortalRouteWithChildren,
   ProcurementRoute: ProcurementRoute,
   QualityRoute: QualityRoute,
   RegistersRoute: RegistersRoute,
+  SettingsRoute: SettingsRoute,
   SupervisorRoute: SupervisorRoute,
   TraceabilityRoute: TraceabilityRoute,
+  VendorsRoute: VendorsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

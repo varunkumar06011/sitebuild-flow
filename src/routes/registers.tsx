@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VISITORS, VEHICLES, LABOUR } from "@/lib/erp-data";
-import { requireSection } from "@/lib/auth-guards";
+import { fetchVisitors, fetchVehicles, fetchLabour } from "@/lib/api/registers";
+import { requireAuth } from "@/lib/auth-guards";
 
 export const Route = createFileRoute("/registers")({
   head: () => ({
@@ -22,12 +23,18 @@ export const Route = createFileRoute("/registers")({
       },
     ],
   }),
-  ssr: false,
-  beforeLoad: () => requireSection("/registers"),
+  beforeLoad: async () => { await requireAuth(); },
   component: Registers,
 });
 
 function Registers() {
+  const { data: visData } = useQuery({ queryKey: ["visitors"], queryFn: () => fetchVisitors({ data: {} }) });
+  const { data: vehData } = useQuery({ queryKey: ["vehicles"], queryFn: () => fetchVehicles({ data: {} }) });
+  const { data: labData } = useQuery({ queryKey: ["labour"], queryFn: () => fetchLabour({ data: {} }) });
+  const visitors = visData?.data ?? [];
+  const vehicles = vehData?.data ?? [];
+  const labour = labData?.data ?? [];
+
   return (
     <AppShell title="Registers & labour" subtitle="Thursday, 06 August 2026 · Main gate">
       <Tabs defaultValue="visitors">
@@ -42,16 +49,16 @@ function Registers() {
             <table className="w-full min-w-[720px] text-sm">
               <Head cols={["Pass", "Visitor", "Organisation", "Purpose", "In", "Out", "Host"]} />
               <tbody className="divide-y divide-border">
-                {VISITORS.map((v) => (
+                {visitors.map((v: any) => (
                   <tr key={v.id}>
                     <td className="py-3 font-mono text-xs">{v.id}</td>
                     <td className="py-3 font-medium">{v.name}</td>
                     <td className="py-3 text-muted-foreground">{v.org}</td>
                     <td className="py-3 text-muted-foreground">{v.purpose}</td>
-                    <td className="py-3 font-mono text-xs">{v.inTime}</td>
+                    <td className="py-3 font-mono text-xs">{v.in_time ? new Date(v.in_time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
                     <td className="py-3">
-                      {v.outTime ? (
-                        <span className="font-mono text-xs">{v.outTime}</span>
+                      {v.out_time ? (
+                        <span className="font-mono text-xs">{new Date(v.out_time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
                       ) : (
                         <StatusPill tone="info">On site</StatusPill>
                       )}
@@ -69,17 +76,17 @@ function Registers() {
             <table className="w-full min-w-[720px] text-sm">
               <Head cols={["Entry", "Vehicle", "Type", "Driver", "Material", "In", "Out"]} />
               <tbody className="divide-y divide-border">
-                {VEHICLES.map((v) => (
+                {vehicles.map((v: any) => (
                   <tr key={v.id}>
                     <td className="py-3 font-mono text-xs">{v.id}</td>
                     <td className="py-3 font-mono font-medium">{v.number}</td>
                     <td className="py-3 text-muted-foreground">{v.type}</td>
                     <td className="py-3 text-muted-foreground">{v.driver}</td>
                     <td className="py-3">{v.material}</td>
-                    <td className="py-3 font-mono text-xs">{v.inTime}</td>
+                    <td className="py-3 font-mono text-xs">{v.in_time ? new Date(v.in_time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
                     <td className="py-3">
-                      {v.outTime ? (
-                        <span className="font-mono text-xs">{v.outTime}</span>
+                      {v.out_time ? (
+                        <span className="font-mono text-xs">{new Date(v.out_time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
                       ) : (
                         <StatusPill tone="warning">Inside</StatusPill>
                       )}
@@ -93,7 +100,7 @@ function Registers() {
 
         <TabsContent value="labour">
           <div className="grid gap-4 md:grid-cols-2">
-            {LABOUR.map((l) => (
+            {labour.map((l: any) => (
               <Card key={l.trade} className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
@@ -106,7 +113,7 @@ function Registers() {
                     {l.present}/{l.planned}
                   </span>
                 </div>
-                <Progress value={(l.present / l.planned) * 100} className="mt-3 h-2" />
+                <Progress value={l.planned > 0 ? (l.present / l.planned) * 100 : 0} className="mt-3 h-2" />
               </Card>
             ))}
           </div>

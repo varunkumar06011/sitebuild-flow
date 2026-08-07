@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,15 +11,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  REQUISITIONS,
-  PROCUREMENT_STAGES,
-  approverFor,
-  inr,
-  type Requisition,
-} from "@/lib/erp-data";
+import { PROCUREMENT_STAGES, approverFor, inr } from "@/lib/erp-data";
+import { fetchRequisitions, createRequisition } from "@/lib/api/requisitions";
 import { useRole } from "@/lib/role-context";
-import { requireSection } from "@/lib/auth-guards";
+import { requireAuth } from "@/lib/auth-guards";
 import { toast } from "sonner";
 import { FileText, Check } from "lucide-react";
 
@@ -38,14 +34,15 @@ export const Route = createFileRoute("/procurement")({
       },
     ],
   }),
-  ssr: false,
-  beforeLoad: () => requireSection("/procurement"),
+  beforeLoad: async () => { await requireAuth(); },
   component: Procurement,
 });
 
 function Procurement() {
   const { role } = useRole();
-  const [open, setOpen] = useState<Requisition | null>(null);
+  const [open, setOpen] = useState<any | null>(null);
+  const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
+  const requisitions = reqData?.data ?? [];
 
   return (
     <AppShell
@@ -58,7 +55,14 @@ function Procurement() {
           <Button
             size="sm"
             disabled={role !== "Supervisor"}
-            onClick={() => toast.success("PR draft created (prototype)")}
+            onClick={async () => {
+              const result = await createRequisition({ data: { title: "New PR (draft)", block: "TBD", vendor_id: null, amount: 0, quotations: [], documents: [] } });
+              if (result.success) {
+                toast.success(`PR ${result.pr_number} created`);
+              } else {
+                toast.error(result.error ?? "Failed to create PR");
+              }
+            }}
           >
             New purchase requisition
           </Button>
@@ -82,14 +86,14 @@ function Procurement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {REQUISITIONS.map((r) => (
+              {requisitions.map((r: any) => (
                 <tr key={r.id} className="align-middle">
-                  <td className="py-3 font-mono text-xs">{r.id}</td>
+                  <td className="py-3 font-mono text-xs">{r.pr_number}</td>
                   <td className="py-3">
                     <p className="font-medium">{r.title}</p>
                     <p className="text-xs text-muted-foreground">{r.block}</p>
                   </td>
-                  <td className="py-3 text-muted-foreground">{r.vendor}</td>
+                  <td className="py-3 text-muted-foreground">{r.vendor_name ?? "—"}</td>
                   <td className="py-3 text-right font-mono font-semibold">{inr(r.amount)}</td>
                   <td className="py-3">
                     <StatusPill
@@ -123,10 +127,10 @@ function Procurement() {
             <>
               <DialogHeader>
                 <DialogTitle>
-                  {open.id} · {open.title}
+                  {open.pr_number} · {open.title}
                 </DialogTitle>
                 <DialogDescription>
-                  {open.block} · raised by {open.raisedBy} on {open.date}
+                  {open.block} · raised by {open.raised_by_name ?? "Unknown"} on {open.date}
                 </DialogDescription>
               </DialogHeader>
 
@@ -156,7 +160,7 @@ function Procurement() {
                   Quotations
                 </p>
                 <div className="mt-2 space-y-2">
-                  {open.quotations.map((q) => (
+                  {open.quotations.map((q: any) => (
                     <div
                       key={q.vendor}
                       className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
@@ -176,7 +180,7 @@ function Procurement() {
                   Linked documents
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {open.documents.map((d) => (
+                  {open.documents.map((d: any) => (
                     <span
                       key={d}
                       className="inline-flex items-center gap-1.5 rounded-md bg-surface px-2.5 py-1.5 text-xs font-medium"

@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { REQUISITIONS, approverFor, canApprove, inr, ROLE_SUMMARY } from "@/lib/erp-data";
+import { approverFor, canApprove, inr, ROLE_SUMMARY } from "@/lib/erp-data";
+import { fetchRequisitions, updateRequisitionStage } from "@/lib/api/requisitions";
 import { useRole } from "@/lib/role-context";
-import { requireSection } from "@/lib/auth-guards";
+import { requireAuth } from "@/lib/auth-guards";
 import { toast } from "sonner";
 import { Lock } from "lucide-react";
 
@@ -25,15 +27,39 @@ export const Route = createFileRoute("/approvals")({
       },
     ],
   }),
-  ssr: false,
-  beforeLoad: () => requireSection("/approvals"),
+  beforeLoad: async () => { await requireAuth(); },
   component: Approvals,
 });
 
 function Approvals() {
   const { role } = useRole();
   const [decided, setDecided] = useState<Record<string, "Approved" | "Rejected">>({});
-  const queue = REQUISITIONS.filter((r) => r.stage === "Admin" || r.stage === "A1" || r.stage === "Quotation");
+  const queryClient = useQueryClient();
+  const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
+  const requisitions = reqData?.data ?? [];
+  const queue = requisitions.filter((r: any) => r.stage === "Admin" || r.stage === "A1" || r.stage === "Quotation");
+
+  const handleApprove = async (id: string, prNumber: string, expectedStage: string) => {
+    const result = await updateRequisitionStage({ data: { id, newStage: "PO", expectedStage } });
+    if (result.success) {
+      setDecided((d) => ({ ...d, [id]: "Approved" }));
+      toast.success(`${prNumber} approved by ${role}`);
+      queryClient.invalidateQueries({ queryKey: ["requisitions"] });
+    } else {
+      toast.error(result.error ?? "Failed to approve");
+    }
+  };
+
+  const handleReject = async (id: string, prNumber: string, expectedStage: string) => {
+    const result = await updateRequisitionStage({ data: { id, newStage: "Quotation", expectedStage } });
+    if (result.success) {
+      setDecided((d) => ({ ...d, [id]: "Rejected" }));
+      toast.error(`${prNumber} sent back to site`);
+      queryClient.invalidateQueries({ queryKey: ["requisitions"] });
+    } else {
+      toast.error(result.error ?? "Failed to reject");
+    }
+  };
 
   return (
     <AppShell title="Approvals" subtitle={`Acting as ${role} · ${ROLE_SUMMARY[role].limit}`}>
@@ -55,7 +81,7 @@ function Approvals() {
       <Card className="mt-6 p-5">
         <h2 className="text-sm font-bold">Pending decisions</h2>
         <div className="mt-4 space-y-3">
-          {queue.map((r) => {
+          {queue.map((r: any) => {
             const need = approverFor(r.amount);
             const allowed = canApprove(role, r.amount);
             const status = decided[r.id];
@@ -67,7 +93,7 @@ function Approvals() {
                 <div className="min-w-0">
                   <p className="font-semibold">{r.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {r.id} · {r.vendor} · {r.block}
+                    {r.pr_number} · {r.vendor_name ?? "—"} · {r.block}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -81,20 +107,14 @@ function Approvals() {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        onClick={() => {
-                          setDecided((d) => ({ ...d, [r.id]: "Approved" }));
-                          toast.success(`${r.id} approved by ${role}`);
-                        }}
+                        onClick={() => handleApprove(r.id, r.pr_number, r.stage)}
                       >
                         Approve
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => {
-                          setDecided((d) => ({ ...d, [r.id]: "Rejected" }));
-                          toast.error(`${r.id} sent back to site`);
-                        }}
+                        onClick={() => handleReject(r.id, r.pr_number, r.stage)}
                       >
                         Reject
                       </Button>

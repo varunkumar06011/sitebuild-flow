@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
-import { BATCHES } from "@/lib/erp-data";
-import { requireSection } from "@/lib/auth-guards";
+import { fetchBatches } from "@/lib/api/batches";
+import { requireAuth } from "@/lib/auth-guards";
 import { Camera } from "lucide-react";
 
 export const Route = createFileRoute("/traceability")({
@@ -21,8 +22,7 @@ export const Route = createFileRoute("/traceability")({
       },
     ],
   }),
-  ssr: false,
-  beforeLoad: () => requireSection("/traceability"),
+  beforeLoad: async () => { await requireAuth(); },
   component: Traceability,
 });
 
@@ -39,6 +39,9 @@ const CHAIN = [
 ];
 
 function Traceability() {
+  const { data: batchData } = useQuery({ queryKey: ["batches"], queryFn: () => fetchBatches({ data: {} }) });
+  const batches = batchData?.data ?? [];
+
   return (
     <AppShell
       title="Material traceability"
@@ -55,12 +58,12 @@ function Traceability() {
       </Card>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        {BATCHES.map((b) => (
+        {batches.map((b: any) => (
           <Card key={b.id} className="p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-semibold">{b.material}</p>
-                <p className="font-mono text-xs text-muted-foreground">{b.id}</p>
+                <p className="font-mono text-xs text-muted-foreground">{b.batch_number}</p>
               </div>
               <StatusPill
                 tone={b.status === "Verified" ? "success" : b.status === "Pending MTC" ? "danger" : "warning"}
@@ -69,16 +72,16 @@ function Traceability() {
               </StatusPill>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              <Field k="Supplier" v={b.supplier} />
-              <Field k="Manufacturer" v={b.manufacturer} />
-              <Field k="Purchase date" v={b.purchaseDate} />
-              <Field k="Invoice" v={b.invoice} />
-              <Field k="Delivery challan" v={b.challan} />
-              <Field k="MTC" v={b.mtc} />
-              <Field k="Lab report" v={b.labReport} />
+              <Field k="Supplier" v={b.supplier ?? "—"} />
+              <Field k="Manufacturer" v={b.manufacturer ?? "—"} />
+              <Field k="Purchase date" v={b.purchase_date ?? "—"} />
+              <Field k="Invoice" v={b.invoice ?? "—"} />
+              <Field k="Delivery challan" v={b.challan ?? "—"} />
+              <Field k="MTC" v={b.mtc ?? "—"} />
+              <Field k="Lab report" v={b.lab_report ?? "—"} />
             </dl>
             <p className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Camera className="size-3.5" /> {b.photos} site photos attached
+              <Camera className="size-3.5" /> {Array.isArray(b.photos) ? b.photos.length : 0} site photos attached
             </p>
           </Card>
         ))}
