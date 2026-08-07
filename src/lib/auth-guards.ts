@@ -10,6 +10,7 @@ const roleRouteMap: Record<Role, "/supervisor" | "/administrator" | "/a1" | "/a1
 };
 
 export function requireAuth() {
+  if (typeof window === "undefined") return;
   const state = authStore.getState();
   if (!state.isAuthenticated) {
     throw redirect({ to: "/login" });
@@ -17,6 +18,7 @@ export function requireAuth() {
 }
 
 export function requireRole(expectedRole: Role) {
+  if (typeof window === "undefined") return;
   const state = authStore.getState();
   if (!state.isAuthenticated || !state.role) {
     throw redirect({ to: "/login" });
@@ -28,6 +30,7 @@ export function requireRole(expectedRole: Role) {
 
 /** Allow a shared module only when it appears in the signed-in role's navigation. */
 export function requireSection(path: string) {
+  if (typeof window === "undefined") return;
   const state = authStore.getState();
   if (!state.isAuthenticated || !state.role) {
     throw redirect({ to: "/login" });

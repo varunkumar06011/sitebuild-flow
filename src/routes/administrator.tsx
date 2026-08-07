@@ -26,6 +26,7 @@ export const Route = createFileRoute("/administrator")({
   head: () => ({
     meta: [{ title: "Administrator Dashboard — Meditrust ERP" }],
   }),
+  ssr: false,
   beforeLoad: () => requireRole("Administrator"),
   component: AdministratorDashboard,
 });

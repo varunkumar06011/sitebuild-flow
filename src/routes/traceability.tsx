@@ -21,6 +21,7 @@ export const Route = createFileRoute("/traceability")({
       },
     ],
   }),
+  ssr: false,
   beforeLoad: () => requireSection("/traceability"),
   component: Traceability,
 });

@@ -25,6 +25,7 @@ export const Route = createFileRoute("/approvals")({
       },
     ],
   }),
+  ssr: false,
   beforeLoad: () => requireSection("/approvals"),
   component: Approvals,
 });

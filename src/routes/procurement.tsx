@@ -38,6 +38,7 @@ export const Route = createFileRoute("/procurement")({
       },
     ],
   }),
+  ssr: false,
   beforeLoad: () => requireSection("/procurement"),
   component: Procurement,
 });

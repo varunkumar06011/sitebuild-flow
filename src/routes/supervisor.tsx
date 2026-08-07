@@ -26,6 +26,7 @@ export const Route = createFileRoute("/supervisor")({
   head: () => ({
     meta: [{ title: "Supervisor Dashboard — Meditrust ERP" }],
   }),
+  ssr: false,
   beforeLoad: () => requireRole("Supervisor"),
   component: SupervisorDashboard,
 });

@@ -21,6 +21,7 @@ export const Route = createFileRoute("/quality")({
       },
     ],
   }),
+  ssr: false,
   beforeLoad: () => requireSection("/quality"),
   component: Quality,
 });

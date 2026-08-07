@@ -25,6 +25,7 @@ export const Route = createFileRoute("/gate-pass")({
       },
     ],
   }),
+  ssr: false,
   beforeLoad: () => requireSection("/gate-pass"),
   component: GatePassPage,
 });

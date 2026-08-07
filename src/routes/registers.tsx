@@ -22,6 +22,7 @@ export const Route = createFileRoute("/registers")({
       },
     ],
   }),
+  ssr: false,
   beforeLoad: () => requireSection("/registers"),
   component: Registers,
 });
