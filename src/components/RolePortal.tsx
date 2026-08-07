@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   HardHat,
   ShieldCheck,
@@ -80,6 +80,16 @@ export const ROLE_DASHBOARD: Record<Role, "/supervisor" | "/administrator" | "/a
   A1: "/a1",
   "A1+": "/a1plus",
 };
+
+export function useRedirectIfAuthenticated() {
+  const navigate = useNavigate();
+  const { isAuthenticated, role } = useRole();
+  useEffect(() => {
+    if (isAuthenticated && role) {
+      navigate({ to: ROLE_DASHBOARD[role], replace: true });
+    }
+  }, [isAuthenticated, role, navigate]);
+}
 
 function PortalHeader({ role }: { role: Role }) {
   const Icon = ROLE_ICONS[role];
@@ -187,6 +197,7 @@ export function RolePortalLanding({
 
 export function RoleLoginPortal({ role }: { role: Role }) {
   const navigate = useNavigate();
+  useRedirectIfAuthenticated();
   const { login } = useRole();
   const theme = ROLE_THEME[role];
   const Icon = ROLE_ICONS[role];

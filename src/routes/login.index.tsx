@@ -7,6 +7,7 @@ import {
   ROLE_THEME,
   ROLE_LOGIN_PATH,
   ROLE_DASHBOARD,
+  useRedirectIfAuthenticated,
 } from "@/components/RolePortal";
 import { ArrowRight } from "lucide-react";
 
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/login/")({
 });
 
 function LoginChooser() {
+  useRedirectIfAuthenticated();
   return (
     <div className="min-h-screen bg-background px-5 py-14 font-sans">
       <div className="mx-auto max-w-4xl">

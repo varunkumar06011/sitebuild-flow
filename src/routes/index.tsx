@@ -9,6 +9,7 @@ import {
   ROLE_PORTAL_PATH,
   ROLE_LOGIN_PATH,
   ROLE_DASHBOARD,
+  useRedirectIfAuthenticated,
 } from "@/components/RolePortal";
 import { ArrowRight, HardHat } from "lucide-react";
 
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/")({
 });
 
 function PortalHub() {
+  useRedirectIfAuthenticated();
   return (
     <div className="min-h-screen bg-background font-sans">
       <header className="border-b border-border">
