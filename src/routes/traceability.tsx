@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { BATCHES } from "@/lib/erp-data";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireSection } from "@/lib/auth-guards";
 import { Camera } from "lucide-react";
 
 export const Route = createFileRoute("/traceability")({
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/traceability")({
       },
     ],
   }),
-  beforeLoad: () => requireAuth(),
+  beforeLoad: () => requireSection("/traceability"),
   component: Traceability,
 });
 
