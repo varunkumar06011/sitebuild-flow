@@ -22,6 +22,7 @@ import { Route as RegistersRouteImport } from './routes/registers'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as TraceabilityRouteImport } from './routes/traceability'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
+import { Route as LoginSupervisorRouteImport } from './routes/login.supervisor'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -88,6 +89,11 @@ const LoginIndexRoute = LoginIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LoginRoute,
 } as any)
+const LoginSupervisorRoute = LoginSupervisorRouteImport.update({
+  id: '/supervisor',
+  path: '/supervisor',
+  getParentRoute: () => LoginRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/registers': typeof RegistersRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/login/supervisor': typeof LoginSupervisorRoute
   '/login/': typeof LoginIndexRoute
 }
 export interface FileRoutesByTo {
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/registers': typeof RegistersRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/login/supervisor': typeof LoginSupervisorRoute
   '/login': typeof LoginIndexRoute
 }
 export interface FileRoutesById {
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/registers': typeof RegistersRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/login/supervisor': typeof LoginSupervisorRoute
   '/login/': typeof LoginIndexRoute
 }
 export interface FileRouteTypes {
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/registers'
     | '/supervisor'
     | '/traceability'
+    | '/login/supervisor'
     | '/login/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/registers'
     | '/supervisor'
     | '/traceability'
+    | '/login/supervisor'
     | '/login'
   id:
     | '__root__'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/registers'
     | '/supervisor'
     | '/traceability'
+    | '/login/supervisor'
     | '/login/'
   fileRoutesById: FileRoutesById
 }
@@ -289,14 +301,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof LoginRoute
     }
+    '/login/supervisor': {
+      id: '/login/supervisor'
+      path: '/supervisor'
+      fullPath: '/login/supervisor'
+      preLoaderRoute: typeof LoginSupervisorRouteImport
+      parentRoute: typeof LoginRoute
+    }
   }
 }
 
 interface LoginRouteChildren {
+  LoginSupervisorRoute: typeof LoginSupervisorRoute
   LoginIndexRoute: typeof LoginIndexRoute
 }
 
 const LoginRouteChildren: LoginRouteChildren = {
+  LoginSupervisorRoute: LoginSupervisorRoute,
   LoginIndexRoute: LoginIndexRoute,
 }
 
