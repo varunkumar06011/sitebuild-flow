@@ -1,6 +1,13 @@
 import { redirect } from "@tanstack/react-router";
 import { authStore } from "./auth-store";
-import type { Role } from "./erp-data";
+import { ROLE_NAV, type Role } from "./erp-data";
+
+const roleRouteMap: Record<Role, "/supervisor" | "/administrator" | "/a1" | "/a1plus"> = {
+  Supervisor: "/supervisor",
+  Administrator: "/administrator",
+  A1: "/a1",
+  "A1+": "/a1plus",
+};
 
 export function requireAuth() {
   const state = authStore.getState();
@@ -11,20 +18,22 @@ export function requireAuth() {
 
 export function requireRole(expectedRole: Role) {
   const state = authStore.getState();
-  if (!state.isAuthenticated) {
+  if (!state.isAuthenticated || !state.role) {
     throw redirect({ to: "/login" });
   }
   if (state.role !== expectedRole) {
-    const roleRouteMap: Record<Role, string> = {
-      Supervisor: "/supervisor",
-      Administrator: "/administrator",
-      A1: "/a1",
-      "A1+": "/a1plus",
-    };
-    const target = state.role ? roleRouteMap[state.role] : "/login";
-    if (target === "/login") {
-      throw redirect({ to: "/login" });
-    }
-    throw redirect({ to: target as "/supervisor" | "/administrator" | "/a1" | "/a1plus" });
+    throw redirect({ to: roleRouteMap[state.role] });
+  }
+}
+
+/** Allow a shared module only when it appears in the signed-in role's navigation. */
+export function requireSection(path: string) {
+  const state = authStore.getState();
+  if (!state.isAuthenticated || !state.role) {
+    throw redirect({ to: "/login" });
+  }
+  const allowed = ROLE_NAV[state.role].some((n) => n.to === path);
+  if (!allowed) {
+    throw redirect({ to: roleRouteMap[state.role] });
   }
 }

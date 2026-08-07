@@ -16,13 +16,21 @@ import { Route as AdministratorRouteImport } from './routes/administrator'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as GatePassRouteImport } from './routes/gate-pass'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as ProcurementRouteImport } from './routes/procurement'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RegistersRouteImport } from './routes/registers'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as TraceabilityRouteImport } from './routes/traceability'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
+import { Route as LoginA1RouteImport } from './routes/login.a1'
+import { Route as LoginA1plusRouteImport } from './routes/login.a1plus'
+import { Route as LoginAdministratorRouteImport } from './routes/login.administrator'
 import { Route as LoginSupervisorRouteImport } from './routes/login.supervisor'
+import { Route as PortalA1RouteImport } from './routes/portal.a1'
+import { Route as PortalA1plusRouteImport } from './routes/portal.a1plus'
+import { Route as PortalAdministratorRouteImport } from './routes/portal.administrator'
+import { Route as PortalSupervisorRouteImport } from './routes/portal.supervisor'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,6 +67,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProcurementRoute = ProcurementRouteImport.update({
   id: '/procurement',
   path: '/procurement',
@@ -89,10 +102,45 @@ const LoginIndexRoute = LoginIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LoginRoute,
 } as any)
+const LoginA1Route = LoginA1RouteImport.update({
+  id: '/a1',
+  path: '/a1',
+  getParentRoute: () => LoginRoute,
+} as any)
+const LoginA1plusRoute = LoginA1plusRouteImport.update({
+  id: '/a1plus',
+  path: '/a1plus',
+  getParentRoute: () => LoginRoute,
+} as any)
+const LoginAdministratorRoute = LoginAdministratorRouteImport.update({
+  id: '/administrator',
+  path: '/administrator',
+  getParentRoute: () => LoginRoute,
+} as any)
 const LoginSupervisorRoute = LoginSupervisorRouteImport.update({
   id: '/supervisor',
   path: '/supervisor',
   getParentRoute: () => LoginRoute,
+} as any)
+const PortalA1Route = PortalA1RouteImport.update({
+  id: '/a1',
+  path: '/a1',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalA1plusRoute = PortalA1plusRouteImport.update({
+  id: '/a1plus',
+  path: '/a1plus',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalAdministratorRoute = PortalAdministratorRouteImport.update({
+  id: '/administrator',
+  path: '/administrator',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalSupervisorRoute = PortalSupervisorRouteImport.update({
+  id: '/supervisor',
+  path: '/supervisor',
+  getParentRoute: () => PortalRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -103,12 +151,20 @@ export interface FileRoutesByFullPath {
   '/approvals': typeof ApprovalsRoute
   '/gate-pass': typeof GatePassRoute
   '/login': typeof LoginRouteWithChildren
+  '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/login/a1': typeof LoginA1Route
+  '/login/a1plus': typeof LoginA1plusRoute
+  '/login/administrator': typeof LoginAdministratorRoute
   '/login/supervisor': typeof LoginSupervisorRoute
+  '/portal/a1': typeof PortalA1Route
+  '/portal/a1plus': typeof PortalA1plusRoute
+  '/portal/administrator': typeof PortalAdministratorRoute
+  '/portal/supervisor': typeof PortalSupervisorRoute
   '/login/': typeof LoginIndexRoute
 }
 export interface FileRoutesByTo {
@@ -118,12 +174,20 @@ export interface FileRoutesByTo {
   '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
   '/gate-pass': typeof GatePassRoute
+  '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/login/a1': typeof LoginA1Route
+  '/login/a1plus': typeof LoginA1plusRoute
+  '/login/administrator': typeof LoginAdministratorRoute
   '/login/supervisor': typeof LoginSupervisorRoute
+  '/portal/a1': typeof PortalA1Route
+  '/portal/a1plus': typeof PortalA1plusRoute
+  '/portal/administrator': typeof PortalAdministratorRoute
+  '/portal/supervisor': typeof PortalSupervisorRoute
   '/login': typeof LoginIndexRoute
 }
 export interface FileRoutesById {
@@ -135,12 +199,20 @@ export interface FileRoutesById {
   '/approvals': typeof ApprovalsRoute
   '/gate-pass': typeof GatePassRoute
   '/login': typeof LoginRouteWithChildren
+  '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
+  '/login/a1': typeof LoginA1Route
+  '/login/a1plus': typeof LoginA1plusRoute
+  '/login/administrator': typeof LoginAdministratorRoute
   '/login/supervisor': typeof LoginSupervisorRoute
+  '/portal/a1': typeof PortalA1Route
+  '/portal/a1plus': typeof PortalA1plusRoute
+  '/portal/administrator': typeof PortalAdministratorRoute
+  '/portal/supervisor': typeof PortalSupervisorRoute
   '/login/': typeof LoginIndexRoute
 }
 export interface FileRouteTypes {
@@ -153,12 +225,20 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/gate-pass'
     | '/login'
+    | '/portal'
     | '/procurement'
     | '/quality'
     | '/registers'
     | '/supervisor'
     | '/traceability'
+    | '/login/a1'
+    | '/login/a1plus'
+    | '/login/administrator'
     | '/login/supervisor'
+    | '/portal/a1'
+    | '/portal/a1plus'
+    | '/portal/administrator'
+    | '/portal/supervisor'
     | '/login/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -168,12 +248,20 @@ export interface FileRouteTypes {
     | '/administrator'
     | '/approvals'
     | '/gate-pass'
+    | '/portal'
     | '/procurement'
     | '/quality'
     | '/registers'
     | '/supervisor'
     | '/traceability'
+    | '/login/a1'
+    | '/login/a1plus'
+    | '/login/administrator'
     | '/login/supervisor'
+    | '/portal/a1'
+    | '/portal/a1plus'
+    | '/portal/administrator'
+    | '/portal/supervisor'
     | '/login'
   id:
     | '__root__'
@@ -184,12 +272,20 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/gate-pass'
     | '/login'
+    | '/portal'
     | '/procurement'
     | '/quality'
     | '/registers'
     | '/supervisor'
     | '/traceability'
+    | '/login/a1'
+    | '/login/a1plus'
+    | '/login/administrator'
     | '/login/supervisor'
+    | '/portal/a1'
+    | '/portal/a1plus'
+    | '/portal/administrator'
+    | '/portal/supervisor'
     | '/login/'
   fileRoutesById: FileRoutesById
 }
@@ -201,6 +297,7 @@ export interface RootRouteChildren {
   ApprovalsRoute: typeof ApprovalsRoute
   GatePassRoute: typeof GatePassRoute
   LoginRoute: typeof LoginRouteWithChildren
+  PortalRoute: typeof PortalRouteWithChildren
   ProcurementRoute: typeof ProcurementRoute
   QualityRoute: typeof QualityRoute
   RegistersRoute: typeof RegistersRoute
@@ -259,6 +356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/procurement': {
       id: '/procurement'
       path: '/procurement'
@@ -301,6 +405,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof LoginRoute
     }
+    '/login/a1': {
+      id: '/login/a1'
+      path: '/a1'
+      fullPath: '/login/a1'
+      preLoaderRoute: typeof LoginA1RouteImport
+      parentRoute: typeof LoginRoute
+    }
+    '/login/a1plus': {
+      id: '/login/a1plus'
+      path: '/a1plus'
+      fullPath: '/login/a1plus'
+      preLoaderRoute: typeof LoginA1plusRouteImport
+      parentRoute: typeof LoginRoute
+    }
+    '/login/administrator': {
+      id: '/login/administrator'
+      path: '/administrator'
+      fullPath: '/login/administrator'
+      preLoaderRoute: typeof LoginAdministratorRouteImport
+      parentRoute: typeof LoginRoute
+    }
     '/login/supervisor': {
       id: '/login/supervisor'
       path: '/supervisor'
@@ -308,20 +433,71 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginSupervisorRouteImport
       parentRoute: typeof LoginRoute
     }
+    '/portal/a1': {
+      id: '/portal/a1'
+      path: '/a1'
+      fullPath: '/portal/a1'
+      preLoaderRoute: typeof PortalA1RouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/a1plus': {
+      id: '/portal/a1plus'
+      path: '/a1plus'
+      fullPath: '/portal/a1plus'
+      preLoaderRoute: typeof PortalA1plusRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/administrator': {
+      id: '/portal/administrator'
+      path: '/administrator'
+      fullPath: '/portal/administrator'
+      preLoaderRoute: typeof PortalAdministratorRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/supervisor': {
+      id: '/portal/supervisor'
+      path: '/supervisor'
+      fullPath: '/portal/supervisor'
+      preLoaderRoute: typeof PortalSupervisorRouteImport
+      parentRoute: typeof PortalRoute
+    }
   }
 }
 
 interface LoginRouteChildren {
+  LoginA1Route: typeof LoginA1Route
+  LoginA1plusRoute: typeof LoginA1plusRoute
+  LoginAdministratorRoute: typeof LoginAdministratorRoute
   LoginSupervisorRoute: typeof LoginSupervisorRoute
   LoginIndexRoute: typeof LoginIndexRoute
 }
 
 const LoginRouteChildren: LoginRouteChildren = {
+  LoginA1Route: LoginA1Route,
+  LoginA1plusRoute: LoginA1plusRoute,
+  LoginAdministratorRoute: LoginAdministratorRoute,
   LoginSupervisorRoute: LoginSupervisorRoute,
   LoginIndexRoute: LoginIndexRoute,
 }
 
 const LoginRouteWithChildren = LoginRoute._addFileChildren(LoginRouteChildren)
+
+interface PortalRouteChildren {
+  PortalA1Route: typeof PortalA1Route
+  PortalA1plusRoute: typeof PortalA1plusRoute
+  PortalAdministratorRoute: typeof PortalAdministratorRoute
+  PortalSupervisorRoute: typeof PortalSupervisorRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalA1Route: PortalA1Route,
+  PortalA1plusRoute: PortalA1plusRoute,
+  PortalAdministratorRoute: PortalAdministratorRoute,
+  PortalSupervisorRoute: PortalSupervisorRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -331,6 +507,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApprovalsRoute: ApprovalsRoute,
   GatePassRoute: GatePassRoute,
   LoginRoute: LoginRouteWithChildren,
+  PortalRoute: PortalRouteWithChildren,
   ProcurementRoute: ProcurementRoute,
   QualityRoute: QualityRoute,
   RegistersRoute: RegistersRoute,
