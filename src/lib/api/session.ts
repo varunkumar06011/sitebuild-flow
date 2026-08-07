@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
+import { createHmac } from "crypto";
 import { supabaseServer } from "../supabase-server";
 import { checkServerEnv } from "../env-check";
 import type { Role } from "../erp-data";
@@ -25,9 +25,12 @@ function getJwtSecret(): string {
   return secret;
 }
 
-// Hashes a session token with bcrypt for safe storage lookup.
-async function hashToken(token: string): Promise<string> {
-  return bcrypt.hash(token, 10);
+// Deterministic hash of the session token for DB lookup.
+// Uses HMAC-SHA256 keyed with the JWT secret — bcrypt.hash() is unsuitable here
+// because it generates a random salt on every call, making the hash non-deterministic
+// and the session row impossible to find on subsequent requests.
+function hashToken(token: string): string {
+  return createHmac("sha256", getJwtSecret()).update(token).digest("hex");
 }
 
 // Reads the session cookie from the current request context, with a fallback to getCookie.
@@ -66,7 +69,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   try {
     const decoded = jwt.verify(token, getJwtSecret()) as { id: string; role: Role };
-    const tokenHash = await hashToken(token);
+    const tokenHash = hashToken(token);
     const now = new Date().toISOString();
 
     const { data: session } = await supabaseServer

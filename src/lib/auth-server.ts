@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { createHmac } from "crypto";
 import { supabaseServer } from "./supabase-server";
 import { checkServerEnv } from "./env-check";
 import type { Role } from "./erp-data";
@@ -55,9 +56,12 @@ function parseExpiryToMs(expiry: string): number {
   return num * (multipliers[unit] ?? 12 * 60 * 60 * 1000);
 }
 
-// Hashes a session token with bcrypt so the raw token is never stored.
-async function hashToken(token: string): Promise<string> {
-  return bcrypt.hash(token, 10);
+// Deterministic hash of the session token for DB lookup.
+// Uses HMAC-SHA256 keyed with the JWT secret — bcrypt.hash() is unsuitable here
+// because it generates a random salt on every call, making the hash non-deterministic
+// and the session row impossible to find on subsequent requests.
+function hashToken(token: string): string {
+  return createHmac("sha256", getJwtSecret()).update(token).digest("hex");
 }
 
 // Reads the session JWT from the request cookie, trying SSR context then RPC fallback.
@@ -177,7 +181,7 @@ export const loginUser = createServerFn({ method: "POST" })
         expiresIn: getJwtExpiry() as any,
       });
 
-      const tokenHash = await hashToken(token);
+      const tokenHash = hashToken(token);
       const expiryMs = parseExpiryToMs(getJwtExpiry());
       const expiresAt = new Date(Date.now() + expiryMs).toISOString();
 
@@ -213,7 +217,7 @@ export const verifySession = createServerFn({ method: "GET" }).handler(
         role: Role;
       };
 
-      const tokenHash = await hashToken(token);
+      const tokenHash = hashToken(token);
       const now = new Date().toISOString();
 
       const { data: session, error } = await supabaseServer
@@ -259,7 +263,7 @@ export const logoutUser = createServerFn({ method: "POST" }).handler(
     const token = await readSessionCookie();
     if (token) {
       try {
-        const tokenHash = await hashToken(token);
+        const tokenHash = hashToken(token);
         await supabaseServer
           .from("sessions")
           .update({ revoked: true })
@@ -285,7 +289,7 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(
         role: Role;
       };
 
-      const tokenHash = await hashToken(token);
+      const tokenHash = hashToken(token);
       const now = new Date().toISOString();
 
       const { data: session } = await supabaseServer
