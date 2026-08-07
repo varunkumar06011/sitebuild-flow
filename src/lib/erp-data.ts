@@ -126,3 +126,10 @@ export const ROLE_DASHBOARD_ROUTE: Record<Role, string> = {
   A1: "/a1",
   "A1+": "/a1plus",
 };
+
+export const ROLE_LOGIN_CREDENTIALS: Record<Role, { username: string; password: string }> = {
+  Supervisor: { username: "supervisor", password: "site123" },
+  Administrator: { username: "admin", password: "admin123" },
+  A1: { username: "a1", password: "a1pass123" },
+  "A1+": { username: "a1plus", password: "a1plus123" },
+};
