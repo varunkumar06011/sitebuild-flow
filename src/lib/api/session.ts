@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { supabaseServer } from "../supabase-server";
 import { checkServerEnv } from "../env-check";
 import type { Role } from "../erp-data";
+import { getStartContext } from "@tanstack/start-storage-context";
 
 export type SessionUser = {
   id: string;
@@ -26,25 +27,36 @@ async function hashToken(token: string): Promise<string> {
   return bcrypt.hash(token, 10);
 }
 
-function readSessionCookie(): string | undefined {
+async function readSessionCookie(): Promise<string | undefined> {
+  // Try getStartContext first (works for SSR/GET and serverFn POST)
   try {
-    const { getStartContext } = require("@tanstack/start-storage-context");
     const ctx = getStartContext({ throwIfNotFound: false });
     const req = ctx?.request as Request | undefined;
-    if (!req) return undefined;
-    const cookieHeader = req.headers.get("cookie") ?? "";
-    for (const part of cookieHeader.split(";")) {
-      const [key, ...val] = part.trim().split("=");
-      if (key === COOKIE_NAME) return decodeURIComponent(val.join("="));
+    if (req) {
+      const cookieHeader = req.headers.get("cookie") ?? "";
+      for (const part of cookieHeader.split(";")) {
+        const [key, ...val] = part.trim().split("=");
+        if (key === COOKIE_NAME) return decodeURIComponent(val.join("="));
+      }
     }
-    return undefined;
   } catch {
-    return undefined;
+    // ignore
   }
+
+  // Fallback: dynamic import for cases where getStartContext doesn't have request
+  try {
+    const { getCookie } = await import("@tanstack/start-server-core");
+    const value = getCookie(COOKIE_NAME);
+    if (value) return decodeURIComponent(value);
+  } catch {
+    // ignore
+  }
+
+  return undefined;
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const token = readSessionCookie();
+  const token = await readSessionCookie();
   if (!token) return null;
 
   try {

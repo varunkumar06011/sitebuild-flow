@@ -1,0 +1,545 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AppShell } from "@/components/AppShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { requireAuth } from "@/lib/auth-guards";
+import {
+  fetchHierarchy,
+  fetchSupervisors,
+  createBlock,
+  createFloor,
+  createCategory,
+  createWorkItem,
+  createCellGroup,
+  assignSupervisor,
+} from "@/lib/api/progress-tracking";
+import { toast } from "sonner";
+import { Settings2, Plus, Layers, Building2, Tag, Wrench, Grid3x3, UserCheck } from "lucide-react";
+
+export const Route = createFileRoute("/progress-config")({
+  head: () => ({
+    meta: [{ title: "Progress Config — Meditrust ERP" }],
+  }),
+  beforeLoad: async () => { await requireAuth(); },
+  component: ProgressConfigPage,
+});
+
+type Tab = "blocks" | "floors" | "categories" | "workItems" | "cellGroups" | "assignments";
+
+const TABS: { id: Tab; label: string; icon: typeof Building2 }[] = [
+  { id: "blocks", label: "Blocks", icon: Building2 },
+  { id: "floors", label: "Floors", icon: Layers },
+  { id: "categories", label: "Categories", icon: Tag },
+  { id: "workItems", label: "Work Items", icon: Wrench },
+  { id: "cellGroups", label: "Cell Groups", icon: Grid3x3 },
+  { id: "assignments", label: "Supervisor Assignments", icon: UserCheck },
+];
+
+function ProgressConfigPage() {
+  const [tab, setTab] = useState<Tab>("blocks");
+
+  return (
+    <AppShell
+      title="Progress Configuration"
+      subtitle="Set up blocks, floors, categories, work items, and cell groups"
+    >
+      <div className="space-y-4">
+        {/* Tab bar */}
+        <div className="flex flex-wrap gap-2 border-b pb-2">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  tab === t.id
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <Icon className="size-4" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {tab === "blocks" && <BlocksTab />}
+        {tab === "floors" && <FloorsTab />}
+        {tab === "categories" && <CategoriesTab />}
+        {tab === "workItems" && <WorkItemsTab />}
+        {tab === "cellGroups" && <CellGroupsTab />}
+        {tab === "assignments" && <AssignmentsTab />}
+      </div>
+    </AppShell>
+  );
+}
+
+function BlocksTab() {
+  const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [sortOrder, setSortOrder] = useState("0");
+  const qc = useQueryClient();
+
+  const blocks = hier?.blocks ?? [];
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    try {
+      const result = await createBlock({ data: { name: name.trim(), sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)) } });
+      if (result.success) {
+        toast.success("Block created");
+        qc.invalidateQueries({ queryKey: ["hierarchy"] });
+        setOpen(false);
+        setName("");
+        setSortOrder("0");
+      } else {
+        toast.error(result.error || "Failed");
+      }
+    } catch (err: any) {
+      console.error("createBlock client error:", err);
+      toast.error("Failed to create block");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button onClick={() => setOpen(true)}><Plus className="mr-1 size-4" /> Add Block</Button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {blocks.map((b: any) => (
+          <Card key={b.id} className="p-3">
+            <p className="font-medium">{b.name}</p>
+            <p className="text-xs text-muted-foreground">Sort: {b.sort_order}</p>
+          </Card>
+        ))}
+        {blocks.length === 0 && <p className="text-sm text-muted-foreground">No blocks yet.</p>}
+      </div>
+
+      {open && (
+        <Dialog open onOpenChange={setOpen}>
+          <DialogContent className="max-w-sm" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle>New Block</DialogTitle>
+              <DialogDescription>Add a top-level block (e.g. OT Block)</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="OT Block" /></div>
+              <div><Label>Sort Order</Label><Input type="number" min={0} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} /></div>
+              <Button onClick={handleCreate} disabled={!name.trim()} className="w-full">Create</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function FloorsTab() {
+  const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
+  const [open, setOpen] = useState(false);
+  const [blockId, setBlockId] = useState("");
+  const [name, setName] = useState("");
+  const [sortOrder, setSortOrder] = useState("0");
+  const qc = useQueryClient();
+
+  const blocks = hier?.blocks ?? [];
+  const floors = hier?.floors ?? [];
+  const blockMap = new Map(blocks.map((b: any) => [b.id, b.name]));
+
+  const handleCreate = async () => {
+    if (!blockId) { toast.error("Select a block"); return; }
+    if (!name.trim()) { toast.error("Enter a name"); return; }
+    try {
+      const result = await createFloor({ data: { block_id: blockId, name: name.trim(), sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)) } });
+      if (result.success) {
+        toast.success("Floor created");
+        qc.invalidateQueries({ queryKey: ["hierarchy"] });
+        setOpen(false);
+        setName(""); setBlockId(""); setSortOrder("0");
+      } else {
+        toast.error(result.error || "Failed");
+      }
+    } catch (err) {
+      toast.error("Failed to create floor");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button onClick={() => setOpen(true)}><Plus className="mr-1 size-4" /> Add Floor</Button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {floors.map((f: any) => (
+          <Card key={f.id} className="p-3">
+            <p className="font-medium">{f.name}</p>
+            <p className="text-xs text-muted-foreground">{blockMap.get(f.block_id) ?? "—"} · Sort: {f.sort_order}</p>
+          </Card>
+        ))}
+        {floors.length === 0 && <p className="text-sm text-muted-foreground">No floors yet.</p>}
+      </div>
+
+      {open && (
+        <Dialog open onOpenChange={setOpen}>
+          <DialogContent className="max-w-sm" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle>New Floor</DialogTitle>
+              <DialogDescription>Add a floor to a block</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Block</Label>
+                <Select value={blockId} onValueChange={setBlockId}>
+                  <SelectTrigger><SelectValue placeholder="Select block" /></SelectTrigger>
+                  <SelectContent>
+                    {blocks.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Level 1" /></div>
+              <div><Label>Sort Order</Label><Input type="number" min={0} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} /></div>
+              <Button onClick={handleCreate} disabled={!name.trim()} className="w-full">Create</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function CategoriesTab() {
+  const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [sortOrder, setSortOrder] = useState("0");
+  const qc = useQueryClient();
+
+  const categories = hier?.categories ?? [];
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    try {
+      const result = await createCategory({ data: { name: name.trim(), sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)) } });
+      if (result.success) {
+        toast.success("Category created");
+        qc.invalidateQueries({ queryKey: ["hierarchy"] });
+        setOpen(false);
+        setName(""); setSortOrder("0");
+      } else {
+        toast.error(result.error || "Failed");
+      }
+    } catch (err) {
+      toast.error("Failed to create category");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button onClick={() => setOpen(true)}><Plus className="mr-1 size-4" /> Add Category</Button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {categories.map((c: any) => (
+          <Card key={c.id} className="p-3">
+            <p className="font-medium">{c.name}</p>
+            <p className="text-xs text-muted-foreground">Sort: {c.sort_order}</p>
+          </Card>
+        ))}
+        {categories.length === 0 && <p className="text-sm text-muted-foreground">No categories yet.</p>}
+      </div>
+
+      {open && (
+        <Dialog open onOpenChange={setOpen}>
+          <DialogContent className="max-w-sm" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle>New Category</DialogTitle>
+              <DialogDescription>e.g. Civil, MEP, Finishing</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Civil" /></div>
+              <div><Label>Sort Order</Label><Input type="number" min={0} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} /></div>
+              <Button onClick={handleCreate} disabled={!name.trim()} className="w-full">Create</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function WorkItemsTab() {
+  const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
+  const [open, setOpen] = useState(false);
+  const [categoryId, setCategoryId] = useState("");
+  const [name, setName] = useState("");
+  const [sortOrder, setSortOrder] = useState("0");
+  const qc = useQueryClient();
+
+  const categories = hier?.categories ?? [];
+  const workItems = hier?.workItems ?? [];
+  const catMap = new Map(categories.map((c: any) => [c.id, c.name]));
+
+  const handleCreate = async () => {
+    if (!categoryId) { toast.error("Select a category"); return; }
+    if (!name.trim()) { toast.error("Enter a name"); return; }
+    try {
+      const result = await createWorkItem({ data: { category_id: categoryId, name: name.trim(), sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)) } });
+      if (result.success) {
+        toast.success("Work item created");
+        qc.invalidateQueries({ queryKey: ["hierarchy"] });
+        setOpen(false);
+        setName(""); setCategoryId(""); setSortOrder("0");
+      } else {
+        toast.error(result.error || "Failed");
+      }
+    } catch (err) {
+      toast.error("Failed to create work item");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button onClick={() => setOpen(true)}><Plus className="mr-1 size-4" /> Add Work Item</Button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {workItems.map((w: any) => (
+          <Card key={w.id} className="p-3">
+            <p className="font-medium">{w.name}</p>
+            <p className="text-xs text-muted-foreground">{catMap.get(w.category_id) ?? "—"} · Sort: {w.sort_order}</p>
+          </Card>
+        ))}
+        {workItems.length === 0 && <p className="text-sm text-muted-foreground">No work items yet.</p>}
+      </div>
+
+      {open && (
+        <Dialog open onOpenChange={setOpen}>
+          <DialogContent className="max-w-sm" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle>New Work Item</DialogTitle>
+              <DialogDescription>e.g. Slab Reinforcement, Tile Flooring</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Category</Label>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Slab Reinforcement" /></div>
+              <div><Label>Sort Order</Label><Input type="number" min={0} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} /></div>
+              <Button onClick={handleCreate} disabled={!name.trim()} className="w-full">Create</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function CellGroupsTab() {
+  const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
+  const [open, setOpen] = useState(false);
+  const [blockId, setBlockId] = useState("");
+  const [floorId, setFloorId] = useState("");
+  const [workItemId, setWorkItemId] = useState("");
+  const [cellCount, setCellCount] = useState(12);
+  const qc = useQueryClient();
+
+  const blocks = hier?.blocks ?? [];
+  const floors = (hier?.floors ?? []).filter((f: any) => f.block_id === blockId);
+  const categories = hier?.categories ?? [];
+  const workItems = (hier?.workItems ?? []).filter((w: any) => categories.some((c: any) => c.id === w.category_id));
+
+  const handleCreate = async () => {
+    if (!blockId || !floorId || !workItemId) { toast.error("Select all fields"); return; }
+    try {
+      const result = await createCellGroup({
+        data: { block_id: blockId, floor_id: floorId, work_item_id: workItemId, cell_count: Math.max(1, Math.floor(cellCount)) },
+      });
+      if (result.success) {
+        toast.success(`Cell group created with ${cellCount} cells`);
+        setOpen(false);
+        setBlockId(""); setFloorId(""); setWorkItemId(""); setCellCount(12);
+      } else {
+        toast.error(result.error || "Failed");
+      }
+    } catch (err) {
+      toast.error("Failed to create cell group");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button onClick={() => setOpen(true)}><Plus className="mr-1 size-4" /> Add Cell Group</Button>
+      </div>
+      <Card className="p-4 text-sm text-muted-foreground">
+        <Settings2 className="mb-2 size-5" />
+        Cell groups define a Block + Floor + Work Item combination with a number of cells.
+        Creating a group auto-generates individual cell rows (1 to N).
+      </Card>
+
+      {open && (
+        <Dialog open onOpenChange={setOpen}>
+          <DialogContent className="max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle>New Cell Group</DialogTitle>
+              <DialogDescription>Auto-generates cells for tracking</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Block</Label>
+                <Select value={blockId} onValueChange={(v) => { setBlockId(v); setFloorId(""); }}>
+                  <SelectTrigger><SelectValue placeholder="Select block" /></SelectTrigger>
+                  <SelectContent>
+                    {blocks.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Floor</Label>
+                <Select value={floorId} onValueChange={setFloorId}>
+                  <SelectTrigger><SelectValue placeholder="Select floor" /></SelectTrigger>
+                  <SelectContent>
+                    {floors.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Work Item</Label>
+                <Select value={workItemId} onValueChange={setWorkItemId}>
+                  <SelectTrigger><SelectValue placeholder="Select work item" /></SelectTrigger>
+                  <SelectContent>
+                    {workItems.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Number of Cells</Label>
+                <Input type="number" min={1} max={500} value={cellCount} onChange={(e) => setCellCount(Number(e.target.value))} />
+              </div>
+              <Button onClick={handleCreate} className="w-full">Create Cell Group</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function AssignmentsTab() {
+  const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
+  const { data: supData } = useQuery({ queryKey: ["supervisors"], queryFn: () => fetchSupervisors() });
+  const [open, setOpen] = useState(false);
+  const [supervisorId, setSupervisorId] = useState("");
+  const [blockId, setBlockId] = useState("");
+  const [floorId, setFloorId] = useState("all");
+  const qc = useQueryClient();
+
+  const blocks = hier?.blocks ?? [];
+  const floors = (hier?.floors ?? []).filter((f: any) => f.block_id === blockId);
+  const supervisors = supData?.data ?? [];
+
+  const handleAssign = async () => {
+    if (!supervisorId || !blockId) { toast.error("Select supervisor and block"); return; }
+    try {
+      const result = await assignSupervisor({
+        data: {
+          supervisor_id: supervisorId,
+          block_id: blockId,
+          floor_id: floorId === "all" ? null : floorId,
+        },
+      });
+      if (result.success) {
+        toast.success("Supervisor assigned");
+        setOpen(false);
+        setSupervisorId(""); setBlockId(""); setFloorId("all");
+      } else {
+        toast.error(result.error || "Failed");
+      }
+    } catch (err) {
+      toast.error("Failed to assign supervisor");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button onClick={() => setOpen(true)}><Plus className="mr-1 size-4" /> Assign Supervisor</Button>
+      </div>
+      <Card className="p-4 text-sm text-muted-foreground">
+        <UserCheck className="mb-2 size-5" />
+        Assign supervisors to blocks (optionally limited to a specific floor).
+        A supervisor can only update cells in blocks/floors they're assigned to.
+      </Card>
+
+      {open && (
+        <Dialog open onOpenChange={setOpen}>
+          <DialogContent className="max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle>Assign Supervisor</DialogTitle>
+              <DialogDescription>Choose who can update cells in a block/floor</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Supervisor</Label>
+                <Select value={supervisorId} onValueChange={setSupervisorId}>
+                  <SelectTrigger><SelectValue placeholder="Select supervisor" /></SelectTrigger>
+                  <SelectContent>
+                    {supervisors.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Block</Label>
+                <Select value={blockId} onValueChange={(v) => { setBlockId(v); setFloorId("all"); }}>
+                  <SelectTrigger><SelectValue placeholder="Select block" /></SelectTrigger>
+                  <SelectContent>
+                    {blocks.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Floor (optional — leave as "All" for whole block)</Label>
+                <Select value={floorId} onValueChange={setFloorId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Floors (whole block)</SelectItem>
+                    {floors.map((f: any) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleAssign} className="w-full">Assign</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}

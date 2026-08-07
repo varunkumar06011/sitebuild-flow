@@ -32,6 +32,16 @@ export type GatePassRow = {
   invoice_value: number | null;
   purpose: string | null;
   pdf_path: string | null;
+  person_name: string | null;
+  vehicle_type: string | null;
+  driver_name: string | null;
+  driver_mobile: string | null;
+  material_movement: boolean;
+  material_list: { name: string; qty: string }[];
+  remarks: string | null;
+  photo_proof_path: string | null;
+  gp_date: string | null;
+  gp_time: string | null;
 };
 
 export const fetchGatePasses = createServerFn({ method: "GET" })
@@ -44,7 +54,7 @@ export const fetchGatePasses = createServerFn({ method: "GET" })
 
     let query = supabaseServer
       .from("gate_passes")
-      .select("id, gp_number, material, qty, carrier, vehicle, type, status, approver_phone, otp_channel, requested_by, requested_at, exit_time, approved_by, vendor_id, from_location, to_location, invoice_number, invoice_value, purpose, pdf_path", { count: "exact" })
+      .select("id, gp_number, material, qty, carrier, vehicle, type, status, approver_phone, otp_channel, requested_by, requested_at, exit_time, approved_by, vendor_id, from_location, to_location, invoice_number, invoice_value, purpose, pdf_path, person_name, vehicle_type, driver_name, driver_mobile, material_movement, material_list, remarks, photo_proof_path, gp_date, gp_time", { count: "exact" })
       .order("requested_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -97,6 +107,16 @@ export const fetchGatePasses = createServerFn({ method: "GET" })
         invoice_value: p.invoice_value ? Number(p.invoice_value) : null,
         purpose: p.purpose,
         pdf_path: p.pdf_path,
+        person_name: p.person_name,
+        vehicle_type: p.vehicle_type,
+        driver_name: p.driver_name,
+        driver_mobile: p.driver_mobile,
+        material_movement: p.material_movement ?? false,
+        material_list: p.material_list ?? [],
+        remarks: p.remarks,
+        photo_proof_path: p.photo_proof_path,
+        gp_date: p.gp_date,
+        gp_time: p.gp_time,
       })),
       total: count ?? 0,
       page,
@@ -105,11 +125,11 @@ export const fetchGatePasses = createServerFn({ method: "GET" })
   });
 
 const createSchema = z.object({
-  material: z.string().min(1),
-  qty: z.string().min(1),
+  material: z.string().optional(),
+  qty: z.string().optional(),
   carrier: z.string().optional(),
   vehicle: z.string().optional(),
-  type: z.enum(["Returnable", "Non-returnable"]),
+  type: z.enum(["Returnable", "Non-returnable"]).default("Non-returnable"),
   approver_phone: z.string().min(1),
   vendor_id: z.string().uuid().nullable().optional(),
   from_location: z.string().optional(),
@@ -117,6 +137,16 @@ const createSchema = z.object({
   invoice_number: z.string().optional(),
   invoice_value: z.number().optional(),
   purpose: z.string().optional(),
+  person_name: z.string().min(1),
+  vehicle_type: z.string().optional(),
+  driver_name: z.string().optional(),
+  driver_mobile: z.string().optional(),
+  material_movement: z.boolean().default(false),
+  material_list: z.array(z.object({ name: z.string(), qty: z.string() })).default([]),
+  remarks: z.string().optional(),
+  photo_proof_path: z.string().nullable().optional(),
+  gp_date: z.string().optional(),
+  gp_time: z.string().optional(),
 });
 
 export const createGatePass = createServerFn({ method: "POST" })
@@ -137,8 +167,8 @@ export const createGatePass = createServerFn({ method: "POST" })
       .from("gate_passes")
       .insert({
         gp_number: gpNumber,
-        material: data.material,
-        qty: data.qty,
+        material: data.material ?? (data.material_list.length > 0 ? data.material_list.map((m: { name: string; qty: string }) => `${m.name} (${m.qty})`).join(", ") : "—"),
+        qty: data.qty ?? "—",
         carrier: data.carrier ?? null,
         vehicle: data.vehicle ?? null,
         type: data.type,
@@ -151,6 +181,16 @@ export const createGatePass = createServerFn({ method: "POST" })
         invoice_number: data.invoice_number ?? null,
         invoice_value: data.invoice_value ?? null,
         purpose: data.purpose ?? null,
+        person_name: data.person_name,
+        vehicle_type: data.vehicle_type ?? null,
+        driver_name: data.driver_name ?? null,
+        driver_mobile: data.driver_mobile ?? null,
+        material_movement: data.material_movement,
+        material_list: data.material_list,
+        remarks: data.remarks ?? null,
+        photo_proof_path: data.photo_proof_path ?? null,
+        gp_date: data.gp_date ?? new Date().toISOString().split("T")[0],
+        gp_time: data.gp_time ?? new Date().toTimeString().split(" ")[0],
       })
       .select("id, gp_number")
       .single();
@@ -390,4 +430,116 @@ export const getGatePassSignedUrl = createServerFn({ method: "GET" })
     await logAction(user, "view_pdf", "gate_pass", data.gatePassId, { path: gp.pdf_path });
 
     return { success: true, url: urlData.signedUrl };
+  });
+
+// ---------------------------------------------------------------------------
+// Fetch admin contacts for OTP approval flow (Administrators, A1, A1+)
+// ---------------------------------------------------------------------------
+export const fetchAdminContacts = createServerFn({ method: "GET" })
+  .validator((input: { search?: string }) => input)
+  .handler(async ({ data, context }) => {
+    await requireSessionUser();
+
+    let query = supabaseServer
+      .from("users")
+      .select("id, name, role, phone")
+      .in("role", ["Administrator", "A1", "A1+"])
+      .order("name", { ascending: true });
+
+    if (data.search) {
+      query = query.or(`name.ilike.%${data.search}%,phone.ilike.%${data.search}%`);
+    }
+
+    const { data: admins } = await query;
+
+    return {
+      data: (admins ?? []).map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        role: a.role,
+        phone: a.phone ?? "",
+      })),
+    };
+  });
+
+// ---------------------------------------------------------------------------
+// Fetch a single gate pass by ID (for print preview)
+// ---------------------------------------------------------------------------
+export const fetchGatePassById = createServerFn({ method: "GET" })
+  .validator((input: { gatePassId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const user = await requireSessionUser();
+
+    const { data: gp } = await supabaseServer
+      .from("gate_passes")
+      .select("id, gp_number, material, qty, carrier, vehicle, type, status, approver_phone, otp_channel, requested_by, requested_at, exit_time, approved_by, vendor_id, from_location, to_location, invoice_number, invoice_value, purpose, pdf_path, person_name, vehicle_type, driver_name, driver_mobile, material_movement, material_list, remarks, photo_proof_path, gp_date, gp_time")
+      .eq("id", data.gatePassId)
+      .single();
+
+    if (!gp) return { success: false, error: "Gate pass not found" };
+
+    const userIds = [gp.requested_by, gp.approved_by].filter(Boolean);
+    const vendorIds = gp.vendor_id ? [gp.vendor_id] : [];
+
+    const [{ data: users }, { data: vendors }] = await Promise.all([
+      userIds.length > 0
+        ? supabaseServer.from("users").select("id, name").in("id", userIds)
+        : Promise.resolve({ data: [], error: null }),
+      vendorIds.length > 0
+        ? supabaseServer.from("vendors").select("id, name").in("id", vendorIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    const userMap = new Map((users ?? []).map((u: any) => [u.id, u.name]));
+    const vendorMap = new Map((vendors ?? []).map((v: any) => [v.id, v.name]));
+
+    let photoUrl: string | null = null;
+    if (gp.photo_proof_path) {
+      const { data: urlData } = await supabaseServer
+        .storage
+        .from("photos")
+        .createSignedUrl(gp.photo_proof_path, 60 * 60);
+      photoUrl = urlData?.signedUrl ?? null;
+    }
+
+    return {
+      success: true,
+      data: {
+        id: gp.id,
+        gp_number: gp.gp_number,
+        material: gp.material,
+        qty: gp.qty,
+        carrier: gp.carrier,
+        vehicle: gp.vehicle,
+        type: gp.type,
+        status: gp.status,
+        approver_phone: gp.approver_phone,
+        otp_channel: gp.otp_channel,
+        requested_by: gp.requested_by,
+        requested_by_name: userMap.get(gp.requested_by) ?? null,
+        requested_at: gp.requested_at,
+        exit_time: gp.exit_time,
+        approved_by: gp.approved_by,
+        approved_by_name: gp.approved_by ? userMap.get(gp.approved_by) ?? null : null,
+        vendor_id: gp.vendor_id,
+        vendor_name: gp.vendor_id ? vendorMap.get(gp.vendor_id) ?? null : null,
+        from_location: gp.from_location,
+        to_location: gp.to_location,
+        invoice_number: gp.invoice_number,
+        invoice_value: gp.invoice_value ? Number(gp.invoice_value) : null,
+        purpose: gp.purpose,
+        pdf_path: gp.pdf_path,
+        person_name: gp.person_name,
+        vehicle_type: gp.vehicle_type,
+        driver_name: gp.driver_name,
+        driver_mobile: gp.driver_mobile,
+        material_movement: gp.material_movement ?? false,
+        material_list: gp.material_list ?? [],
+        remarks: gp.remarks,
+        photo_proof_path: gp.photo_proof_path,
+        photo_url: photoUrl,
+        gp_date: gp.gp_date,
+        gp_time: gp.gp_time,
+      } as GatePassRow & { photo_url: string | null },
+    };
   });

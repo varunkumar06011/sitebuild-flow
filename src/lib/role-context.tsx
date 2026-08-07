@@ -20,11 +20,13 @@ const Ctx = createContext<RoleCtx>({
   logout: () => {},
 });
 
+const DEFAULT_AUTH_STATE = { role: null, name: null, isAuthenticated: false } as const;
+
 export function RoleProvider({ children }: { children: ReactNode }) {
   const authState = useSyncExternalStore(
     (cb) => authStore.subscribe(cb),
     () => authStore.getState(),
-    () => authStore.getState(),
+    () => DEFAULT_AUTH_STATE,
   );
 
   const [overrideRole, setOverrideRole] = useState<Role | null>(null);

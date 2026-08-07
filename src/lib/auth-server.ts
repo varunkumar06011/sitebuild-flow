@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { supabaseServer } from "./supabase-server";
 import { checkServerEnv } from "./env-check";
 import type { Role } from "./erp-data";
+import { getStartContext } from "@tanstack/start-storage-context";
 
 export type AuthUser = {
   id: string;
@@ -52,21 +53,32 @@ async function hashToken(token: string): Promise<string> {
   return bcrypt.hash(token, 10);
 }
 
-function readSessionCookie(): string | undefined {
+async function readSessionCookie(): Promise<string | undefined> {
+  // Try getStartContext first (works for SSR/GET)
   try {
-    const { getStartContext } = require("@tanstack/start-storage-context");
     const ctx = getStartContext({ throwIfNotFound: false });
     const req = ctx?.request as Request | undefined;
-    if (!req) return undefined;
-    const cookieHeader = req.headers.get("cookie") ?? "";
-    for (const part of cookieHeader.split(";")) {
-      const [key, ...val] = part.trim().split("=");
-      if (key === COOKIE_NAME) return decodeURIComponent(val.join("="));
+    if (req) {
+      const cookieHeader = req.headers.get("cookie") ?? "";
+      for (const part of cookieHeader.split(";")) {
+        const [key, ...val] = part.trim().split("=");
+        if (key === COOKIE_NAME) return decodeURIComponent(val.join("="));
+      }
     }
-    return undefined;
   } catch {
-    return undefined;
+    // ignore
   }
+
+  // Fallback: dynamic import of server-only module (works for POST RPC)
+  try {
+    const { getCookie } = await import("@tanstack/start-server-core");
+    const value = getCookie(COOKIE_NAME);
+    if (value) return decodeURIComponent(value);
+  } catch {
+    // ignore
+  }
+
+  return undefined;
 }
 
 
@@ -169,7 +181,7 @@ export const loginUser = createServerFn({ method: "POST" })
 
 export const verifySession = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ authenticated: boolean; user: AuthUser | null }> => {
-    const token = readSessionCookie();
+    const token = await readSessionCookie();
     if (!token) {
       return { authenticated: false, user: null };
     }
@@ -222,7 +234,7 @@ export const verifySession = createServerFn({ method: "GET" }).handler(
 
 export const logoutUser = createServerFn({ method: "POST" }).handler(
   async (): Promise<{ success: boolean }> => {
-    const token = readSessionCookie();
+    const token = await readSessionCookie();
     if (token) {
       try {
         const tokenHash = await hashToken(token);
@@ -241,7 +253,7 @@ export const logoutUser = createServerFn({ method: "POST" }).handler(
 
 export const getCurrentUser = createServerFn({ method: "GET" }).handler(
   async (): Promise<AuthUser | null> => {
-    const token = readSessionCookie();
+    const token = await readSessionCookie();
     if (!token) return null;
 
     try {

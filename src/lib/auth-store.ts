@@ -15,6 +15,19 @@ function notify() {
   listeners.forEach((l) => l());
 }
 
+// Initialize synchronously from localStorage so state is available
+// before the router's beforeLoad runs (prevents redirect loop on refresh)
+if (typeof window !== "undefined") {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      state = JSON.parse(saved) as AuthState;
+    } catch {
+      // ignore corrupt storage
+    }
+  }
+}
+
 export const authStore = {
   getState: () => state,
 

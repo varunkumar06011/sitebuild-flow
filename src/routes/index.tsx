@@ -32,6 +32,9 @@ export const Route = createFileRoute("/")({
     ],
   }),
   beforeLoad: () => {
+    // Only redirect on client — SSR has no localStorage so authStore
+    // is always unauthenticated there, causing redirect mismatches
+    if (typeof window === "undefined") return;
     const state = authStore.getState();
     if (state.isAuthenticated && state.role) {
       const routes = {

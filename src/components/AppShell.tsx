@@ -15,6 +15,9 @@ import {
   Settings,
   History,
   CheckCheck,
+  TrendingUp,
+  Settings2,
+  Package,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useRole } from "@/lib/role-context";
@@ -41,6 +44,9 @@ const ICON_MAP: Record<string, typeof HardHat> = {
   Building2,
   Settings,
   History,
+  TrendingUp,
+  Settings2,
+  Package,
 };
 
 export function AppShell({

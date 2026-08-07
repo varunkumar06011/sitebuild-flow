@@ -16,9 +16,14 @@ import { Route as AdministratorRouteImport } from './routes/administrator'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as AuditLogRouteImport } from './routes/audit-log'
 import { Route as GatePassRouteImport } from './routes/gate-pass'
+import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as InventorySupervisorRouteImport } from './routes/inventory-supervisor'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as ProcurementRouteImport } from './routes/procurement'
+import { Route as ProgressConfigRouteImport } from './routes/progress-config'
+import { Route as ProgressDashboardRouteImport } from './routes/progress-dashboard'
+import { Route as ProgressTrackingRouteImport } from './routes/progress-tracking'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RegistersRouteImport } from './routes/registers'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -70,6 +75,16 @@ const GatePassRoute = GatePassRouteImport.update({
   path: '/gate-pass',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventoryRoute = InventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventorySupervisorRoute = InventorySupervisorRouteImport.update({
+  id: '/inventory-supervisor',
+  path: '/inventory-supervisor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -83,6 +98,21 @@ const PortalRoute = PortalRouteImport.update({
 const ProcurementRoute = ProcurementRouteImport.update({
   id: '/procurement',
   path: '/procurement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProgressConfigRoute = ProgressConfigRouteImport.update({
+  id: '/progress-config',
+  path: '/progress-config',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProgressDashboardRoute = ProgressDashboardRouteImport.update({
+  id: '/progress-dashboard',
+  path: '/progress-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProgressTrackingRoute = ProgressTrackingRouteImport.update({
+  id: '/progress-tracking',
+  path: '/progress-tracking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QualityRoute = QualityRouteImport.update({
@@ -169,9 +199,14 @@ export interface FileRoutesByFullPath {
   '/approvals': typeof ApprovalsRoute
   '/audit-log': typeof AuditLogRoute
   '/gate-pass': typeof GatePassRoute
+  '/inventory': typeof InventoryRoute
+  '/inventory-supervisor': typeof InventorySupervisorRoute
   '/login': typeof LoginRouteWithChildren
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
+  '/progress-config': typeof ProgressConfigRoute
+  '/progress-dashboard': typeof ProgressDashboardRoute
+  '/progress-tracking': typeof ProgressTrackingRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/settings': typeof SettingsRoute
@@ -196,8 +231,13 @@ export interface FileRoutesByTo {
   '/approvals': typeof ApprovalsRoute
   '/audit-log': typeof AuditLogRoute
   '/gate-pass': typeof GatePassRoute
+  '/inventory': typeof InventoryRoute
+  '/inventory-supervisor': typeof InventorySupervisorRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
+  '/progress-config': typeof ProgressConfigRoute
+  '/progress-dashboard': typeof ProgressDashboardRoute
+  '/progress-tracking': typeof ProgressTrackingRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/settings': typeof SettingsRoute
@@ -223,9 +263,14 @@ export interface FileRoutesById {
   '/approvals': typeof ApprovalsRoute
   '/audit-log': typeof AuditLogRoute
   '/gate-pass': typeof GatePassRoute
+  '/inventory': typeof InventoryRoute
+  '/inventory-supervisor': typeof InventorySupervisorRoute
   '/login': typeof LoginRouteWithChildren
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
+  '/progress-config': typeof ProgressConfigRoute
+  '/progress-dashboard': typeof ProgressDashboardRoute
+  '/progress-tracking': typeof ProgressTrackingRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/settings': typeof SettingsRoute
@@ -252,9 +297,14 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/audit-log'
     | '/gate-pass'
+    | '/inventory'
+    | '/inventory-supervisor'
     | '/login'
     | '/portal'
     | '/procurement'
+    | '/progress-config'
+    | '/progress-dashboard'
+    | '/progress-tracking'
     | '/quality'
     | '/registers'
     | '/settings'
@@ -279,8 +329,13 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/audit-log'
     | '/gate-pass'
+    | '/inventory'
+    | '/inventory-supervisor'
     | '/portal'
     | '/procurement'
+    | '/progress-config'
+    | '/progress-dashboard'
+    | '/progress-tracking'
     | '/quality'
     | '/registers'
     | '/settings'
@@ -305,9 +360,14 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/audit-log'
     | '/gate-pass'
+    | '/inventory'
+    | '/inventory-supervisor'
     | '/login'
     | '/portal'
     | '/procurement'
+    | '/progress-config'
+    | '/progress-dashboard'
+    | '/progress-tracking'
     | '/quality'
     | '/registers'
     | '/settings'
@@ -333,9 +393,14 @@ export interface RootRouteChildren {
   ApprovalsRoute: typeof ApprovalsRoute
   AuditLogRoute: typeof AuditLogRoute
   GatePassRoute: typeof GatePassRoute
+  InventoryRoute: typeof InventoryRoute
+  InventorySupervisorRoute: typeof InventorySupervisorRoute
   LoginRoute: typeof LoginRouteWithChildren
   PortalRoute: typeof PortalRouteWithChildren
   ProcurementRoute: typeof ProcurementRoute
+  ProgressConfigRoute: typeof ProgressConfigRoute
+  ProgressDashboardRoute: typeof ProgressDashboardRoute
+  ProgressTrackingRoute: typeof ProgressTrackingRoute
   QualityRoute: typeof QualityRoute
   RegistersRoute: typeof RegistersRoute
   SettingsRoute: typeof SettingsRoute
@@ -395,6 +460,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GatePassRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventory': {
+      id: '/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof InventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory-supervisor': {
+      id: '/inventory-supervisor'
+      path: '/inventory-supervisor'
+      fullPath: '/inventory-supervisor'
+      preLoaderRoute: typeof InventorySupervisorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -414,6 +493,27 @@ declare module '@tanstack/react-router' {
       path: '/procurement'
       fullPath: '/procurement'
       preLoaderRoute: typeof ProcurementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/progress-config': {
+      id: '/progress-config'
+      path: '/progress-config'
+      fullPath: '/progress-config'
+      preLoaderRoute: typeof ProgressConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/progress-dashboard': {
+      id: '/progress-dashboard'
+      path: '/progress-dashboard'
+      fullPath: '/progress-dashboard'
+      preLoaderRoute: typeof ProgressDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/progress-tracking': {
+      id: '/progress-tracking'
+      path: '/progress-tracking'
+      fullPath: '/progress-tracking'
+      preLoaderRoute: typeof ProgressTrackingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/quality': {
@@ -567,9 +667,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApprovalsRoute: ApprovalsRoute,
   AuditLogRoute: AuditLogRoute,
   GatePassRoute: GatePassRoute,
+  InventoryRoute: InventoryRoute,
+  InventorySupervisorRoute: InventorySupervisorRoute,
   LoginRoute: LoginRouteWithChildren,
   PortalRoute: PortalRouteWithChildren,
   ProcurementRoute: ProcurementRoute,
+  ProgressConfigRoute: ProgressConfigRoute,
+  ProgressDashboardRoute: ProgressDashboardRoute,
+  ProgressTrackingRoute: ProgressTrackingRoute,
   QualityRoute: QualityRoute,
   RegistersRoute: RegistersRoute,
   SettingsRoute: SettingsRoute,
