@@ -29,6 +29,7 @@ export const Route = createFileRoute("/a1plus")({
   head: () => ({
     meta: [{ title: "A1+ Dashboard — Meditrust ERP" }],
   }),
+  ssr: false,
   beforeLoad: () => requireRole("A1+"),
   component: A1PlusDashboard,
 });

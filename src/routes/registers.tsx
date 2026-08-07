@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VISITORS, VEHICLES, LABOUR } from "@/lib/erp-data";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireSection } from "@/lib/auth-guards";
 
 export const Route = createFileRoute("/registers")({
   head: () => ({
@@ -22,7 +22,8 @@ export const Route = createFileRoute("/registers")({
       },
     ],
   }),
-  beforeLoad: () => requireAuth(),
+  ssr: false,
+  beforeLoad: () => requireSection("/registers"),
   component: Registers,
 });
 

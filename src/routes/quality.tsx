@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { INSPECTIONS } from "@/lib/erp-data";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireSection } from "@/lib/auth-guards";
 import { Camera, Check, X } from "lucide-react";
 
 export const Route = createFileRoute("/quality")({
@@ -21,7 +21,8 @@ export const Route = createFileRoute("/quality")({
       },
     ],
   }),
-  beforeLoad: () => requireAuth(),
+  ssr: false,
+  beforeLoad: () => requireSection("/quality"),
   component: Quality,
 });
 

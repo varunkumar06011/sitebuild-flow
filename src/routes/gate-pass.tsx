@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { GATE_PASSES, type GatePass } from "@/lib/erp-data";
-import { requireAuth } from "@/lib/auth-guards";
+import { requireSection } from "@/lib/auth-guards";
 import { toast } from "sonner";
 import { QrCode, Truck } from "lucide-react";
 
@@ -25,7 +25,8 @@ export const Route = createFileRoute("/gate-pass")({
       },
     ],
   }),
-  beforeLoad: () => requireAuth(),
+  ssr: false,
+  beforeLoad: () => requireSection("/gate-pass"),
   component: GatePassPage,
 });
 

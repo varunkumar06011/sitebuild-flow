@@ -14,10 +14,29 @@ function notify() {
   listeners.forEach((l) => l());
 }
 
+let hydrated = false;
+
+function hydrate() {
+  if (hydrated || typeof window === "undefined") return;
+  hydrated = true;
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      state = JSON.parse(saved) as AuthState;
+    } catch {
+      // ignore corrupt storage
+    }
+  }
+}
+
 export const authStore = {
-  getState: () => state,
+  getState: () => {
+    hydrate();
+    return state;
+  },
 
   login: (role: Role) => {
+    hydrated = true;
     state = { role, isAuthenticated: true };
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -26,6 +45,7 @@ export const authStore = {
   },
 
   logout: () => {
+    hydrated = true;
     state = { role: null, isAuthenticated: false };
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
@@ -34,17 +54,8 @@ export const authStore = {
   },
 
   init: () => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          state = JSON.parse(saved) as AuthState;
-          notify();
-        } catch {
-          // ignore corrupt storage
-        }
-      }
-    }
+    hydrate();
+    notify();
   },
 
   subscribe: (listener: () => void) => {
