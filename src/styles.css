@@ -204,4 +204,27 @@
   .no-print {
     display: none !important;
   }
+
+  /* Hide sidebar and header navigation when printing */
+  aside,
+  header {
+    display: none !important;
+  }
+
+  /* Make main content full width when printing */
+  main {
+    padding: 0 !important;
+  }
+
+  /* Ensure cards and tables print with borders */
+  .rounded-xl,
+  .rounded-lg,
+  .rounded-md {
+    border: 1px solid hsl(var(--border)) !important;
+  }
+
+  /* Avoid breaking inside cards/tables */
+  .break-inside-avoid {
+    break-inside: avoid;
+  }
 }

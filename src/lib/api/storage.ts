@@ -24,7 +24,15 @@ const DOCUMENT_MIMES = [
   "application/x-zip-compressed",
   "application/octet-stream",
 ];
-const PHOTO_MIMES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "image/bmp", "image/tiff"];
+const PHOTO_MIMES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "image/bmp",
+  "image/tiff",
+];
 const MAX_DOC_SIZE = 10 * 1024 * 1024;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 
@@ -50,7 +58,10 @@ export const uploadFile = createServerFn({ method: "POST" })
     const maxSize = data.bucket === "documents" ? MAX_DOC_SIZE : MAX_PHOTO_SIZE;
 
     if (!allowedMimes.includes(data.contentType)) {
-      return { success: false, error: `File type ${data.contentType} not allowed for ${data.bucket}` };
+      return {
+        success: false,
+        error: `File type ${data.contentType} not allowed for ${data.bucket}`,
+      };
     }
 
     const buffer = Buffer.from(data.fileData, "base64");
@@ -59,8 +70,7 @@ export const uploadFile = createServerFn({ method: "POST" })
       return { success: false, error: `File exceeds max size of ${maxMB}MB` };
     }
 
-    const { error } = await supabaseServer
-      .storage
+    const { error } = await supabaseServer.storage
       .from(data.bucket)
       .upload(data.path, buffer, { contentType: data.contentType, upsert: false });
 
@@ -97,8 +107,7 @@ export const getSignedUrl = createServerFn({ method: "GET" })
 
     const expiry = data.expirySec ?? (data.bucket === "documents" ? 72 * 60 * 60 : 60 * 60);
 
-    const { data: urlData, error } = await supabaseServer
-      .storage
+    const { data: urlData, error } = await supabaseServer.storage
       .from(data.bucket)
       .createSignedUrl(data.path, expiry);
 
@@ -106,7 +115,10 @@ export const getSignedUrl = createServerFn({ method: "GET" })
       return { success: false, error: "Failed to generate signed URL" };
     }
 
-    await logAction(user, "view_file", data.bucket, data.path, { bucket: data.bucket, path: data.path });
+    await logAction(user, "view_file", data.bucket, data.path, {
+      bucket: data.bucket,
+      path: data.path,
+    });
 
     return { success: true, url: urlData.signedUrl };
   });

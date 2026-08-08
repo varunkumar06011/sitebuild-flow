@@ -28,17 +28,32 @@ export const Route = createFileRoute("/supervisor")({
   head: () => ({
     meta: [{ title: "Supervisor Dashboard — Meditrust ERP" }],
   }),
-  beforeLoad: async () => { await requireRole("Supervisor"); },
+  beforeLoad: async () => {
+    await requireRole("Supervisor");
+  },
   component: SupervisorDashboard,
 });
 
 // Supervisor dashboard showing requisitions, quick actions, progress, labour, and QC alerts.
 function SupervisorDashboard() {
-  const { data: reqData, isError: reqError, error: reqErr } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
-  const { data: gpData } = useQuery({ queryKey: ["gatePasses"], queryFn: () => fetchGatePasses({ data: {} }) });
-  const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
+  const {
+    data: reqData,
+    isError: reqError,
+    error: reqErr,
+  } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
+  const { data: gpData } = useQuery({
+    queryKey: ["gatePasses"],
+    queryFn: () => fetchGatePasses({ data: {} }),
+  });
+  const { data: inspData } = useQuery({
+    queryKey: ["inspections"],
+    queryFn: () => fetchInspections({ data: {} }),
+  });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
-  const { data: labourData } = useQuery({ queryKey: ["labour"], queryFn: () => fetchLabour({ data: {} }) });
+  const { data: labourData } = useQuery({
+    queryKey: ["labour"],
+    queryFn: () => fetchLabour({ data: {} }),
+  });
 
   const requisitions = reqData?.data ?? [];
   const gatePasses = gpData?.data ?? [];
@@ -46,7 +61,7 @@ function SupervisorDashboard() {
   const progress = progData?.data ?? [];
   const labour = labourData?.data ?? [];
 
-  const dashboardError = reqError ? reqErr?.message ?? "Failed to load data" : null;
+  const dashboardError = reqError ? (reqErr?.message ?? "Failed to load data") : null;
 
   const myPRs = requisitions;
   const pendingAction = requisitions.filter(
@@ -55,14 +70,14 @@ function SupervisorDashboard() {
   const awaitingApproval = requisitions.filter(
     (r: any) => r.stage === "Admin" || r.stage === "A1" || r.stage === "A1+",
   );
-  const approved = requisitions.filter(
-    (r: any) => ["PO", "Material Received", "Invoice", "Payment", "Completed"].includes(r.stage),
+  const approved = requisitions.filter((r: any) =>
+    ["PO", "Material Received", "Invoice", "Payment", "Completed"].includes(r.stage),
   );
-  const rejected = requisitions.filter(
-    (r: any) => r.stage === "Quotation" && r.rejection_reason,
-  );
+  const rejected = requisitions.filter((r: any) => r.stage === "Quotation" && r.rejection_reason);
   const awaitingOTP = gatePasses.filter((g: any) => g.status === "Awaiting OTP");
-  const failedQC = inspections.filter((i: any) => i.result === "Fail" || i.result === "Re-inspection");
+  const failedQC = inspections.filter(
+    (i: any) => i.result === "Fail" || i.result === "Re-inspection",
+  );
 
   return (
     <AppShell
@@ -81,22 +96,76 @@ function SupervisorDashboard() {
 
       {/* Quick stats */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={ClipboardList} label="My Requisitions" value={String(myPRs.length)} note="Across all blocks" tone="info" />
-        <StatCard icon={Clock} label="Awaiting Approval" value={String(awaitingApproval.length)} note="Sent to admin/A1/A1+" tone="warning" />
-        <StatCard icon={CheckCircle2} label="Approved" value={String(approved.length)} note="PO issued or beyond" tone="success" />
-        <StatCard icon={AlertCircle} label="Needs Action" value={String(pendingAction.length)} note="PR/Quotation stage" tone="danger" />
+        <StatCard
+          icon={ClipboardList}
+          label="My Requisitions"
+          value={String(myPRs.length)}
+          note="Across all blocks"
+          tone="info"
+        />
+        <StatCard
+          icon={Clock}
+          label="Awaiting Approval"
+          value={String(awaitingApproval.length)}
+          note="Sent to admin/A1/A1+"
+          tone="warning"
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label="Approved"
+          value={String(approved.length)}
+          note="PO issued or beyond"
+          tone="success"
+        />
+        <StatCard
+          icon={AlertCircle}
+          label="Needs Action"
+          value={String(pendingAction.length)}
+          note="PR/Quotation stage"
+          tone="danger"
+        />
       </div>
 
       {/* Quick actions */}
       <Card className="mt-6 p-5">
         <h2 className="text-sm font-bold">Quick actions</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <QuickAction to="/procurement" icon={ClipboardList} title="Raise Purchase Requisition" desc="Create PR, upload quotations" />
-          <QuickAction to="/gate-pass" icon={ScanLine} title="Issue Gate Pass" desc="OTP + QR material exit" />
-          <QuickAction to="/traceability" icon={Boxes} title="Update Traceability" desc="Batch, MTC, lab reports" />
-          <QuickAction to="/quality" icon={BadgeCheck} title="Quality Inspection" desc="Checklist, pass/fail, photos" />
-          <QuickAction to="/registers" icon={Users} title="Site Registers" desc="Visitors, vehicles, labour" />
-          <QuickAction to="/procurement" icon={Package} title="Receive Materials" desc="Update inventory & progress" />
+          <QuickAction
+            to="/procurement"
+            icon={ClipboardList}
+            title="Raise Purchase Requisition"
+            desc="Create PR, upload quotations"
+          />
+          <QuickAction
+            to="/gate-pass"
+            icon={ScanLine}
+            title="Issue Gate Pass"
+            desc="OTP + QR material exit"
+          />
+          <QuickAction
+            to="/traceability"
+            icon={Boxes}
+            title="Update Traceability"
+            desc="Batch, MTC, lab reports"
+          />
+          <QuickAction
+            to="/quality"
+            icon={BadgeCheck}
+            title="Quality Inspection"
+            desc="Checklist, pass/fail, photos"
+          />
+          <QuickAction
+            to="/registers"
+            icon={Users}
+            title="Site Registers"
+            desc="Visitors, vehicles, labour"
+          />
+          <QuickAction
+            to="/procurement"
+            icon={Package}
+            title="Receive Materials"
+            desc="Update inventory & progress"
+          />
         </div>
       </Card>
 
@@ -109,13 +178,18 @@ function SupervisorDashboard() {
               <Clock className="size-4 text-warning" />
               <h2 className="text-sm font-bold">Awaiting Approval</h2>
             </div>
-            <Link to="/procurement" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+            <Link
+              to="/procurement"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+            >
               View all <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
           <div className="mt-4 divide-y divide-border">
             {awaitingApproval.length === 0 ? (
-              <p className="py-4 text-center text-xs text-muted-foreground">No PRs awaiting approval.</p>
+              <p className="py-4 text-center text-xs text-muted-foreground">
+                No PRs awaiting approval.
+              </p>
             ) : (
               awaitingApproval.map((r: any) => (
                 <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
@@ -125,9 +199,7 @@ function SupervisorDashboard() {
                       {r.pr_number} · {r.block} · {inr(r.amount)}
                     </p>
                   </div>
-                  <StatusPill tone="warning">
-                    {r.stage}
-                  </StatusPill>
+                  <StatusPill tone="warning">{r.stage}</StatusPill>
                 </div>
               ))
             )}
@@ -141,7 +213,10 @@ function SupervisorDashboard() {
               <CheckCircle2 className="size-4 text-success" />
               <h2 className="text-sm font-bold">Approved</h2>
             </div>
-            <Link to="/procurement" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+            <Link
+              to="/procurement"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+            >
               View all <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
@@ -186,9 +261,7 @@ function SupervisorDashboard() {
                     <p className="mt-1 text-xs text-destructive">Reason: {r.rejection_reason}</p>
                   )}
                 </div>
-                <StatusPill tone="danger">
-                  Rejected
-                </StatusPill>
+                <StatusPill tone="danger">Rejected</StatusPill>
               </div>
             ))}
           </div>
@@ -201,7 +274,10 @@ function SupervisorDashboard() {
         <Card className="p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold">My requisitions</h2>
-            <Link to="/procurement" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+            <Link
+              to="/procurement"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+            >
               View all <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
@@ -217,7 +293,13 @@ function SupervisorDashboard() {
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-sm font-semibold">{inr(r.amount)}</span>
                   <StatusPill
-                    tone={r.stage === "Completed" ? "success" : r.stage === "Admin" || r.stage === "A1" || r.stage === "A1+" ? "warning" : "info"}
+                    tone={
+                      r.stage === "Completed"
+                        ? "success"
+                        : r.stage === "Admin" || r.stage === "A1" || r.stage === "A1+"
+                          ? "warning"
+                          : "info"
+                    }
                   >
                     {r.stage}
                   </StatusPill>

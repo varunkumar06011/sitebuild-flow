@@ -5,15 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useRole } from "@/lib/role-context";
-import {
-  ROLES,
-  ROLE_SUMMARY,
-  type Role,
-} from "@/lib/erp-data";
+import { ROLES, ROLE_SUMMARY, type Role } from "@/lib/erp-data";
 import { authStore } from "@/lib/auth-store";
 import { loginUser } from "@/lib/auth-server";
 import { ROLE_DASHBOARD } from "@/components/RolePortal";
-import { HardHat, Lock, User, ArrowRight, ShieldCheck, Building2, Crown, Loader2 } from "lucide-react";
+import {
+  HardHat,
+  Lock,
+  User,
+  ArrowRight,
+  ShieldCheck,
+  Building2,
+  Crown,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login/")({
@@ -73,7 +78,9 @@ function LoginPage() {
       const result = await loginUser({ data: { username, password } });
       if (result.success) {
         if (result.user.role !== selectedRole) {
-          toast.error(`These credentials belong to ${result.user.role}, not ${selectedRole}. Please select the correct role.`);
+          toast.error(
+            `These credentials belong to ${result.user.role}, not ${selectedRole}. Please select the correct role.`,
+          );
           setLoading(false);
           return;
         }
@@ -117,9 +124,7 @@ function LoginPage() {
           <h1 className="text-3xl font-bold leading-tight lg:text-4xl">
             Vgrand Multi-speciality Hospital
           </h1>
-          <p className="text-base text-primary-foreground/80">
-            Phase 2 · 320 beds · 4 blocks
-          </p>
+          <p className="text-base text-primary-foreground/80">Phase 2 · 320 beds · 4 blocks</p>
           <div className="flex flex-wrap gap-2 pt-2">
             {["Procurement", "Approvals", "Gate Pass", "Traceability", "QC", "Registers"].map(
               (tag) => (
@@ -223,6 +228,17 @@ function LoginPage() {
               )}
             </Button>
           </form>
+
+          {/* Portal links */}
+          <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+            <a href="/portal/vendor/login" className="hover:text-foreground hover:underline">
+              Vendor Portal
+            </a>
+            <span>·</span>
+            <a href="/portal/client/login" className="hover:text-foreground hover:underline">
+              Client Portal
+            </a>
+          </div>
         </div>
       </div>
     </div>

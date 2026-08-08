@@ -6,14 +6,16 @@ import { getSessionUser } from "./session";
 // Uses service_role so it works regardless of the user's auth state.
 // Failures are swallowed — error logging must never break the app.
 export const logError = createServerFn({ method: "POST" })
-  .validator((input: {
-    message: string;
-    stack?: string | undefined;
-    source?: string | undefined;
-    route?: string | undefined;
-    severity?: "error" | "warning" | "info";
-    context?: Record<string, unknown>;
-  }) => input)
+  .validator(
+    (input: {
+      message: string;
+      stack?: string | undefined;
+      source?: string | undefined;
+      route?: string | undefined;
+      severity?: "error" | "warning" | "info";
+      context?: Record<string, unknown>;
+    }) => input,
+  )
   .handler(async ({ data }) => {
     try {
       // Best-effort: get user ID if session exists (don't require it)

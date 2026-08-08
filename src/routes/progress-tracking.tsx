@@ -24,7 +24,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { requireAuth } from "@/lib/auth-guards";
-import { fetchMyCells, updateCell, uploadCellPhoto, fetchCellHistory } from "@/lib/api/progress-tracking";
+import {
+  fetchMyCells,
+  updateCell,
+  uploadCellPhoto,
+  fetchCellHistory,
+} from "@/lib/api/progress-tracking";
 import { getSignedUrl } from "@/lib/api/storage";
 import { toast } from "sonner";
 import { TrendingUp, Camera, History } from "lucide-react";
@@ -33,7 +38,9 @@ export const Route = createFileRoute("/progress-tracking")({
   head: () => ({
     meta: [{ title: "Progress Tracking — Meditrust ERP" }],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: ProgressTrackingPage,
 });
 
@@ -107,7 +114,9 @@ function ProgressTrackingPage() {
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">{cell.category_name}</p>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[cell.status] ?? ""}`}>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[cell.status] ?? ""}`}
+                  >
                     {STATUS_LABELS[cell.status] ?? cell.status}
                   </span>
                 </div>
@@ -148,15 +157,21 @@ function ProgressTrackingPage() {
       )}
 
       {/* History dialog */}
-      {historyCell && (
-        <CellHistoryDialog cell={historyCell} onClose={() => setHistoryCell(null)} />
-      )}
+      {historyCell && <CellHistoryDialog cell={historyCell} onClose={() => setHistoryCell(null)} />}
     </AppShell>
   );
 }
 
 // Dialog for editing a cell's status, completion percentage, remarks and photo upload.
-function CellEditDialog({ cell, onClose, onSaved }: { cell: any; onClose: () => void; onSaved: () => void }) {
+function CellEditDialog({
+  cell,
+  onClose,
+  onSaved,
+}: {
+  cell: any;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const [status, setStatus] = useState(cell.status);
   const [pct, setPct] = useState(cell.completion_pct);
   const [remarks, setRemarks] = useState(cell.remarks ?? "");
@@ -221,7 +236,12 @@ function CellEditDialog({ cell, onClose, onSaved }: { cell: any; onClose: () => 
   };
 
   return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Update Cell #{cell.cell_number}</DialogTitle>
@@ -271,15 +291,28 @@ function CellEditDialog({ cell, onClose, onSaved }: { cell: any; onClose: () => 
 
           <div className="space-y-2">
             <Label>Photo</Label>
-            <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-            <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+            >
               <Camera className="mr-2 size-4" />
               {uploading ? "Uploading..." : "Upload Photo"}
             </Button>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? "Saving..." : "Save"}
             </Button>
@@ -301,7 +334,12 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
   const photos = histData?.photos ?? [];
 
   return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Cell #{cell.cell_number} History</DialogTitle>
@@ -325,7 +363,14 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
                     </span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {h.previous_status && STATUS_LABELS[h.previous_status] ? STATUS_LABELS[h.previous_status] : h.previous_status} ({h.previous_pct}%) → {h.new_status && STATUS_LABELS[h.new_status] ? STATUS_LABELS[h.new_status] : h.new_status} ({h.new_pct}%)
+                    {h.previous_status && STATUS_LABELS[h.previous_status]
+                      ? STATUS_LABELS[h.previous_status]
+                      : h.previous_status}{" "}
+                    ({h.previous_pct}%) →{" "}
+                    {h.new_status && STATUS_LABELS[h.new_status]
+                      ? STATUS_LABELS[h.new_status]
+                      : h.new_status}{" "}
+                    ({h.new_pct}%)
                   </div>
                   {h.remarks && <p className="mt-1 text-xs">{h.remarks}</p>}
                 </div>

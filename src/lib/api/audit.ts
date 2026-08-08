@@ -45,7 +45,9 @@ export async function logAction(
 
 // Fetches a paginated, filterable audit log with user names joined (A1+ only).
 export const fetchAuditLog = createServerFn({ method: "GET" })
-  .validator((input: { page?: number; limit?: number; entityType?: string; entityId?: string }) => input)
+  .validator(
+    (input: { page?: number; limit?: number; entityType?: string; entityId?: string }) => input,
+  )
   .handler(async ({ data, context }) => {
     const user = await requireSessionUser();
     if (user.role !== "A1+") {
@@ -58,7 +60,9 @@ export const fetchAuditLog = createServerFn({ method: "GET" })
 
     let query = supabaseServer
       .from("audit_log")
-      .select("id, user_id, action, entity_type, entity_id, details, created_at", { count: "exact" })
+      .select("id, user_id, action, entity_type, entity_id, details, created_at", {
+        count: "exact",
+      })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 

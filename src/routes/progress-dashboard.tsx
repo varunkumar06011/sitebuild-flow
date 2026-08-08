@@ -30,7 +30,9 @@ export const Route = createFileRoute("/progress-dashboard")({
   head: () => ({
     meta: [{ title: "Progress Dashboard — Meditrust ERP" }],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: ProgressDashboardPage,
 });
 
@@ -99,14 +101,24 @@ function ProgressDashboardPage() {
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium text-muted-foreground">Filter:</span>
           <Select value={blockFilter} onValueChange={setBlockFilter}>
-            <SelectTrigger className="w-40"><SelectValue /><span className="ml-1">Block</span></SelectTrigger>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+              <span className="ml-1">Block</span>
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Blocks</SelectItem>
-              {blocks.map((b: any) => <SelectItem key={b.name} value={b.name}>{b.name}</SelectItem>)}
+              {blocks.map((b: any) => (
+                <SelectItem key={b.name} value={b.name}>
+                  {b.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40"><SelectValue /><span className="ml-1">Status</span></SelectTrigger>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+              <span className="ml-1">Status</span>
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="not_started">Not Started</SelectItem>
@@ -115,7 +127,9 @@ function ProgressDashboardPage() {
               <SelectItem value="on_hold">On Hold</SelectItem>
             </SelectContent>
           </Select>
-          <span className="text-sm text-muted-foreground ml-auto">{filteredCells.length} cells</span>
+          <span className="text-sm text-muted-foreground ml-auto">
+            {filteredCells.length} cells
+          </span>
         </div>
 
         {/* Drill-down table */}
@@ -150,7 +164,9 @@ function ProgressDashboardPage() {
                       <td className="px-3 py-2">{c.work_item_name}</td>
                       <td className="px-3 py-2">#{c.cell_number}</td>
                       <td className="px-3 py-2">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[c.status] ?? ""}`}>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[c.status] ?? ""}`}
+                        >
                           {STATUS_LABELS[c.status] ?? c.status}
                         </span>
                       </td>
@@ -177,9 +193,7 @@ function ProgressDashboardPage() {
         )}
       </div>
 
-      {historyCell && (
-        <CellHistoryDialog cell={historyCell} onClose={() => setHistoryCell(null)} />
-      )}
+      {historyCell && <CellHistoryDialog cell={historyCell} onClose={() => setHistoryCell(null)} />}
     </AppShell>
   );
 }
@@ -195,7 +209,12 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
   const photos = histData?.photos ?? [];
 
   return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Cell #{cell.cell_number} — History</DialogTitle>
@@ -218,7 +237,14 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
                     </span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {h.previous_status && STATUS_LABELS[h.previous_status] ? STATUS_LABELS[h.previous_status] : h.previous_status} ({h.previous_pct}%) → {h.new_status && STATUS_LABELS[h.new_status] ? STATUS_LABELS[h.new_status] : h.new_status} ({h.new_pct}%)
+                    {h.previous_status && STATUS_LABELS[h.previous_status]
+                      ? STATUS_LABELS[h.previous_status]
+                      : h.previous_status}{" "}
+                    ({h.previous_pct}%) →{" "}
+                    {h.new_status && STATUS_LABELS[h.new_status]
+                      ? STATUS_LABELS[h.new_status]
+                      : h.new_status}{" "}
+                    ({h.new_pct}%)
                   </div>
                   {h.remarks && <p className="mt-1 text-xs">{h.remarks}</p>}
                 </div>

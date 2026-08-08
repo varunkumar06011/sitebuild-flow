@@ -11,7 +11,8 @@ function isAdmin(role: Role): boolean {
   return ADMIN_ROLES.includes(role);
 }
 
-export type WorkOrderStatus = "Draft" | "Sent" | "Approved" | "Assigned" | "In Progress" | "Completed" | "Closed" | "Cancelled";
+export type WorkOrderStatus =
+  "Draft" | "Sent" | "Approved" | "Assigned" | "In Progress" | "Completed" | "Closed" | "Cancelled";
 
 export type WorkOrderRow = {
   id: string;
@@ -75,7 +76,16 @@ export type WorkOrderItemRow = {
 // Fetch list (paginated, filterable)
 // ---------------------------------------------------------------------------
 export const fetchWorkOrders = createServerFn({ method: "GET" })
-  .validator((input: { page?: number; limit?: number; status?: string; supervisorId?: string; search?: string; workCategory?: string }) => input)
+  .validator(
+    (input: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      supervisorId?: string;
+      search?: string;
+      workCategory?: string;
+    }) => input,
+  )
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
     const page = data.page ?? 1;
@@ -84,7 +94,10 @@ export const fetchWorkOrders = createServerFn({ method: "GET" })
 
     let query = supabaseServer
       .from("work_orders")
-      .select("id, order_number, order_date, status, block_id, project_name, project_id, site_name, site_address, customer_name, customer_id, customer_contact, billing_address, billing_city, billing_state, billing_pincode, customer_phone, customer_email, requested_by, requested_by_name, department, assigned_supervisor_id, assigned_supervisor_name, assigned_at, work_description, subtotal, taxable_amount, tax_rate, tax_amount, shipping_handling, other_charges, grand_total, payment_terms, due_date, advance_amount, balance_due, comments, work_category, completed_date, completed_by_name, customer_acknowledgement, pdf_path, created_at, updated_at", { count: "exact" })
+      .select(
+        "id, order_number, order_date, status, block_id, project_name, project_id, site_name, site_address, customer_name, customer_id, customer_contact, billing_address, billing_city, billing_state, billing_pincode, customer_phone, customer_email, requested_by, requested_by_name, department, assigned_supervisor_id, assigned_supervisor_name, assigned_at, work_description, subtotal, taxable_amount, tax_rate, tax_amount, shipping_handling, other_charges, grand_total, payment_terms, due_date, advance_amount, balance_due, comments, work_category, completed_date, completed_by_name, customer_acknowledgement, pdf_path, created_at, updated_at",
+        { count: "exact" },
+      )
       .order("order_date", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -95,11 +108,14 @@ export const fetchWorkOrders = createServerFn({ method: "GET" })
 
     if (data.status) query = query.eq("status", data.status);
     if (data.supervisorId) query = query.eq("assigned_supervisor_id", data.supervisorId);
-    if (data.workCategory && data.workCategory !== "all") query = query.eq("work_category", data.workCategory);
+    if (data.workCategory && data.workCategory !== "all")
+      query = query.eq("work_category", data.workCategory);
     if (data.search) {
       const s = sanitizeSearch(data.search);
       if (s) {
-        query = query.or(`order_number.ilike.%${s}%,project_name.ilike.%${s}%,customer_name.ilike.%${s}%`);
+        query = query.or(
+          `order_number.ilike.%${s}%,project_name.ilike.%${s}%,customer_name.ilike.%${s}%`,
+        );
       }
     }
 
@@ -246,7 +262,8 @@ function calculateTotals(
   subtotal = Math.round(subtotal * 100) / 100;
   taxableAmount = Math.round(taxableAmount * 100) / 100;
   const taxAmount = Math.round(taxableAmount * (taxRate / 100) * 100) / 100;
-  const grandTotal = Math.round((subtotal + taxAmount + shippingHandling + otherCharges) * 100) / 100;
+  const grandTotal =
+    Math.round((subtotal + taxAmount + shippingHandling + otherCharges) * 100) / 100;
 
   return { subtotal, taxableAmount, taxAmount, grandTotal };
 }
@@ -297,8 +314,7 @@ export const createWorkOrder = createServerFn({ method: "POST" })
       return { success: false, error: "Only administrators can create work orders" };
     }
 
-    const { data: orderNumber, error: seqErr } = await supabaseServer
-      .rpc("next_work_order_number");
+    const { data: orderNumber, error: seqErr } = await supabaseServer.rpc("next_work_order_number");
 
     if (seqErr || !orderNumber) {
       return { success: false, error: "Failed to generate work order number" };
@@ -382,7 +398,10 @@ export const createWorkOrder = createServerFn({ method: "POST" })
       .single();
 
     if (error || !order) {
-      return { success: false, error: `Failed to create work order: ${error?.message ?? "Unknown error"}` };
+      return {
+        success: false,
+        error: `Failed to create work order: ${error?.message ?? "Unknown error"}`,
+      };
     }
 
     // Insert items with server-calculated totals
@@ -396,9 +415,7 @@ export const createWorkOrder = createServerFn({ method: "POST" })
       sort_order: idx,
     }));
 
-    const { error: itemsErr } = await supabaseServer
-      .from("work_order_items")
-      .insert(itemRows);
+    const { error: itemsErr } = await supabaseServer.from("work_order_items").insert(itemRows);
 
     if (itemsErr) {
       return { success: false, error: `Work order created but items failed: ${itemsErr.message}` };
@@ -542,10 +559,7 @@ export const updateWorkOrder = createServerFn({ method: "POST" })
     };
     if (balanceDue !== undefined) updateData.balance_due = balanceDue;
 
-    const { error } = await supabaseServer
-      .from("work_orders")
-      .update(updateData)
-      .eq("id", data.id);
+    const { error } = await supabaseServer.from("work_orders").update(updateData).eq("id", data.id);
 
     if (error) {
       return { success: false, error: `Failed to update: ${error.message}` };
@@ -562,11 +576,12 @@ export const updateWorkOrder = createServerFn({ method: "POST" })
         total: Math.round(it.quantity * it.unit_price * 100) / 100,
         sort_order: idx,
       }));
-      const { error: itemsErr } = await supabaseServer
-        .from("work_order_items")
-        .insert(itemRows);
+      const { error: itemsErr } = await supabaseServer.from("work_order_items").insert(itemRows);
       if (itemsErr) {
-        return { success: false, error: `Work order updated but items failed: ${itemsErr.message}` };
+        return {
+          success: false,
+          error: `Work order updated but items failed: ${itemsErr.message}`,
+        };
       }
     }
 
@@ -579,7 +594,16 @@ export const updateWorkOrder = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 const woStatusSchema = z.object({
   id: z.string().uuid(),
-  status: z.enum(["Draft", "Sent", "Approved", "Assigned", "In Progress", "Completed", "Closed", "Cancelled"]),
+  status: z.enum([
+    "Draft",
+    "Sent",
+    "Approved",
+    "Assigned",
+    "In Progress",
+    "Completed",
+    "Closed",
+    "Cancelled",
+  ]),
   completed_by_name: z.string().optional(),
   customer_acknowledgement: z.string().optional(),
 });
@@ -605,7 +629,10 @@ export const updateWorkOrderStatus = createServerFn({ method: "POST" })
         return { success: false, error: "You are not authorized to update this work order" };
       }
       if (data.status !== "In Progress" && data.status !== "Completed") {
-        return { success: false, error: "Supervisors can only mark work as In Progress or Completed" };
+        return {
+          success: false,
+          error: "Supervisors can only mark work as In Progress or Completed",
+        };
       }
     } else if (!isAdmin(user.role)) {
       return { success: false, error: "Not authorized" };
@@ -624,10 +651,7 @@ export const updateWorkOrderStatus = createServerFn({ method: "POST" })
       }
     }
 
-    const { error } = await supabaseServer
-      .from("work_orders")
-      .update(updateData)
-      .eq("id", data.id);
+    const { error } = await supabaseServer.from("work_orders").update(updateData).eq("id", data.id);
 
     if (error) {
       return { success: false, error: `Failed to update status: ${error.message}` };

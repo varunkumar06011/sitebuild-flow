@@ -66,11 +66,7 @@ export function RejectDialog({
           <Button variant="outline" onClick={onCancel} disabled={processing}>
             Cancel
           </Button>
-          <Button
-            variant="destructive"
-            onClick={() => onConfirm(reason)}
-            disabled={processing}
-          >
+          <Button variant="destructive" onClick={() => onConfirm(reason)} disabled={processing}>
             {processing ? <Loader2 className="size-4 animate-spin" /> : <X className="size-4" />}
             Reject &amp; send back
           </Button>

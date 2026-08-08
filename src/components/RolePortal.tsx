@@ -20,6 +20,7 @@ import { useRole } from "@/lib/role-context";
 import { loginUser } from "@/lib/auth-server";
 import {
   ROLE_SUMMARY,
+  ROLE_LOGIN_CREDENTIALS,
   ROLE_NAV,
   type Role,
 } from "@/lib/erp-data";
@@ -31,44 +32,48 @@ export const ROLE_ICONS: Record<Role, typeof HardHat> = {
   "A1+": Crown,
 };
 
-export const ROLE_THEME: Record<
-  Role,
-  { accent: string; soft: string; ring: string; tag: string }
-> = {
-  Supervisor: {
-    accent: "text-blue-600",
-    soft: "bg-blue-500/10",
-    ring: "border-blue-500/40",
-    tag: "bg-blue-600",
-  },
-  Administrator: {
-    accent: "text-emerald-600",
-    soft: "bg-emerald-500/10",
-    ring: "border-emerald-500/40",
-    tag: "bg-emerald-600",
-  },
-  A1: {
-    accent: "text-amber-600",
-    soft: "bg-amber-500/10",
-    ring: "border-amber-500/40",
-    tag: "bg-amber-600",
-  },
-  "A1+": {
-    accent: "text-purple-600",
-    soft: "bg-purple-500/10",
-    ring: "border-purple-500/40",
-    tag: "bg-purple-600",
-  },
-};
+export const ROLE_THEME: Record<Role, { accent: string; soft: string; ring: string; tag: string }> =
+  {
+    Supervisor: {
+      accent: "text-blue-600",
+      soft: "bg-blue-500/10",
+      ring: "border-blue-500/40",
+      tag: "bg-blue-600",
+    },
+    Administrator: {
+      accent: "text-emerald-600",
+      soft: "bg-emerald-500/10",
+      ring: "border-emerald-500/40",
+      tag: "bg-emerald-600",
+    },
+    A1: {
+      accent: "text-amber-600",
+      soft: "bg-amber-500/10",
+      ring: "border-amber-500/40",
+      tag: "bg-amber-600",
+    },
+    "A1+": {
+      accent: "text-purple-600",
+      soft: "bg-purple-500/10",
+      ring: "border-purple-500/40",
+      tag: "bg-purple-600",
+    },
+  };
 
-export const ROLE_PORTAL_PATH: Record<Role, "/portal/supervisor" | "/portal/administrator" | "/portal/a1" | "/portal/a1plus"> = {
+export const ROLE_PORTAL_PATH: Record<
+  Role,
+  "/portal/supervisor" | "/portal/administrator" | "/portal/a1" | "/portal/a1plus"
+> = {
   Supervisor: "/portal/supervisor",
   Administrator: "/portal/administrator",
   A1: "/portal/a1",
   "A1+": "/portal/a1plus",
 };
 
-export const ROLE_LOGIN_PATH: Record<Role, "/login/supervisor" | "/login/administrator" | "/login/a1" | "/login/a1plus"> = {
+export const ROLE_LOGIN_PATH: Record<
+  Role,
+  "/login/supervisor" | "/login/administrator" | "/login/a1" | "/login/a1plus"
+> = {
   Supervisor: "/login/supervisor",
   Administrator: "/login/administrator",
   A1: "/login/a1",
@@ -212,7 +217,9 @@ export function RoleLoginPortal({ role }: { role: Role }) {
       const result = await loginUser({ data: { username, password } });
       if (result.success) {
         if (result.user.role !== role) {
-          toast.error(`These credentials belong to ${result.user.role}, not ${role}. Use the ${result.user.role} login page.`);
+          toast.error(
+            `These credentials belong to ${result.user.role}, not ${role}. Use the ${result.user.role} login page.`,
+          );
           setLoading(false);
           return;
         }

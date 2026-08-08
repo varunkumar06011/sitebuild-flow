@@ -13,13 +13,27 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as A1RouteImport } from './routes/a1'
 import { Route as A1plusRouteImport } from './routes/a1plus'
 import { Route as AdministratorRouteImport } from './routes/administrator'
+import { Route as AerbComplianceRouteImport } from './routes/aerb-compliance'
+import { Route as AnomalyDetectionRouteImport } from './routes/anomaly-detection'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
+import { Route as ApprovalsDelegationRouteImport } from './routes/approvals-delegation'
 import { Route as AuditLogRouteImport } from './routes/audit-log'
+import { Route as BackupVerificationRouteImport } from './routes/backup-verification'
+import { Route as BudgetRouteImport } from './routes/budget'
+import { Route as CashFlowRouteImport } from './routes/cash-flow'
+import { Route as CleanroomValidationRouteImport } from './routes/cleanroom-validation'
+import { Route as DailyDiaryRouteImport } from './routes/daily-diary'
+import { Route as DataExportRouteImport } from './routes/data-export'
+import { Route as DigitalTwinRouteImport } from './routes/digital-twin'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as GatePassRouteImport } from './routes/gate-pass'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as InventorySupervisorRouteImport } from './routes/inventory-supervisor'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MedicalEquipmentRouteImport } from './routes/medical-equipment'
+import { Route as MedicalGasRouteImport } from './routes/medical-gas'
+import { Route as NabhChecklistRouteImport } from './routes/nabh-checklist'
+import { Route as NotificationSettingsRouteImport } from './routes/notification-settings'
 import { Route as PartsOrdersRouteImport } from './routes/parts-orders'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as ProcurementRouteImport } from './routes/procurement'
@@ -28,9 +42,14 @@ import { Route as ProgressDashboardRouteImport } from './routes/progress-dashboa
 import { Route as ProgressTrackingRouteImport } from './routes/progress-tracking'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RegistersRouteImport } from './routes/registers'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as RetentionRouteImport } from './routes/retention'
+import { Route as RoleAuditRouteImport } from './routes/role-audit'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
+import { Route as TdsGstRouteImport } from './routes/tds-gst'
 import { Route as TraceabilityRouteImport } from './routes/traceability'
+import { Route as UsersRouteImport } from './routes/users'
 import { Route as VendorsRouteImport } from './routes/vendors'
 import { Route as WorkOrdersRouteImport } from './routes/work-orders'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
@@ -42,6 +61,10 @@ import { Route as PortalA1RouteImport } from './routes/portal.a1'
 import { Route as PortalA1plusRouteImport } from './routes/portal.a1plus'
 import { Route as PortalAdministratorRouteImport } from './routes/portal.administrator'
 import { Route as PortalSupervisorRouteImport } from './routes/portal.supervisor'
+import { Route as PortalClientIndexRouteImport } from './routes/portal/client/index'
+import { Route as PortalClientLoginRouteImport } from './routes/portal/client/login'
+import { Route as PortalVendorIndexRouteImport } from './routes/portal/vendor/index'
+import { Route as PortalVendorLoginRouteImport } from './routes/portal/vendor/login'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -63,14 +86,64 @@ const AdministratorRoute = AdministratorRouteImport.update({
   path: '/administrator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AerbComplianceRoute = AerbComplianceRouteImport.update({
+  id: '/aerb-compliance',
+  path: '/aerb-compliance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnomalyDetectionRoute = AnomalyDetectionRouteImport.update({
+  id: '/anomaly-detection',
+  path: '/anomaly-detection',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApprovalsRoute = ApprovalsRouteImport.update({
   id: '/approvals',
   path: '/approvals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApprovalsDelegationRoute = ApprovalsDelegationRouteImport.update({
+  id: '/approvals-delegation',
+  path: '/approvals-delegation',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuditLogRoute = AuditLogRouteImport.update({
   id: '/audit-log',
   path: '/audit-log',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BackupVerificationRoute = BackupVerificationRouteImport.update({
+  id: '/backup-verification',
+  path: '/backup-verification',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BudgetRoute = BudgetRouteImport.update({
+  id: '/budget',
+  path: '/budget',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CashFlowRoute = CashFlowRouteImport.update({
+  id: '/cash-flow',
+  path: '/cash-flow',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CleanroomValidationRoute = CleanroomValidationRouteImport.update({
+  id: '/cleanroom-validation',
+  path: '/cleanroom-validation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DailyDiaryRoute = DailyDiaryRouteImport.update({
+  id: '/daily-diary',
+  path: '/daily-diary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataExportRoute = DataExportRouteImport.update({
+  id: '/data-export',
+  path: '/data-export',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DigitalTwinRoute = DigitalTwinRouteImport.update({
+  id: '/digital-twin',
+  path: '/digital-twin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsRoute = DocumentsRouteImport.update({
@@ -96,6 +169,26 @@ const InventorySupervisorRoute = InventorySupervisorRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MedicalEquipmentRoute = MedicalEquipmentRouteImport.update({
+  id: '/medical-equipment',
+  path: '/medical-equipment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MedicalGasRoute = MedicalGasRouteImport.update({
+  id: '/medical-gas',
+  path: '/medical-gas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NabhChecklistRoute = NabhChecklistRouteImport.update({
+  id: '/nabh-checklist',
+  path: '/nabh-checklist',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationSettingsRoute = NotificationSettingsRouteImport.update({
+  id: '/notification-settings',
+  path: '/notification-settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PartsOrdersRoute = PartsOrdersRouteImport.update({
@@ -138,6 +231,21 @@ const RegistersRoute = RegistersRouteImport.update({
   path: '/registers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RetentionRoute = RetentionRouteImport.update({
+  id: '/retention',
+  path: '/retention',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoleAuditRoute = RoleAuditRouteImport.update({
+  id: '/role-audit',
+  path: '/role-audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -148,9 +256,19 @@ const SupervisorRoute = SupervisorRouteImport.update({
   path: '/supervisor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TdsGstRoute = TdsGstRouteImport.update({
+  id: '/tds-gst',
+  path: '/tds-gst',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TraceabilityRoute = TraceabilityRouteImport.update({
   id: '/traceability',
   path: '/traceability',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VendorsRoute = VendorsRouteImport.update({
@@ -208,19 +326,53 @@ const PortalSupervisorRoute = PortalSupervisorRouteImport.update({
   path: '/supervisor',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalClientIndexRoute = PortalClientIndexRouteImport.update({
+  id: '/client/',
+  path: '/client/',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalClientLoginRoute = PortalClientLoginRouteImport.update({
+  id: '/client/login',
+  path: '/client/login',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalVendorIndexRoute = PortalVendorIndexRouteImport.update({
+  id: '/vendor/',
+  path: '/vendor/',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalVendorLoginRoute = PortalVendorLoginRouteImport.update({
+  id: '/vendor/login',
+  path: '/vendor/login',
+  getParentRoute: () => PortalRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/a1': typeof A1Route
   '/a1plus': typeof A1plusRoute
   '/administrator': typeof AdministratorRoute
+  '/aerb-compliance': typeof AerbComplianceRoute
+  '/anomaly-detection': typeof AnomalyDetectionRoute
   '/approvals': typeof ApprovalsRoute
+  '/approvals-delegation': typeof ApprovalsDelegationRoute
   '/audit-log': typeof AuditLogRoute
+  '/backup-verification': typeof BackupVerificationRoute
+  '/budget': typeof BudgetRoute
+  '/cash-flow': typeof CashFlowRoute
+  '/cleanroom-validation': typeof CleanroomValidationRoute
+  '/daily-diary': typeof DailyDiaryRoute
+  '/data-export': typeof DataExportRoute
+  '/digital-twin': typeof DigitalTwinRoute
   '/documents': typeof DocumentsRoute
   '/gate-pass': typeof GatePassRoute
   '/inventory': typeof InventoryRoute
   '/inventory-supervisor': typeof InventorySupervisorRoute
   '/login': typeof LoginRouteWithChildren
+  '/medical-equipment': typeof MedicalEquipmentRoute
+  '/medical-gas': typeof MedicalGasRoute
+  '/nabh-checklist': typeof NabhChecklistRoute
+  '/notification-settings': typeof NotificationSettingsRoute
   '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
@@ -229,9 +381,14 @@ export interface FileRoutesByFullPath {
   '/progress-tracking': typeof ProgressTrackingRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/reports': typeof ReportsRoute
+  '/retention': typeof RetentionRoute
+  '/role-audit': typeof RoleAuditRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
+  '/tds-gst': typeof TdsGstRoute
   '/traceability': typeof TraceabilityRoute
+  '/users': typeof UsersRoute
   '/vendors': typeof VendorsRoute
   '/work-orders': typeof WorkOrdersRoute
   '/login/a1': typeof LoginA1Route
@@ -243,18 +400,36 @@ export interface FileRoutesByFullPath {
   '/portal/administrator': typeof PortalAdministratorRoute
   '/portal/supervisor': typeof PortalSupervisorRoute
   '/login/': typeof LoginIndexRoute
+  '/portal/client/login': typeof PortalClientLoginRoute
+  '/portal/vendor/login': typeof PortalVendorLoginRoute
+  '/portal/client/': typeof PortalClientIndexRoute
+  '/portal/vendor/': typeof PortalVendorIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/a1': typeof A1Route
   '/a1plus': typeof A1plusRoute
   '/administrator': typeof AdministratorRoute
+  '/aerb-compliance': typeof AerbComplianceRoute
+  '/anomaly-detection': typeof AnomalyDetectionRoute
   '/approvals': typeof ApprovalsRoute
+  '/approvals-delegation': typeof ApprovalsDelegationRoute
   '/audit-log': typeof AuditLogRoute
+  '/backup-verification': typeof BackupVerificationRoute
+  '/budget': typeof BudgetRoute
+  '/cash-flow': typeof CashFlowRoute
+  '/cleanroom-validation': typeof CleanroomValidationRoute
+  '/daily-diary': typeof DailyDiaryRoute
+  '/data-export': typeof DataExportRoute
+  '/digital-twin': typeof DigitalTwinRoute
   '/documents': typeof DocumentsRoute
   '/gate-pass': typeof GatePassRoute
   '/inventory': typeof InventoryRoute
   '/inventory-supervisor': typeof InventorySupervisorRoute
+  '/medical-equipment': typeof MedicalEquipmentRoute
+  '/medical-gas': typeof MedicalGasRoute
+  '/nabh-checklist': typeof NabhChecklistRoute
+  '/notification-settings': typeof NotificationSettingsRoute
   '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
@@ -263,9 +438,14 @@ export interface FileRoutesByTo {
   '/progress-tracking': typeof ProgressTrackingRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/reports': typeof ReportsRoute
+  '/retention': typeof RetentionRoute
+  '/role-audit': typeof RoleAuditRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
+  '/tds-gst': typeof TdsGstRoute
   '/traceability': typeof TraceabilityRoute
+  '/users': typeof UsersRoute
   '/vendors': typeof VendorsRoute
   '/work-orders': typeof WorkOrdersRoute
   '/login/a1': typeof LoginA1Route
@@ -277,6 +457,10 @@ export interface FileRoutesByTo {
   '/portal/administrator': typeof PortalAdministratorRoute
   '/portal/supervisor': typeof PortalSupervisorRoute
   '/login': typeof LoginIndexRoute
+  '/portal/client/login': typeof PortalClientLoginRoute
+  '/portal/vendor/login': typeof PortalVendorLoginRoute
+  '/portal/client': typeof PortalClientIndexRoute
+  '/portal/vendor': typeof PortalVendorIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -284,13 +468,27 @@ export interface FileRoutesById {
   '/a1': typeof A1Route
   '/a1plus': typeof A1plusRoute
   '/administrator': typeof AdministratorRoute
+  '/aerb-compliance': typeof AerbComplianceRoute
+  '/anomaly-detection': typeof AnomalyDetectionRoute
   '/approvals': typeof ApprovalsRoute
+  '/approvals-delegation': typeof ApprovalsDelegationRoute
   '/audit-log': typeof AuditLogRoute
+  '/backup-verification': typeof BackupVerificationRoute
+  '/budget': typeof BudgetRoute
+  '/cash-flow': typeof CashFlowRoute
+  '/cleanroom-validation': typeof CleanroomValidationRoute
+  '/daily-diary': typeof DailyDiaryRoute
+  '/data-export': typeof DataExportRoute
+  '/digital-twin': typeof DigitalTwinRoute
   '/documents': typeof DocumentsRoute
   '/gate-pass': typeof GatePassRoute
   '/inventory': typeof InventoryRoute
   '/inventory-supervisor': typeof InventorySupervisorRoute
   '/login': typeof LoginRouteWithChildren
+  '/medical-equipment': typeof MedicalEquipmentRoute
+  '/medical-gas': typeof MedicalGasRoute
+  '/nabh-checklist': typeof NabhChecklistRoute
+  '/notification-settings': typeof NotificationSettingsRoute
   '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
@@ -299,9 +497,14 @@ export interface FileRoutesById {
   '/progress-tracking': typeof ProgressTrackingRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/reports': typeof ReportsRoute
+  '/retention': typeof RetentionRoute
+  '/role-audit': typeof RoleAuditRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
+  '/tds-gst': typeof TdsGstRoute
   '/traceability': typeof TraceabilityRoute
+  '/users': typeof UsersRoute
   '/vendors': typeof VendorsRoute
   '/work-orders': typeof WorkOrdersRoute
   '/login/a1': typeof LoginA1Route
@@ -313,6 +516,10 @@ export interface FileRoutesById {
   '/portal/administrator': typeof PortalAdministratorRoute
   '/portal/supervisor': typeof PortalSupervisorRoute
   '/login/': typeof LoginIndexRoute
+  '/portal/client/login': typeof PortalClientLoginRoute
+  '/portal/vendor/login': typeof PortalVendorLoginRoute
+  '/portal/client/': typeof PortalClientIndexRoute
+  '/portal/vendor/': typeof PortalVendorIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -321,13 +528,27 @@ export interface FileRouteTypes {
     | '/a1'
     | '/a1plus'
     | '/administrator'
+    | '/aerb-compliance'
+    | '/anomaly-detection'
     | '/approvals'
+    | '/approvals-delegation'
     | '/audit-log'
+    | '/backup-verification'
+    | '/budget'
+    | '/cash-flow'
+    | '/cleanroom-validation'
+    | '/daily-diary'
+    | '/data-export'
+    | '/digital-twin'
     | '/documents'
     | '/gate-pass'
     | '/inventory'
     | '/inventory-supervisor'
     | '/login'
+    | '/medical-equipment'
+    | '/medical-gas'
+    | '/nabh-checklist'
+    | '/notification-settings'
     | '/parts-orders'
     | '/portal'
     | '/procurement'
@@ -336,9 +557,14 @@ export interface FileRouteTypes {
     | '/progress-tracking'
     | '/quality'
     | '/registers'
+    | '/reports'
+    | '/retention'
+    | '/role-audit'
     | '/settings'
     | '/supervisor'
+    | '/tds-gst'
     | '/traceability'
+    | '/users'
     | '/vendors'
     | '/work-orders'
     | '/login/a1'
@@ -350,18 +576,36 @@ export interface FileRouteTypes {
     | '/portal/administrator'
     | '/portal/supervisor'
     | '/login/'
+    | '/portal/client/login'
+    | '/portal/vendor/login'
+    | '/portal/client/'
+    | '/portal/vendor/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/a1'
     | '/a1plus'
     | '/administrator'
+    | '/aerb-compliance'
+    | '/anomaly-detection'
     | '/approvals'
+    | '/approvals-delegation'
     | '/audit-log'
+    | '/backup-verification'
+    | '/budget'
+    | '/cash-flow'
+    | '/cleanroom-validation'
+    | '/daily-diary'
+    | '/data-export'
+    | '/digital-twin'
     | '/documents'
     | '/gate-pass'
     | '/inventory'
     | '/inventory-supervisor'
+    | '/medical-equipment'
+    | '/medical-gas'
+    | '/nabh-checklist'
+    | '/notification-settings'
     | '/parts-orders'
     | '/portal'
     | '/procurement'
@@ -370,9 +614,14 @@ export interface FileRouteTypes {
     | '/progress-tracking'
     | '/quality'
     | '/registers'
+    | '/reports'
+    | '/retention'
+    | '/role-audit'
     | '/settings'
     | '/supervisor'
+    | '/tds-gst'
     | '/traceability'
+    | '/users'
     | '/vendors'
     | '/work-orders'
     | '/login/a1'
@@ -384,19 +633,37 @@ export interface FileRouteTypes {
     | '/portal/administrator'
     | '/portal/supervisor'
     | '/login'
+    | '/portal/client/login'
+    | '/portal/vendor/login'
+    | '/portal/client'
+    | '/portal/vendor'
   id:
     | '__root__'
     | '/'
     | '/a1'
     | '/a1plus'
     | '/administrator'
+    | '/aerb-compliance'
+    | '/anomaly-detection'
     | '/approvals'
+    | '/approvals-delegation'
     | '/audit-log'
+    | '/backup-verification'
+    | '/budget'
+    | '/cash-flow'
+    | '/cleanroom-validation'
+    | '/daily-diary'
+    | '/data-export'
+    | '/digital-twin'
     | '/documents'
     | '/gate-pass'
     | '/inventory'
     | '/inventory-supervisor'
     | '/login'
+    | '/medical-equipment'
+    | '/medical-gas'
+    | '/nabh-checklist'
+    | '/notification-settings'
     | '/parts-orders'
     | '/portal'
     | '/procurement'
@@ -405,9 +672,14 @@ export interface FileRouteTypes {
     | '/progress-tracking'
     | '/quality'
     | '/registers'
+    | '/reports'
+    | '/retention'
+    | '/role-audit'
     | '/settings'
     | '/supervisor'
+    | '/tds-gst'
     | '/traceability'
+    | '/users'
     | '/vendors'
     | '/work-orders'
     | '/login/a1'
@@ -419,6 +691,10 @@ export interface FileRouteTypes {
     | '/portal/administrator'
     | '/portal/supervisor'
     | '/login/'
+    | '/portal/client/login'
+    | '/portal/vendor/login'
+    | '/portal/client/'
+    | '/portal/vendor/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -426,13 +702,27 @@ export interface RootRouteChildren {
   A1Route: typeof A1Route
   A1plusRoute: typeof A1plusRoute
   AdministratorRoute: typeof AdministratorRoute
+  AerbComplianceRoute: typeof AerbComplianceRoute
+  AnomalyDetectionRoute: typeof AnomalyDetectionRoute
   ApprovalsRoute: typeof ApprovalsRoute
+  ApprovalsDelegationRoute: typeof ApprovalsDelegationRoute
   AuditLogRoute: typeof AuditLogRoute
+  BackupVerificationRoute: typeof BackupVerificationRoute
+  BudgetRoute: typeof BudgetRoute
+  CashFlowRoute: typeof CashFlowRoute
+  CleanroomValidationRoute: typeof CleanroomValidationRoute
+  DailyDiaryRoute: typeof DailyDiaryRoute
+  DataExportRoute: typeof DataExportRoute
+  DigitalTwinRoute: typeof DigitalTwinRoute
   DocumentsRoute: typeof DocumentsRoute
   GatePassRoute: typeof GatePassRoute
   InventoryRoute: typeof InventoryRoute
   InventorySupervisorRoute: typeof InventorySupervisorRoute
   LoginRoute: typeof LoginRouteWithChildren
+  MedicalEquipmentRoute: typeof MedicalEquipmentRoute
+  MedicalGasRoute: typeof MedicalGasRoute
+  NabhChecklistRoute: typeof NabhChecklistRoute
+  NotificationSettingsRoute: typeof NotificationSettingsRoute
   PartsOrdersRoute: typeof PartsOrdersRoute
   PortalRoute: typeof PortalRouteWithChildren
   ProcurementRoute: typeof ProcurementRoute
@@ -441,9 +731,14 @@ export interface RootRouteChildren {
   ProgressTrackingRoute: typeof ProgressTrackingRoute
   QualityRoute: typeof QualityRoute
   RegistersRoute: typeof RegistersRoute
+  ReportsRoute: typeof ReportsRoute
+  RetentionRoute: typeof RetentionRoute
+  RoleAuditRoute: typeof RoleAuditRoute
   SettingsRoute: typeof SettingsRoute
   SupervisorRoute: typeof SupervisorRoute
+  TdsGstRoute: typeof TdsGstRoute
   TraceabilityRoute: typeof TraceabilityRoute
+  UsersRoute: typeof UsersRoute
   VendorsRoute: typeof VendorsRoute
   WorkOrdersRoute: typeof WorkOrdersRoute
 }
@@ -478,6 +773,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdministratorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aerb-compliance': {
+      id: '/aerb-compliance'
+      path: '/aerb-compliance'
+      fullPath: '/aerb-compliance'
+      preLoaderRoute: typeof AerbComplianceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/anomaly-detection': {
+      id: '/anomaly-detection'
+      path: '/anomaly-detection'
+      fullPath: '/anomaly-detection'
+      preLoaderRoute: typeof AnomalyDetectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/approvals': {
       id: '/approvals'
       path: '/approvals'
@@ -485,11 +794,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApprovalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/approvals-delegation': {
+      id: '/approvals-delegation'
+      path: '/approvals-delegation'
+      fullPath: '/approvals-delegation'
+      preLoaderRoute: typeof ApprovalsDelegationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/audit-log': {
       id: '/audit-log'
       path: '/audit-log'
       fullPath: '/audit-log'
       preLoaderRoute: typeof AuditLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/backup-verification': {
+      id: '/backup-verification'
+      path: '/backup-verification'
+      fullPath: '/backup-verification'
+      preLoaderRoute: typeof BackupVerificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/budget': {
+      id: '/budget'
+      path: '/budget'
+      fullPath: '/budget'
+      preLoaderRoute: typeof BudgetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cash-flow': {
+      id: '/cash-flow'
+      path: '/cash-flow'
+      fullPath: '/cash-flow'
+      preLoaderRoute: typeof CashFlowRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cleanroom-validation': {
+      id: '/cleanroom-validation'
+      path: '/cleanroom-validation'
+      fullPath: '/cleanroom-validation'
+      preLoaderRoute: typeof CleanroomValidationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/daily-diary': {
+      id: '/daily-diary'
+      path: '/daily-diary'
+      fullPath: '/daily-diary'
+      preLoaderRoute: typeof DailyDiaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-export': {
+      id: '/data-export'
+      path: '/data-export'
+      fullPath: '/data-export'
+      preLoaderRoute: typeof DataExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/digital-twin': {
+      id: '/digital-twin'
+      path: '/digital-twin'
+      fullPath: '/digital-twin'
+      preLoaderRoute: typeof DigitalTwinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents': {
@@ -525,6 +890,34 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/medical-equipment': {
+      id: '/medical-equipment'
+      path: '/medical-equipment'
+      fullPath: '/medical-equipment'
+      preLoaderRoute: typeof MedicalEquipmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/medical-gas': {
+      id: '/medical-gas'
+      path: '/medical-gas'
+      fullPath: '/medical-gas'
+      preLoaderRoute: typeof MedicalGasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nabh-checklist': {
+      id: '/nabh-checklist'
+      path: '/nabh-checklist'
+      fullPath: '/nabh-checklist'
+      preLoaderRoute: typeof NabhChecklistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notification-settings': {
+      id: '/notification-settings'
+      path: '/notification-settings'
+      fullPath: '/notification-settings'
+      preLoaderRoute: typeof NotificationSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/parts-orders': {
@@ -583,6 +976,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegistersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/retention': {
+      id: '/retention'
+      path: '/retention'
+      fullPath: '/retention'
+      preLoaderRoute: typeof RetentionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/role-audit': {
+      id: '/role-audit'
+      path: '/role-audit'
+      fullPath: '/role-audit'
+      preLoaderRoute: typeof RoleAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -597,11 +1011,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupervisorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tds-gst': {
+      id: '/tds-gst'
+      path: '/tds-gst'
+      fullPath: '/tds-gst'
+      preLoaderRoute: typeof TdsGstRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/traceability': {
       id: '/traceability'
       path: '/traceability'
       fullPath: '/traceability'
       preLoaderRoute: typeof TraceabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vendors': {
@@ -681,6 +1109,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalSupervisorRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/client/': {
+      id: '/portal/client/'
+      path: '/client'
+      fullPath: '/portal/client/'
+      preLoaderRoute: typeof PortalClientIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/client/login': {
+      id: '/portal/client/login'
+      path: '/client/login'
+      fullPath: '/portal/client/login'
+      preLoaderRoute: typeof PortalClientLoginRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/vendor/': {
+      id: '/portal/vendor/'
+      path: '/vendor'
+      fullPath: '/portal/vendor/'
+      preLoaderRoute: typeof PortalVendorIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/vendor/login': {
+      id: '/portal/vendor/login'
+      path: '/vendor/login'
+      fullPath: '/portal/vendor/login'
+      preLoaderRoute: typeof PortalVendorLoginRouteImport
+      parentRoute: typeof PortalRoute
+    }
   }
 }
 
@@ -707,6 +1163,10 @@ interface PortalRouteChildren {
   PortalA1plusRoute: typeof PortalA1plusRoute
   PortalAdministratorRoute: typeof PortalAdministratorRoute
   PortalSupervisorRoute: typeof PortalSupervisorRoute
+  PortalClientLoginRoute: typeof PortalClientLoginRoute
+  PortalVendorLoginRoute: typeof PortalVendorLoginRoute
+  PortalClientIndexRoute: typeof PortalClientIndexRoute
+  PortalVendorIndexRoute: typeof PortalVendorIndexRoute
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
@@ -714,6 +1174,10 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalA1plusRoute: PortalA1plusRoute,
   PortalAdministratorRoute: PortalAdministratorRoute,
   PortalSupervisorRoute: PortalSupervisorRoute,
+  PortalClientLoginRoute: PortalClientLoginRoute,
+  PortalVendorLoginRoute: PortalVendorLoginRoute,
+  PortalClientIndexRoute: PortalClientIndexRoute,
+  PortalVendorIndexRoute: PortalVendorIndexRoute,
 }
 
 const PortalRouteWithChildren =
@@ -724,13 +1188,27 @@ const rootRouteChildren: RootRouteChildren = {
   A1Route: A1Route,
   A1plusRoute: A1plusRoute,
   AdministratorRoute: AdministratorRoute,
+  AerbComplianceRoute: AerbComplianceRoute,
+  AnomalyDetectionRoute: AnomalyDetectionRoute,
   ApprovalsRoute: ApprovalsRoute,
+  ApprovalsDelegationRoute: ApprovalsDelegationRoute,
   AuditLogRoute: AuditLogRoute,
+  BackupVerificationRoute: BackupVerificationRoute,
+  BudgetRoute: BudgetRoute,
+  CashFlowRoute: CashFlowRoute,
+  CleanroomValidationRoute: CleanroomValidationRoute,
+  DailyDiaryRoute: DailyDiaryRoute,
+  DataExportRoute: DataExportRoute,
+  DigitalTwinRoute: DigitalTwinRoute,
   DocumentsRoute: DocumentsRoute,
   GatePassRoute: GatePassRoute,
   InventoryRoute: InventoryRoute,
   InventorySupervisorRoute: InventorySupervisorRoute,
   LoginRoute: LoginRouteWithChildren,
+  MedicalEquipmentRoute: MedicalEquipmentRoute,
+  MedicalGasRoute: MedicalGasRoute,
+  NabhChecklistRoute: NabhChecklistRoute,
+  NotificationSettingsRoute: NotificationSettingsRoute,
   PartsOrdersRoute: PartsOrdersRoute,
   PortalRoute: PortalRouteWithChildren,
   ProcurementRoute: ProcurementRoute,
@@ -739,9 +1217,14 @@ const rootRouteChildren: RootRouteChildren = {
   ProgressTrackingRoute: ProgressTrackingRoute,
   QualityRoute: QualityRoute,
   RegistersRoute: RegistersRoute,
+  ReportsRoute: ReportsRoute,
+  RetentionRoute: RetentionRoute,
+  RoleAuditRoute: RoleAuditRoute,
   SettingsRoute: SettingsRoute,
   SupervisorRoute: SupervisorRoute,
+  TdsGstRoute: TdsGstRoute,
   TraceabilityRoute: TraceabilityRoute,
+  UsersRoute: UsersRoute,
   VendorsRoute: VendorsRoute,
   WorkOrdersRoute: WorkOrdersRoute,
 }

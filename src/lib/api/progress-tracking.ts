@@ -16,10 +16,7 @@ function isAdmin(role: Role): boolean {
 // Helper: can a supervisor edit a specific cell?
 // ---------------------------------------------------------------------------
 // Checks whether a supervisor is assigned to the block/floor containing the given cell.
-async function canSupervisorEditCell(
-  user: SessionUser,
-  cellId: string,
-): Promise<boolean> {
+async function canSupervisorEditCell(user: SessionUser, cellId: string): Promise<boolean> {
   if (isAdmin(user.role)) return true;
   if (user.role !== "Supervisor") return false;
 
@@ -162,7 +159,12 @@ export const createBlock = createServerFn({ method: "POST" })
     const sortOrder = Math.max(0, Math.floor(Number(data?.sort_order) || 0));
     const { data: block, error } = await supabaseServer
       .from("progress_blocks")
-      .insert({ name: data?.name, sort_order: sortOrder, work_category: (data as any)?.work_category ?? "uncategorized", created_by: user.id })
+      .insert({
+        name: data?.name,
+        sort_order: sortOrder,
+        work_category: (data as any)?.work_category ?? "uncategorized",
+        created_by: user.id,
+      })
       .select("id, name, sort_order, work_category")
       .single();
 
@@ -175,23 +177,33 @@ export const createBlock = createServerFn({ method: "POST" })
 
 // Creates a new floor under a block (admin only) and logs the action.
 export const createFloor = createServerFn({ method: "POST" })
-  .validator(z.object({
-    block_id: z.string().uuid(),
-    name: z.string().min(1),
-    sort_order: z.number().int().default(0),
-  }))
+  .validator(
+    z.object({
+      block_id: z.string().uuid(),
+      name: z.string().min(1),
+      sort_order: z.number().int().default(0),
+    }),
+  )
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
     if (!isAdmin(user.role)) return { success: false, error: "Admin only" };
 
     const { data: floor, error } = await supabaseServer
       .from("progress_floors")
-      .insert({ block_id: data.block_id, name: data.name, sort_order: data.sort_order, created_by: user.id })
+      .insert({
+        block_id: data.block_id,
+        name: data.name,
+        sort_order: data.sort_order,
+        created_by: user.id,
+      })
       .select("id, block_id, name, sort_order")
       .single();
 
     if (error || !floor) return { success: false, error: "Failed to create floor" };
-    await logAction(user, "create_floor", "progress_floor", floor.id, { name: data.name, block_id: data.block_id });
+    await logAction(user, "create_floor", "progress_floor", floor.id, {
+      name: data.name,
+      block_id: data.block_id,
+    });
     return { success: true, data: floor };
   });
 
@@ -215,23 +227,33 @@ export const createCategory = createServerFn({ method: "POST" })
 
 // Creates a new work item under a category (admin only) and logs the action.
 export const createWorkItem = createServerFn({ method: "POST" })
-  .validator(z.object({
-    category_id: z.string().uuid(),
-    name: z.string().min(1),
-    sort_order: z.number().int().default(0),
-  }))
+  .validator(
+    z.object({
+      category_id: z.string().uuid(),
+      name: z.string().min(1),
+      sort_order: z.number().int().default(0),
+    }),
+  )
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
     if (!isAdmin(user.role)) return { success: false, error: "Admin only" };
 
     const { data: item, error } = await supabaseServer
       .from("progress_work_items")
-      .insert({ category_id: data.category_id, name: data.name, sort_order: data.sort_order, created_by: user.id })
+      .insert({
+        category_id: data.category_id,
+        name: data.name,
+        sort_order: data.sort_order,
+        created_by: user.id,
+      })
       .select("id, category_id, name, sort_order")
       .single();
 
     if (error || !item) return { success: false, error: "Failed to create work item" };
-    await logAction(user, "create_work_item", "progress_work_item", item.id, { name: data.name, category_id: data.category_id });
+    await logAction(user, "create_work_item", "progress_work_item", item.id, {
+      name: data.name,
+      category_id: data.category_id,
+    });
     return { success: true, data: item };
   });
 
@@ -241,12 +263,14 @@ export const createWorkItem = createServerFn({ method: "POST" })
 
 // Creates a cell group and generates N cells in one transaction (admin only).
 export const createCellGroup = createServerFn({ method: "POST" })
-  .validator(z.object({
-    block_id: z.string().uuid(),
-    floor_id: z.string().uuid(),
-    work_item_id: z.string().uuid(),
-    cell_count: z.number().int().min(1).max(500),
-  }))
+  .validator(
+    z.object({
+      block_id: z.string().uuid(),
+      floor_id: z.string().uuid(),
+      work_item_id: z.string().uuid(),
+      cell_count: z.number().int().min(1).max(500),
+    }),
+  )
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
     if (!isAdmin(user.role)) return { success: false, error: "Admin only" };
@@ -271,9 +295,7 @@ export const createCellGroup = createServerFn({ method: "POST" })
       cell_number: i + 1,
     }));
 
-    const { error: cellError } = await supabaseServer
-      .from("progress_cells")
-      .insert(cells);
+    const { error: cellError } = await supabaseServer.from("progress_cells").insert(cells);
 
     if (cellError) return { success: false, error: "Failed to generate cells" };
 
@@ -293,29 +315,35 @@ export const createCellGroup = createServerFn({ method: "POST" })
 
 // Assigns a supervisor to a block or specific floor (admin only) and logs the action.
 export const assignSupervisor = createServerFn({ method: "POST" })
-  .validator(z.object({
-    supervisor_id: z.string().uuid(),
-    block_id: z.string().uuid(),
-    floor_id: z.string().uuid().nullable(),
-  }))
+  .validator(
+    z.object({
+      supervisor_id: z.string().uuid(),
+      block_id: z.string().uuid(),
+      floor_id: z.string().uuid().nullable(),
+    }),
+  )
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
     if (!isAdmin(user.role)) return { success: false, error: "Admin only" };
 
-    const { error } = await supabaseServer
-      .from("progress_supervisor_assignments")
-      .insert({
-        supervisor_id: data.supervisor_id,
-        block_id: data.block_id,
-        floor_id: data.floor_id,
-      });
-
-    if (error) return { success: false, error: error.message };
-
-    await logAction(user, "assign_supervisor", "progress_supervisor_assignment", data.supervisor_id, {
+    const { error } = await supabaseServer.from("progress_supervisor_assignments").insert({
+      supervisor_id: data.supervisor_id,
       block_id: data.block_id,
       floor_id: data.floor_id,
     });
+
+    if (error) return { success: false, error: error.message };
+
+    await logAction(
+      user,
+      "assign_supervisor",
+      "progress_supervisor_assignment",
+      data.supervisor_id,
+      {
+        block_id: data.block_id,
+        floor_id: data.floor_id,
+      },
+    );
 
     return { success: true };
   });
@@ -325,43 +353,50 @@ export const assignSupervisor = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 
 // Fetches the full progress hierarchy (blocks, floors, categories, work items) in parallel.
-export const fetchHierarchy = createServerFn({ method: "GET" })
-  .handler(async () => {
-    await requireSessionUser();
+export const fetchHierarchy = createServerFn({ method: "GET" }).handler(async () => {
+  await requireSessionUser();
 
-    const [blocks, floors, categories, workItems] = await Promise.all([
-      supabaseServer.from("progress_blocks").select("id, name, sort_order, work_category").order("sort_order"),
-      supabaseServer.from("progress_floors").select("id, block_id, name, sort_order").order("sort_order"),
-      supabaseServer.from("progress_categories").select("id, name, sort_order").order("sort_order"),
-      supabaseServer.from("progress_work_items").select("id, category_id, name, sort_order").order("sort_order"),
-    ]);
+  const [blocks, floors, categories, workItems] = await Promise.all([
+    supabaseServer
+      .from("progress_blocks")
+      .select("id, name, sort_order, work_category")
+      .order("sort_order"),
+    supabaseServer
+      .from("progress_floors")
+      .select("id, block_id, name, sort_order")
+      .order("sort_order"),
+    supabaseServer.from("progress_categories").select("id, name, sort_order").order("sort_order"),
+    supabaseServer
+      .from("progress_work_items")
+      .select("id, category_id, name, sort_order")
+      .order("sort_order"),
+  ]);
 
-    return {
-      blocks: blocks.data ?? [],
-      floors: floors.data ?? [],
-      categories: categories.data ?? [],
-      workItems: workItems.data ?? [],
-    };
-  });
+  return {
+    blocks: blocks.data ?? [],
+    floors: floors.data ?? [],
+    categories: categories.data ?? [],
+    workItems: workItems.data ?? [],
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Fetch supervisors (for assignment dropdowns)
 // ---------------------------------------------------------------------------
 
 // Fetches the list of supervisor users for assignment dropdowns (admin only).
-export const fetchSupervisors = createServerFn({ method: "GET" })
-  .handler(async () => {
-    const user = await requireSessionUser();
-    if (!isAdmin(user.role)) return { data: [] };
+export const fetchSupervisors = createServerFn({ method: "GET" }).handler(async () => {
+  const user = await requireSessionUser();
+  if (!isAdmin(user.role)) return { data: [] };
 
-    const { data: supervisors } = await supabaseServer
-      .from("users")
-      .select("id, name")
-      .eq("role", "Supervisor")
-      .order("name");
+  const { data: supervisors } = await supabaseServer
+    .from("users")
+    .select("id, name")
+    .eq("role", "Supervisor")
+    .order("name");
 
-    return { data: supervisors ?? [] };
-  });
+  return { data: supervisors ?? [] };
+});
 
 // ---------------------------------------------------------------------------
 // Fetch my cells — Supervisor only (cells they can edit)
@@ -414,15 +449,24 @@ export const fetchMyCells = createServerFn({ method: "GET" })
     // Fetch work item names
     const workItemIds = [...new Set(groups.map((g: any) => g.work_item_id))];
     const [{ data: workItems }, { data: cats }] = await Promise.all([
-      supabaseServer.from("progress_work_items").select("id, name, category_id").in("id", workItemIds),
+      supabaseServer
+        .from("progress_work_items")
+        .select("id, name, category_id")
+        .in("id", workItemIds),
       supabaseServer.from("progress_categories").select("id, name"),
     ]);
     const wiMap = new Map((workItems ?? []).map((w: any) => [w.id, w]));
     const catMap = new Map((cats ?? []).map((c: any) => [c.id, c.name]));
 
     // Fetch block/floor names
-    const { data: blocks } = await supabaseServer.from("progress_blocks").select("id, name").in("id", blockIds);
-    const { data: floorsData } = await supabaseServer.from("progress_floors").select("id, name").in("block_id", blockIds);
+    const { data: blocks } = await supabaseServer
+      .from("progress_blocks")
+      .select("id, name")
+      .in("id", blockIds);
+    const { data: floorsData } = await supabaseServer
+      .from("progress_floors")
+      .select("id, name")
+      .in("block_id", blockIds);
     const blockMap = new Map((blocks ?? []).map((b: any) => [b.id, b.name]));
     const floorMap = new Map((floorsData ?? []).map((f: any) => [f.id, f.name]));
 
@@ -431,7 +475,9 @@ export const fetchMyCells = createServerFn({ method: "GET" })
     // Fetch cells
     let cellQuery = supabaseServer
       .from("progress_cells")
-      .select("id, cell_group_id, cell_number, status, completion_pct, remarks, updated_by, updated_at")
+      .select(
+        "id, cell_group_id, cell_number, status, completion_pct, remarks, updated_by, updated_at",
+      )
       .in("cell_group_id", validGroupIds)
       .order("cell_number");
 
@@ -452,10 +498,10 @@ export const fetchMyCells = createServerFn({ method: "GET" })
         assigned_supervisor_id: null,
         updated_by: c.updated_by,
         updated_at: c.updated_at,
-        block_name: g ? blockMap.get(g.block_id) ?? "" : "",
-        floor_name: g ? floorMap.get(g.floor_id) ?? "" : "",
+        block_name: g ? (blockMap.get(g.block_id) ?? "") : "",
+        floor_name: g ? (floorMap.get(g.floor_id) ?? "") : "",
         work_item_name: wi?.name ?? "",
-        category_name: wi ? catMap.get(wi.category_id) ?? "" : "",
+        category_name: wi ? (catMap.get(wi.category_id) ?? "") : "",
       };
     });
 
@@ -468,12 +514,14 @@ export const fetchMyCells = createServerFn({ method: "GET" })
 
 // Updates a cell's status/completion, recording a history entry and audit log (assigned supervisor or admin).
 export const updateCell = createServerFn({ method: "POST" })
-  .validator(z.object({
-    cell_id: z.string().uuid(),
-    status: z.enum(["not_started", "in_progress", "completed", "on_hold"]),
-    completion_pct: z.number().min(0).max(100),
-    remarks: z.string().nullable(),
-  }))
+  .validator(
+    z.object({
+      cell_id: z.string().uuid(),
+      status: z.enum(["not_started", "in_progress", "completed", "on_hold"]),
+      completion_pct: z.number().min(0).max(100),
+      remarks: z.string().nullable(),
+    }),
+  )
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
 
@@ -531,12 +579,14 @@ export const updateCell = createServerFn({ method: "POST" })
 
 // Uploads a proof photo for a cell to Supabase storage and records it in the database.
 export const uploadCellPhoto = createServerFn({ method: "POST" })
-  .validator(z.object({
-    cell_id: z.string().uuid(),
-    contentType: z.string(),
-    fileData: z.string(),
-    caption: z.string().optional(),
-  }))
+  .validator(
+    z.object({
+      cell_id: z.string().uuid(),
+      contentType: z.string(),
+      fileData: z.string(),
+      caption: z.string().optional(),
+    }),
+  )
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
 
@@ -557,8 +607,7 @@ export const uploadCellPhoto = createServerFn({ method: "POST" })
     const ext = data.contentType.split("/")[1] ?? "jpg";
     const path = `progress/${data.cell_id}/${timestamp}.${ext}`;
 
-    const { error: uploadError } = await supabaseServer
-      .storage
+    const { error: uploadError } = await supabaseServer.storage
       .from("photos")
       .upload(path, buffer, { contentType: data.contentType, upsert: false });
 
@@ -603,7 +652,9 @@ export const fetchCellHistory = createServerFn({ method: "GET" })
     const [histResult, photosResult] = await Promise.all([
       supabaseServer
         .from("progress_cell_history")
-        .select("id, cell_id, changed_by, previous_status, new_status, previous_pct, new_pct, remarks, created_at")
+        .select(
+          "id, cell_id, changed_by, previous_status, new_status, previous_pct, new_pct, remarks, created_at",
+        )
         .eq("cell_id", data.cell_id)
         .order("created_at", { ascending: false }),
       supabaseServer
@@ -644,15 +695,15 @@ export const fetchCellHistory = createServerFn({ method: "GET" })
 // ---------------------------------------------------------------------------
 
 // Fetches an aggregated progress dashboard with block roll-ups and a flat cell list (admin only).
-export const fetchProgressDashboard = createServerFn({ method: "GET" })
-  .handler(async () => {
-    const user = await requireSessionUser();
-    if (!isAdmin(user.role)) return { blocks: [], cells: [] };
+export const fetchProgressDashboard = createServerFn({ method: "GET" }).handler(async () => {
+  const user = await requireSessionUser();
+  if (!isAdmin(user.role)) return { blocks: [], cells: [] };
 
-    // Fetch all cell groups with block/floor/work item names
-    const { data: groups } = await supabaseServer
-      .from("progress_cell_groups")
-      .select(`
+  // Fetch all cell groups with block/floor/work item names
+  const { data: groups } = await supabaseServer
+    .from("progress_cell_groups")
+    .select(
+      `
         id,
         block_id,
         floor_id,
@@ -661,66 +712,88 @@ export const fetchProgressDashboard = createServerFn({ method: "GET" })
         progress_blocks!inner(name),
         progress_floors!inner(name),
         progress_work_items!inner(name, category_id, progress_categories!inner(name))
-      `)
-      .order("id");
+      `,
+    )
+    .order("id");
 
-    if (!groups || groups.length === 0) return { blocks: [], cells: [] };
+  if (!groups || groups.length === 0) return { blocks: [], cells: [] };
 
-    const groupIds = groups.map((g: any) => g.id);
+  const groupIds = groups.map((g: any) => g.id);
 
-    // Fetch all cells
-    const { data: cells } = await supabaseServer
-      .from("progress_cells")
-      .select("id, cell_group_id, cell_number, status, completion_pct, updated_at")
-      .in("cell_group_id", groupIds)
-      .order("cell_number");
+  // Fetch all cells
+  const { data: cells } = await supabaseServer
+    .from("progress_cells")
+    .select("id, cell_group_id, cell_number, status, completion_pct, updated_at")
+    .in("cell_group_id", groupIds)
+    .order("cell_number");
 
-    const groupMap = new Map(groups.map((g: any) => [g.id, g]));
+  const groupMap = new Map(groups.map((g: any) => [g.id, g]));
 
-    // Build block roll-up
-    const blockAgg = new Map<string, { name: string; total: number; completed: number; inProgress: number; notStarted: number; onHold: number; avgPct: number; count: number }>();
-
-    for (const c of cells ?? []) {
-      const g = groupMap.get(c.cell_group_id);
-      if (!g) continue;
-      const blockName = g.progress_blocks?.name ?? "Unknown";
-      const key = g.block_id;
-
-      if (!blockAgg.has(key)) {
-        blockAgg.set(key, { name: blockName, total: 0, completed: 0, inProgress: 0, notStarted: 0, onHold: 0, avgPct: 0, count: 0 });
-      }
-      const agg = blockAgg.get(key)!;
-      agg.total++;
-      agg.count++;
-      agg.avgPct += Number(c.completion_pct);
-      if (c.status === "completed") agg.completed++;
-      else if (c.status === "in_progress") agg.inProgress++;
-      else if (c.status === "not_started") agg.notStarted++;
-      else if (c.status === "on_hold") agg.onHold++;
+  // Build block roll-up
+  const blockAgg = new Map<
+    string,
+    {
+      name: string;
+      total: number;
+      completed: number;
+      inProgress: number;
+      notStarted: number;
+      onHold: number;
+      avgPct: number;
+      count: number;
     }
+  >();
 
-    // Finalize averages
-    const blocks = Array.from(blockAgg.values()).map((b) => ({
-      ...b,
-      avgPct: b.count > 0 ? Math.round(b.avgPct / b.count) : 0,
-    }));
+  for (const c of cells ?? []) {
+    const g = groupMap.get(c.cell_group_id);
+    if (!g) continue;
+    const blockName = g.progress_blocks?.name ?? "Unknown";
+    const key = g.block_id;
 
-    // Build flat cell list with names for drill-down
-    const flatCells = (cells ?? []).map((c: any) => {
-      const g = groupMap.get(c.cell_group_id);
-      return {
-        id: c.id,
-        cell_group_id: c.cell_group_id,
-        cell_number: c.cell_number,
-        status: c.status,
-        completion_pct: Number(c.completion_pct),
-        updated_at: c.updated_at,
-        block_name: g?.progress_blocks?.name ?? "",
-        floor_name: g?.progress_floors?.name ?? "",
-        work_item_name: g?.progress_work_items?.name ?? "",
-        category_name: g?.progress_work_items?.progress_categories?.name ?? "",
-      };
-    });
+    if (!blockAgg.has(key)) {
+      blockAgg.set(key, {
+        name: blockName,
+        total: 0,
+        completed: 0,
+        inProgress: 0,
+        notStarted: 0,
+        onHold: 0,
+        avgPct: 0,
+        count: 0,
+      });
+    }
+    const agg = blockAgg.get(key)!;
+    agg.total++;
+    agg.count++;
+    agg.avgPct += Number(c.completion_pct);
+    if (c.status === "completed") agg.completed++;
+    else if (c.status === "in_progress") agg.inProgress++;
+    else if (c.status === "not_started") agg.notStarted++;
+    else if (c.status === "on_hold") agg.onHold++;
+  }
 
-    return { blocks, cells: flatCells };
+  // Finalize averages
+  const blocks = Array.from(blockAgg.values()).map((b) => ({
+    ...b,
+    avgPct: b.count > 0 ? Math.round(b.avgPct / b.count) : 0,
+  }));
+
+  // Build flat cell list with names for drill-down
+  const flatCells = (cells ?? []).map((c: any) => {
+    const g = groupMap.get(c.cell_group_id);
+    return {
+      id: c.id,
+      cell_group_id: c.cell_group_id,
+      cell_number: c.cell_number,
+      status: c.status,
+      completion_pct: Number(c.completion_pct),
+      updated_at: c.updated_at,
+      block_name: g?.progress_blocks?.name ?? "",
+      floor_name: g?.progress_floors?.name ?? "",
+      work_item_name: g?.progress_work_items?.name ?? "",
+      category_name: g?.progress_work_items?.progress_categories?.name ?? "",
+    };
   });
+
+  return { blocks, cells: flatCells };
+});

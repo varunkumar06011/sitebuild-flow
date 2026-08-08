@@ -4,19 +4,18 @@ import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
 
 // Fetches all block-level progress percentages ordered by block name.
-export const fetchProgress = createServerFn({ method: "GET" })
-  .handler(async ({ context }) => {
-    await requireSessionUser();
+export const fetchProgress = createServerFn({ method: "GET" }).handler(async ({ context }) => {
+  await requireSessionUser();
 
-    const { data, error } = await supabaseServer
-      .from("progress")
-      .select("id, block, pct, updated_at")
-      .order("block", { ascending: true });
+  const { data, error } = await supabaseServer
+    .from("progress")
+    .select("id, block, pct, updated_at")
+    .order("block", { ascending: true });
 
-    if (error) return { data: [] };
+  if (error) return { data: [] };
 
-    return { data: data ?? [] };
-  });
+  return { data: data ?? [] };
+});
 
 // Creates or updates a block's progress percentage (admin and above only).
 export const updateProgress = createServerFn({ method: "POST" })
@@ -43,7 +42,10 @@ export const updateProgress = createServerFn({ method: "POST" })
         .eq("id", existing.id);
 
       if (error) return { success: false, error: "Failed to update progress" };
-      await logAction(user, "update_progress", "progress", existing.id, { block: data.block, pct: data.pct });
+      await logAction(user, "update_progress", "progress", existing.id, {
+        block: data.block,
+        pct: data.pct,
+      });
       return { success: true };
     }
 
@@ -54,6 +56,9 @@ export const updateProgress = createServerFn({ method: "POST" })
       .single();
 
     if (error || !created) return { success: false, error: "Failed to create progress" };
-    await logAction(user, "create_progress", "progress", created.id, { block: data.block, pct: data.pct });
+    await logAction(user, "create_progress", "progress", created.id, {
+      block: data.block,
+      pct: data.pct,
+    });
     return { success: true };
   });

@@ -19,6 +19,22 @@ import {
   Settings2,
   Package,
   FileText,
+  HeartPulse,
+  Radiation,
+  Wind,
+  Flame,
+  ClipboardCheck,
+  Wallet,
+  TrendingDown,
+  Receipt,
+  Lock,
+  BarChart3,
+  Calendar,
+  UserCog,
+  ArrowUpCircle,
+  Database,
+  Box,
+  Brain,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useRole } from "@/lib/role-context";
@@ -26,11 +42,8 @@ import { ROLE_NAV, ROLE_SUMMARY } from "@/lib/erp-data";
 import { Button } from "@/components/ui/button";
 import { logoutUser } from "@/lib/auth-server";
 import { fetchNotifications, markAllNotificationsRead } from "@/lib/api/notifications";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { GlobalSearchTrigger } from "@/components/GlobalSearch";
 import { toast } from "sonner";
 
 // Maps navigation icon string names to their corresponding lucide-react components.
@@ -50,6 +63,22 @@ const ICON_MAP: Record<string, typeof HardHat> = {
   Settings2,
   Package,
   FileText,
+  HeartPulse,
+  Radiation,
+  Wind,
+  Flame,
+  ClipboardCheck,
+  Wallet,
+  TrendingDown,
+  Receipt,
+  Lock,
+  BarChart3,
+  Calendar,
+  UserCog,
+  ArrowUpCircle,
+  Database,
+  Box,
+  Brain,
 };
 
 // Top-level layout shell with sidebar navigation, header, notifications, and logout.
@@ -104,7 +133,10 @@ export function AppShell({
       >
         Skip to content
       </a>
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex" aria-label="Main navigation">
+      <aside
+        className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex"
+        aria-label="Main navigation"
+      >
         <div className="flex items-center gap-2.5 px-5 py-6">
           <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <HardHat className="size-5" />
@@ -121,11 +153,12 @@ export function AppShell({
               <Link
                 key={to}
                 to={to}
-                activeOptions={{ exact: to === "/" || to === `/${role.toLowerCase().replace("+", "plus")}` }}
+                activeOptions={{
+                  exact: to === "/" || to === `/${role.toLowerCase().replace("+", "plus")}`,
+                }}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 activeProps={{
-                  className:
-                    "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
+                  className: "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
                 }}
                 aria-current="page"
               >
@@ -162,6 +195,7 @@ export function AppShell({
               <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
             </div>
             <div className="flex items-center gap-3">
+              <GlobalSearchTrigger />
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -185,14 +219,21 @@ export function AppShell({
                   <div className="flex items-center justify-between border-b border-border px-4 py-3">
                     <p className="text-sm font-semibold">Notifications</p>
                     {unreadCount > 0 && (
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleMarkAllRead}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={handleMarkAllRead}
+                      >
                         <CheckCheck className="mr-1 size-3" /> Mark all read
                       </Button>
                     )}
                   </div>
                   <div className="max-h-80 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-muted-foreground">No unread notifications</p>
+                      <p className="py-6 text-center text-sm text-muted-foreground">
+                        No unread notifications
+                      </p>
                     ) : (
                       notifications.map((n: any) => (
                         <div key={n.id} className="border-b border-border px-4 py-3 last:border-0">
@@ -217,12 +258,17 @@ export function AppShell({
               </Button>
             </div>
           </div>
-          <nav className="flex gap-1 overflow-x-auto border-t border-border px-3 py-2 lg:hidden" aria-label="Mobile navigation">
+          <nav
+            className="flex gap-1 overflow-x-auto border-t border-border px-3 py-2 lg:hidden"
+            aria-label="Mobile navigation"
+          >
             {navItems.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
-                activeOptions={{ exact: to === "/" || to === `/${role.toLowerCase().replace("+", "plus")}` }}
+                activeOptions={{
+                  exact: to === "/" || to === `/${role.toLowerCase().replace("+", "plus")}`,
+                }}
                 className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground"
                 activeProps={{ className: "bg-accent text-accent-foreground font-semibold" }}
                 aria-current="page"
@@ -232,7 +278,9 @@ export function AppShell({
             ))}
           </nav>
         </header>
-        <main id="main-content" className="flex-1 px-5 py-6 md:px-8" role="main">{children}</main>
+        <main id="main-content" className="flex-1 px-5 py-6 md:px-8" role="main">
+          {children}
+        </main>
       </div>
     </div>
   );

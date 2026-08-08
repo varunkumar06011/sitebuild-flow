@@ -4,6 +4,7 @@ import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
 import { sanitizeSearch } from "./sanitize";
+import { dispatchNotification } from "./notification-system";
 import { approverFor, canApprove, inr, type Stage } from "../erp-data";
 import { validateStageTransition } from "../stage-transitions";
 
@@ -41,7 +42,15 @@ export type RequisitionRow = {
 
 // Fetches a paginated list of requisitions with vendor and raiser names joined, optional stage/raiser/search filters.
 export const fetchRequisitions = createServerFn({ method: "GET" })
-  .validator((input: { page?: number; limit?: number; stage?: string; raisedBy?: string; search?: string }) => input)
+  .validator(
+    (input: {
+      page?: number;
+      limit?: number;
+      stage?: string;
+      raisedBy?: string;
+      search?: string;
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
     const user = await requireSessionUser();
     const page = data.page ?? 1;
@@ -50,7 +59,10 @@ export const fetchRequisitions = createServerFn({ method: "GET" })
 
     let query = supabaseServer
       .from("requisitions")
-      .select("id, pr_number, po_number, grn_number, title, block, vendor_id, amount, stage, raised_by, date, quotations, documents, delivery_date, quantity_received, invoice_number, invoice_date, invoice_amount, approved_by, approved_at, rejected_by, rejected_at, rejection_reason, cancelled_by, cancelled_at, cancel_reason", { count: "exact" })
+      .select(
+        "id, pr_number, po_number, grn_number, title, block, vendor_id, amount, stage, raised_by, date, quotations, documents, delivery_date, quantity_received, invoice_number, invoice_date, invoice_amount, approved_by, approved_at, rejected_by, rejected_at, rejection_reason, cancelled_by, cancelled_at, cancel_reason",
+        { count: "exact" },
+      )
       .order("date", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -59,7 +71,9 @@ export const fetchRequisitions = createServerFn({ method: "GET" })
     if (data.search) {
       const s = sanitizeSearch(data.search);
       if (s) {
-        query = query.or(`title.ilike.%${s}%,pr_number.ilike.%${s}%,po_number.ilike.%${s}%,block.ilike.%${s}%`);
+        query = query.or(
+          `title.ilike.%${s}%,pr_number.ilike.%${s}%,po_number.ilike.%${s}%,block.ilike.%${s}%`,
+        );
       }
     }
 
@@ -89,7 +103,7 @@ export const fetchRequisitions = createServerFn({ method: "GET" })
         title: r.title,
         block: r.block,
         vendor_id: r.vendor_id,
-        vendor_name: r.vendor_id ? vendorMap.get(r.vendor_id) ?? null : null,
+        vendor_name: r.vendor_id ? (vendorMap.get(r.vendor_id) ?? null) : null,
         amount: Number(r.amount),
         stage: r.stage as Stage,
         raised_by: r.raised_by,
@@ -123,12 +137,16 @@ const createSchema = z.object({
   block: z.string().min(1),
   vendor_id: z.string().uuid().nullable(),
   amount: z.number().positive(),
-  quotations: z.array(z.object({
-    vendor: z.string(),
-    vendor_id: z.string().uuid().nullable().optional(),
-    amount: z.number(),
-    selected: z.boolean(),
-  })).default([]),
+  quotations: z
+    .array(
+      z.object({
+        vendor: z.string(),
+        vendor_id: z.string().uuid().nullable().optional(),
+        amount: z.number(),
+        selected: z.boolean(),
+      }),
+    )
+    .default([]),
   documents: z.array(z.string()).default([]),
 });
 
@@ -139,12 +157,10 @@ export const createRequisition = createServerFn({ method: "POST" })
     const user = await requireSessionUser();
 
     // Use the atomic DB sequence for PR numbers
-    const { data: seqResult, error: seqError } = await supabaseServer
-      .rpc("next_pr_number");
+    const { data: seqResult, error: seqError } = await supabaseServer.rpc("next_pr_number");
 
-    const prNumber = seqError || !seqResult
-      ? `PR-${Date.now().toString().slice(-6)}`
-      : (seqResult as string);
+    const prNumber =
+      seqError || !seqResult ? `PR-${Date.now().toString().slice(-6)}` : (seqResult as string);
 
     const { data: req, error } = await supabaseServer
       .from("requisitions")
@@ -166,7 +182,11 @@ export const createRequisition = createServerFn({ method: "POST" })
       return { success: false, error: "Failed to create requisition" };
     }
 
-    await logAction(user, "create_requisition", "requisition", req.id, { pr_number: req.pr_number, title: data.title, amount: data.amount });
+    await logAction(user, "create_requisition", "requisition", req.id, {
+      pr_number: req.pr_number,
+      title: data.title,
+      amount: data.amount,
+    });
 
     // Notify all Administrator-role users that a new PR has been raised
     await notifyByRole(
@@ -188,12 +208,16 @@ const updateDetailsSchema = z.object({
   block: z.string().optional(),
   vendor_id: z.string().uuid().nullable().optional(),
   amount: z.number().positive().optional(),
-  quotations: z.array(z.object({
-    vendor: z.string(),
-    vendor_id: z.string().uuid().nullable().optional(),
-    amount: z.number(),
-    selected: z.boolean(),
-  })).optional(),
+  quotations: z
+    .array(
+      z.object({
+        vendor: z.string(),
+        vendor_id: z.string().uuid().nullable().optional(),
+        amount: z.number(),
+        selected: z.boolean(),
+      }),
+    )
+    .optional(),
   documents: z.array(z.string()).optional(),
 });
 
@@ -216,10 +240,7 @@ export const updateRequisitionDetails = createServerFn({ method: "POST" })
       return { success: false, error: "No fields to update" };
     }
 
-    const { error } = await supabaseServer
-      .from("requisitions")
-      .update(updatePayload)
-      .eq("id", id);
+    const { error } = await supabaseServer.from("requisitions").update(updatePayload).eq("id", id);
 
     if (error) {
       return { success: false, error: "Failed to update requisition" };
@@ -232,12 +253,15 @@ export const updateRequisitionDetails = createServerFn({ method: "POST" })
 
 // --- Helper: send notifications to users by role ---
 // Errors are caught and logged so notification failures don't break the main operation.
-async function notifyByRole(role: string, type: string, title: string, body: string, payload: Record<string, any>) {
+async function notifyByRole(
+  role: string,
+  type: string,
+  title: string,
+  body: string,
+  payload: Record<string, any>,
+) {
   try {
-    const { data: users } = await supabaseServer
-      .from("users")
-      .select("id")
-      .eq("role", role);
+    const { data: users } = await supabaseServer.from("users").select("id").eq("role", role);
 
     if (!users || users.length === 0) return;
 
@@ -257,7 +281,13 @@ async function notifyByRole(role: string, type: string, title: string, body: str
 
 // --- Helper: send notification to a single user ---
 // Errors are caught and logged so notification failures don't break the main operation.
-async function notifyUser(userId: string, type: string, title: string, body: string, payload: Record<string, any>) {
+async function notifyUser(
+  userId: string,
+  type: string,
+  title: string,
+  body: string,
+  payload: Record<string, any>,
+) {
   try {
     await supabaseServer.from("notifications").insert({
       user_id: userId,
@@ -324,7 +354,9 @@ export const updateRequisitionStage = createServerFn({ method: "POST" })
 
     const { data: req } = await supabaseServer
       .from("requisitions")
-      .select("id, pr_number, po_number, amount, stage, title, quotations, vendor_id, raised_by, block")
+      .select(
+        "id, pr_number, po_number, amount, stage, title, quotations, vendor_id, raised_by, block",
+      )
       .eq("id", data.id)
       .single();
 
@@ -357,7 +389,10 @@ export const updateRequisitionStage = createServerFn({ method: "POST" })
     const updatePayload: Record<string, any> = { stage: toStage };
 
     // On submit for approval: link the selected quotation's vendor_id to the requisition
-    if (fromStage === "Quotation" && (toStage === "Admin" || toStage === "A1" || toStage === "A1+")) {
+    if (
+      fromStage === "Quotation" &&
+      (toStage === "Admin" || toStage === "A1" || toStage === "A1+")
+    ) {
       const selectedQuote = (req.quotations ?? []).find((q: any) => q.selected);
       if (selectedQuote?.vendor_id && !req.vendor_id) {
         updatePayload["vendor_id"] = selectedQuote.vendor_id;
@@ -366,8 +401,7 @@ export const updateRequisitionStage = createServerFn({ method: "POST" })
 
     // On approval to PO: generate PO number + record approver
     if (toStage === "PO" && !req.po_number) {
-      const { data: poSeqResult, error: poSeqError } = await supabaseServer
-        .rpc("next_po_number");
+      const { data: poSeqResult, error: poSeqError } = await supabaseServer.rpc("next_po_number");
       if (!poSeqError && poSeqResult) {
         updatePayload["po_number"] = poSeqResult as string;
       }
@@ -397,7 +431,10 @@ export const updateRequisitionStage = createServerFn({ method: "POST" })
     }
 
     // On reject: record rejection info
-    if ((fromStage === "Admin" || fromStage === "A1" || fromStage === "A1+") && toStage === "Quotation") {
+    if (
+      (fromStage === "Admin" || fromStage === "A1" || fromStage === "A1+") &&
+      toStage === "Quotation"
+    ) {
       updatePayload["rejected_by"] = user.id;
       updatePayload["rejected_at"] = new Date().toISOString();
       if (data.rejectionReason) {
@@ -421,7 +458,10 @@ export const updateRequisitionStage = createServerFn({ method: "POST" })
       .eq("stage", data.expectedStage);
 
     if (error) {
-      return { success: false, error: "Failed to update — possibly already updated by another user" };
+      return {
+        success: false,
+        error: "Failed to update — possibly already updated by another user",
+      };
     }
 
     // --- Post-transition side effects ---
@@ -440,11 +480,19 @@ export const updateRequisitionStage = createServerFn({ method: "POST" })
         // Rollback the stage advance so the user can retry — prevents orphaned state.
         await supabaseServer
           .from("requisitions")
-          .update({ stage: fromStage, grn_number: null, delivery_date: null, quantity_received: null })
+          .update({
+            stage: fromStage,
+            grn_number: null,
+            delivery_date: null,
+            quantity_received: null,
+          })
           .eq("id", data.id);
         return {
           success: false,
-          error: "Inventory stock-in failed: " + invError.message + ". Stage was not advanced — please retry.",
+          error:
+            "Inventory stock-in failed: " +
+            invError.message +
+            ". Stage was not advanced — please retry.",
         };
       }
     }
@@ -467,13 +515,13 @@ export const updateRequisitionStage = createServerFn({ method: "POST" })
       });
       if (payError) {
         // Rollback the stage advance so the user can retry — prevents orphaned state.
-        await supabaseServer
-          .from("requisitions")
-          .update({ stage: fromStage })
-          .eq("id", data.id);
+        await supabaseServer.from("requisitions").update({ stage: fromStage }).eq("id", data.id);
         return {
           success: false,
-          error: "Vendor payment record failed: " + payError.message + ". Stage was not advanced — please retry.",
+          error:
+            "Vendor payment record failed: " +
+            payError.message +
+            ". Stage was not advanced — please retry.",
         };
       }
     }
@@ -481,7 +529,10 @@ export const updateRequisitionStage = createServerFn({ method: "POST" })
     // --- Notifications ---
 
     // On submit for approval: notify all users with the approver role
-    if (fromStage === "Quotation" && (toStage === "Admin" || toStage === "A1" || toStage === "A1+")) {
+    if (
+      fromStage === "Quotation" &&
+      (toStage === "Admin" || toStage === "A1" || toStage === "A1+")
+    ) {
       await notifyByRole(
         toStage,
         "approval_request",
@@ -504,7 +555,10 @@ export const updateRequisitionStage = createServerFn({ method: "POST" })
     }
 
     // On reject: notify the supervisor who raised the PR
-    if ((fromStage === "Admin" || fromStage === "A1" || fromStage === "A1+") && toStage === "Quotation") {
+    if (
+      (fromStage === "Admin" || fromStage === "A1" || fromStage === "A1+") &&
+      toStage === "Quotation"
+    ) {
       await notifyUser(
         req.raised_by,
         "approval_result",
@@ -512,6 +566,31 @@ export const updateRequisitionStage = createServerFn({ method: "POST" })
         `${req.title} was sent back for rework by ${user.name}.`,
         { requisition_id: req.id, pr_number: req.pr_number, approved: false },
       );
+    }
+
+    // On PO issued: notify procurement roles via centralized dispatcher
+    if (toStage === "PO") {
+      const poNumber = updatePayload["po_number"] ?? req.po_number ?? "";
+      await dispatchNotification({
+        event: "po_issued",
+        title: "PO issued",
+        body: `PO ${poNumber} issued for ${req.pr_number} (${req.title}).`,
+        entityType: "requisition",
+        entityId: req.id,
+        targetUserIds: req.raised_by ? [req.raised_by] : [],
+      });
+    }
+
+    // On Material Received: notify via centralized dispatcher
+    if (toStage === "Material Received") {
+      await dispatchNotification({
+        event: "material_received",
+        title: "Material received",
+        body: `Material received for ${req.pr_number} (${req.title}).`,
+        entityType: "requisition",
+        entityId: req.id,
+        targetRoles: ["Administrator", "A1", "A1+"],
+      });
     }
 
     await logAction(user, "update_stage", "requisition", req.id, {
@@ -544,9 +623,10 @@ export const fetchRequisitionHistory = createServerFn({ method: "GET" })
       .order("created_at", { ascending: true });
 
     const userIds = [...new Set((logs ?? []).map((l: any) => l.user_id))];
-    const usersResult = userIds.length > 0
-      ? await supabaseServer.from("users").select("id, name, role").in("id", userIds)
-      : { data: [] as any[] };
+    const usersResult =
+      userIds.length > 0
+        ? await supabaseServer.from("users").select("id, name, role").in("id", userIds)
+        : { data: [] as any[] };
     const users = usersResult.data;
 
     const userMap = new Map((users ?? []).map((u: any) => [u.id, u] as const));
@@ -569,7 +649,9 @@ export const fetchRequisitionPayments = createServerFn({ method: "GET" })
 
     const { data: payments } = await supabaseServer
       .from("vendor_payments")
-      .select("id, amount, payment_type, reference_number, proof_path, notes, payment_date, created_at")
+      .select(
+        "id, amount, payment_type, reference_number, proof_path, notes, payment_date, created_at",
+      )
       .eq("requisition_id", data.requisitionId)
       .order("payment_date", { ascending: false });
 
@@ -635,6 +717,16 @@ export const addRequisitionPayment = createServerFn({ method: "POST" })
       method: data.paymentMethod,
     });
 
+    // Notify finance roles that a payment was recorded
+    await dispatchNotification({
+      event: "payment_recorded",
+      title: "Payment recorded",
+      body: `Payment of ₹${data.amount.toLocaleString("en-IN")} recorded for ${req.pr_number} (${req.title}).`,
+      entityType: "requisition",
+      entityId: req.id,
+      targetRoles: ["Administrator", "A1", "A1+"],
+    });
+
     return { success: true };
   });
 
@@ -664,13 +756,15 @@ export const fetchRequisitionItems = createServerFn({ method: "GET" })
 // Saves line items for a requisition (replaces all existing items).
 const saveItemsSchema = z.object({
   requisitionId: z.string().uuid(),
-  items: z.array(z.object({
-    description: z.string().min(1),
-    quantity: z.number().min(0).default(0),
-    unit: z.string().nullable().optional(),
-    unit_price: z.number().min(0).default(0),
-    amount: z.number().min(0).default(0),
-  })),
+  items: z.array(
+    z.object({
+      description: z.string().min(1),
+      quantity: z.number().min(0).default(0),
+      unit: z.string().nullable().optional(),
+      unit_price: z.number().min(0).default(0),
+      amount: z.number().min(0).default(0),
+    }),
+  ),
 });
 
 export const saveRequisitionItems = createServerFn({ method: "POST" })
@@ -679,7 +773,10 @@ export const saveRequisitionItems = createServerFn({ method: "POST" })
     const user = await requireSessionUser();
 
     // Delete existing items, then insert new ones
-    await supabaseServer.from("requisition_items").delete().eq("requisition_id", data.requisitionId);
+    await supabaseServer
+      .from("requisition_items")
+      .delete()
+      .eq("requisition_id", data.requisitionId);
 
     if (data.items.length > 0) {
       const rows = data.items.map((item, i) => ({
@@ -699,10 +796,15 @@ export const saveRequisitionItems = createServerFn({ method: "POST" })
 
       // Update the requisition amount to the sum of line items
       const totalAmount = data.items.reduce((sum, item) => sum + item.amount, 0);
-      await supabaseServer.from("requisitions").update({ amount: totalAmount }).eq("id", data.requisitionId);
+      await supabaseServer
+        .from("requisitions")
+        .update({ amount: totalAmount })
+        .eq("id", data.requisitionId);
     }
 
-    await logAction(user, "update_items", "requisition", data.requisitionId, { item_count: data.items.length });
+    await logAction(user, "update_items", "requisition", data.requisitionId, {
+      item_count: data.items.length,
+    });
 
     return { success: true };
   });

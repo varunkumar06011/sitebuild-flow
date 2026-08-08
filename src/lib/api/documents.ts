@@ -237,10 +237,7 @@ export const updateDocument = createServerFn({ method: "POST" })
       if (value !== undefined) updateData[key] = value;
     }
 
-    const { error } = await supabaseServer
-      .from("documents")
-      .update(updateData)
-      .eq("id", id);
+    const { error } = await supabaseServer.from("documents").update(updateData).eq("id", id);
 
     if (error) {
       return { success: false, error: "Failed to update document" };
@@ -285,10 +282,7 @@ export const deleteDocument = createServerFn({ method: "POST" })
     }
 
     // Delete the DB row
-    const { error } = await supabaseServer
-      .from("documents")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await supabaseServer.from("documents").delete().eq("id", data.id);
 
     if (error) {
       return { success: false, error: "Failed to delete document" };
@@ -333,5 +327,10 @@ export const getDocumentUrl = createServerFn({ method: "GET" })
     }
 
     await logAction(user, "view_document", "document", data.id, { name: doc.name });
-    return { success: true, url: urlData.signedUrl, name: doc.name, content_type: doc.content_type };
+    return {
+      success: true,
+      url: urlData.signedUrl,
+      name: doc.name,
+      content_type: doc.content_type,
+    };
   });

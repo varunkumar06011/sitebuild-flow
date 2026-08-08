@@ -41,7 +41,18 @@ import { useRole } from "@/lib/role-context";
 import { requireAuth } from "@/lib/auth-guards";
 import { inr } from "@/lib/erp-data";
 import { toast } from "sonner";
-import { Plus, Search, Building2, Pencil, IndianRupee, FileText, Eye, Upload, X, History } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Building2,
+  Pencil,
+  IndianRupee,
+  FileText,
+  Eye,
+  Upload,
+  X,
+  History,
+} from "lucide-react";
 import { WorkCategorySelect, WorkCategoryBadge } from "@/components/WorkCategory";
 
 const PAYMENT_METHODS = ["Cash", "Cheque", "UPI", "NEFT", "RTGS", "IMPS"] as const;
@@ -52,11 +63,14 @@ export const Route = createFileRoute("/vendors")({
       { title: "Vendor Management — Meditrust ERP" },
       {
         name: "description",
-        content: "Manage vendor master data with materials, payments, outstanding tracking and proof of bill.",
+        content:
+          "Manage vendor master data with materials, payments, outstanding tracking and proof of bill.",
       },
     ],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: VendorsPage,
 });
 
@@ -135,7 +149,13 @@ function VendorsPage() {
 
   const { data: vendorData } = useQuery({
     queryKey: ["vendors", search, workCatFilter],
-    queryFn: () => fetchVendors({ data: { ...(search ? { search } : {}), ...(workCatFilter !== "all" ? { workCategory: workCatFilter } : {}) } }),
+    queryFn: () =>
+      fetchVendors({
+        data: {
+          ...(search ? { search } : {}),
+          ...(workCatFilter !== "all" ? { workCategory: workCatFilter } : {}),
+        },
+      }),
   });
   const vendors = vendorData?.data ?? [];
 
@@ -174,15 +194,28 @@ function VendorsPage() {
   });
   const auditRecords = auditData?.data ?? [];
 
-// Opens the vendor create dialog with an empty form.
+  // Opens the vendor create dialog with an empty form.
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", gst_number: "", address: "", city: "", state: "", pincode: "", phone: "", email: "", materials_purchased: "", total_amount: "", payment_method: "", work_category: "uncategorized" });
+    setForm({
+      name: "",
+      gst_number: "",
+      address: "",
+      city: "",
+      state: "",
+      pincode: "",
+      phone: "",
+      email: "",
+      materials_purchased: "",
+      total_amount: "",
+      payment_method: "",
+      work_category: "uncategorized",
+    });
     setNewCategory("");
     setDialogOpen(true);
   };
 
-// Opens the vendor edit dialog pre-filled with the selected vendor's data.
+  // Opens the vendor edit dialog pre-filled with the selected vendor's data.
   const openEdit = (v: any) => {
     setEditing(v);
     setForm({
@@ -203,7 +236,7 @@ function VendorsPage() {
     setDialogOpen(true);
   };
 
-// Creates a new material category via the API and selects it in the vendor form.
+  // Creates a new material category via the API and selects it in the vendor form.
   const handleCreateCategory = async () => {
     if (!newCategory.trim()) {
       toast.error("Enter a category name");
@@ -228,7 +261,7 @@ function VendorsPage() {
     setCreatingCategory(false);
   };
 
-// Saves the vendor form, creating a new vendor or updating an existing one.
+  // Saves the vendor form, creating a new vendor or updating an existing one.
   const handleSave = async () => {
     if (!form.name.trim()) {
       toast.error("Vendor name is required");
@@ -276,10 +309,18 @@ function VendorsPage() {
     setSaving(false);
   };
 
-// Opens the add-payment dialog for the selected vendor.
+  // Opens the add-payment dialog for the selected vendor.
   const openAddPayment = (v: any) => {
     setPaymentVendor(v);
-    setPaymentForm({ amount: "", payment_type: "", approved_by: "", payment_date: "", reference_number: "", status: "paid", notes: "" });
+    setPaymentForm({
+      amount: "",
+      payment_type: "",
+      approved_by: "",
+      payment_date: "",
+      reference_number: "",
+      status: "paid",
+      notes: "",
+    });
     setProofFile(null);
     setPaymentDialogOpen(true);
   };
@@ -304,13 +345,13 @@ function VendorsPage() {
     setAuditDialogOpen(true);
   };
 
-// Opens the payment history dialog for the selected vendor.
+  // Opens the payment history dialog for the selected vendor.
   const openPaymentHistory = (v: any) => {
     setHistoryVendor(v);
     setHistoryDialogOpen(true);
   };
 
-// Uploads payment proof, records the vendor payment and refreshes vendor/payment queries.
+  // Uploads payment proof, records the vendor payment and refreshes vendor/payment queries.
   const handlePaymentSave = async () => {
     if (!paymentVendor) return;
     if (!paymentForm.amount || Number(paymentForm.amount) <= 0) {
@@ -359,7 +400,7 @@ function VendorsPage() {
         data: {
           vendor_id: paymentVendor.id,
           amount: Number(paymentForm.amount),
-          payment_type: paymentForm.payment_type as typeof PAYMENT_METHODS[number],
+          payment_type: paymentForm.payment_type as (typeof PAYMENT_METHODS)[number],
           approved_by: paymentForm.approved_by,
           proof_path: filePath,
           payment_date: paymentForm.payment_date || undefined,
@@ -444,7 +485,7 @@ function VendorsPage() {
         data: {
           payment_id: editingPayment.id,
           amount: Number(editForm.amount),
-          payment_type: editForm.payment_type as typeof PAYMENT_METHODS[number],
+          payment_type: editForm.payment_type as (typeof PAYMENT_METHODS)[number],
           approved_by: editForm.approved_by,
           proof_path: proofPath,
           payment_date: editForm.payment_date || undefined,
@@ -468,7 +509,7 @@ function VendorsPage() {
     setEditPaymentSaving(false);
   };
 
-// Generates a signed URL and opens the payment proof file in a new tab.
+  // Generates a signed URL and opens the payment proof file in a new tab.
   const handleViewProof = async (proofPath: string) => {
     const result = await getSignedUrl({ data: { bucket: "documents", path: proofPath } });
     if (result.success && result.url) {
@@ -479,7 +520,10 @@ function VendorsPage() {
   };
 
   return (
-    <AppShell title="Vendor management" subtitle="Vendor master data with materials, payments & outstanding tracking">
+    <AppShell
+      title="Vendor management"
+      subtitle="Vendor master data with materials, payments & outstanding tracking"
+    >
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -532,7 +576,10 @@ function VendorsPage() {
               <tbody className="divide-y divide-border">
                 {vendors.length === 0 && (
                   <tr>
-                    <td colSpan={canManage ? 8 : 7} className="py-8 text-center text-muted-foreground">
+                    <td
+                      colSpan={canManage ? 8 : 7}
+                      className="py-8 text-center text-muted-foreground"
+                    >
                       No vendors found.
                     </td>
                   </tr>
@@ -545,17 +592,31 @@ function VendorsPage() {
                         <div>
                           <span className="font-medium">{v.name}</span>
                           {v.gst_number && (
-                            <p className="font-mono text-xs text-muted-foreground">{v.gst_number}</p>
+                            <p className="font-mono text-xs text-muted-foreground">
+                              {v.gst_number}
+                            </p>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="py-3 text-muted-foreground">{v.materials_purchased ?? "—"}</td>
-                    <td className="py-3"><WorkCategoryBadge category={v.work_category} /></td>
-                    <td className="py-3 text-right font-mono font-semibold">{inr(v.total_amount ?? 0)}</td>
-                    <td className="py-3 text-right font-mono text-success">{inr(v.amount_paid ?? 0)}</td>
+                    <td className="py-3">
+                      <WorkCategoryBadge category={v.work_category} />
+                    </td>
+                    <td className="py-3 text-right font-mono font-semibold">
+                      {inr(v.total_amount ?? 0)}
+                    </td>
+                    <td className="py-3 text-right font-mono text-success">
+                      {inr(v.amount_paid ?? 0)}
+                    </td>
                     <td className="py-3 text-right font-mono">
-                      <span className={(v.outstanding_amount ?? 0) > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}>
+                      <span
+                        className={
+                          (v.outstanding_amount ?? 0) > 0
+                            ? "font-semibold text-destructive"
+                            : "text-muted-foreground"
+                        }
+                      >
                         {inr(v.outstanding_amount ?? 0)}
                       </span>
                     </td>
@@ -564,14 +625,29 @@ function VendorsPage() {
                       <td className="py-3">
                         <div className="flex items-center justify-end gap-1">
                           {(v.outstanding_amount ?? 0) > 0 && (
-                            <Button variant="ghost" size="sm" onClick={() => openAddPayment(v)} title="Add payment">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openAddPayment(v)}
+                              title="Add payment"
+                            >
                               <IndianRupee className="size-3.5" />
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm" onClick={() => openPaymentHistory(v)} title="Payment history">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openPaymentHistory(v)}
+                            title="Payment history"
+                          >
                             <FileText className="size-3.5" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(v)} title="Edit vendor">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(v)}
+                            title="Edit vendor"
+                          >
                             <Pencil className="size-3.5" />
                           </Button>
                         </div>
@@ -603,14 +679,32 @@ function VendorsPage() {
                   {canManage && (
                     <div className="flex items-center gap-1">
                       {(v.outstanding_amount ?? 0) > 0 && (
-                        <Button variant="ghost" size="sm" className="size-8 p-0" onClick={() => openAddPayment(v)} aria-label="Add payment">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="size-8 p-0"
+                          onClick={() => openAddPayment(v)}
+                          aria-label="Add payment"
+                        >
                           <IndianRupee className="size-3.5" />
                         </Button>
                       )}
-                      <Button variant="ghost" size="sm" className="size-8 p-0" onClick={() => openPaymentHistory(v)} aria-label="Payment history">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="size-8 p-0"
+                        onClick={() => openPaymentHistory(v)}
+                        aria-label="Payment history"
+                      >
                         <FileText className="size-3.5" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="size-8 p-0" onClick={() => openEdit(v)} aria-label="Edit vendor">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="size-8 p-0"
+                        onClick={() => openEdit(v)}
+                        aria-label="Edit vendor"
+                      >
                         <Pencil className="size-3.5" />
                       </Button>
                     </div>
@@ -620,11 +714,19 @@ function VendorsPage() {
                   <p className="mb-2 text-xs text-muted-foreground">{v.materials_purchased}</p>
                 )}
                 <div className="grid grid-cols-3 gap-2 border-t border-border pt-2 text-center text-xs">
-                  <div><p className="text-muted-foreground">Total</p><p className="font-mono font-semibold">{inr(v.total_amount ?? 0)}</p></div>
-                  <div><p className="text-muted-foreground">Paid</p><p className="font-mono text-success">{inr(v.amount_paid ?? 0)}</p></div>
+                  <div>
+                    <p className="text-muted-foreground">Total</p>
+                    <p className="font-mono font-semibold">{inr(v.total_amount ?? 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Paid</p>
+                    <p className="font-mono text-success">{inr(v.amount_paid ?? 0)}</p>
+                  </div>
                   <div>
                     <p className="text-muted-foreground">Outstanding</p>
-                    <p className={`font-mono ${(v.outstanding_amount ?? 0) > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
+                    <p
+                      className={`font-mono ${(v.outstanding_amount ?? 0) > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}
+                    >
                       {inr(v.outstanding_amount ?? 0)}
                     </p>
                   </div>
@@ -644,24 +746,35 @@ function VendorsPage() {
           <DialogHeader>
             <DialogTitle>{editing ? "Edit vendor" : "Add vendor"}</DialogTitle>
             <DialogDescription>
-              {editing ? "Update vendor details" : "Enter vendor master data with materials & payment info"}
+              {editing
+                ? "Update vendor details"
+                : "Enter vendor master data with materials & payment info"}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="vname">Name *</Label>
-              <Input id="vname" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <Input
+                id="vname"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="vmat">Materials purchased (category) *</Label>
               <div className="flex items-center gap-2">
-                <Select value={form.materials_purchased} onValueChange={(val) => setForm({ ...form, materials_purchased: val })}>
+                <Select
+                  value={form.materials_purchased}
+                  onValueChange={(val) => setForm({ ...form, materials_purchased: val })}
+                >
                   <SelectTrigger id="vmat" className="flex-1">
                     <SelectValue placeholder="Select material category" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((c: any) => (
-                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                      <SelectItem key={c.id} value={c.name}>
+                        {c.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -685,24 +798,36 @@ function VendorsPage() {
               </div>
               {form.materials_purchased && (
                 <p className="text-xs text-muted-foreground">
-                  Selected: <span className="font-medium text-foreground">{form.materials_purchased}</span>
+                  Selected:{" "}
+                  <span className="font-medium text-foreground">{form.materials_purchased}</span>
                 </p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="vamt">Total amount (₹)</Label>
-                <Input id="vamt" type="number" value={form.total_amount} onChange={(e) => setForm({ ...form, total_amount: e.target.value })} placeholder="0" />
+                <Input
+                  id="vamt"
+                  type="number"
+                  value={form.total_amount}
+                  onChange={(e) => setForm({ ...form, total_amount: e.target.value })}
+                  placeholder="0"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vpm">Payment method</Label>
-                <Select value={form.payment_method} onValueChange={(val) => setForm({ ...form, payment_method: val })}>
+                <Select
+                  value={form.payment_method}
+                  onValueChange={(val) => setForm({ ...form, payment_method: val })}
+                >
                   <SelectTrigger id="vpm">
                     <SelectValue placeholder="Select method" />
                   </SelectTrigger>
                   <SelectContent>
                     {PAYMENT_METHODS.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -711,34 +836,63 @@ function VendorsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="vgst">GST number</Label>
-                <Input id="vgst" value={form.gst_number} onChange={(e) => setForm({ ...form, gst_number: e.target.value })} />
+                <Input
+                  id="vgst"
+                  value={form.gst_number}
+                  onChange={(e) => setForm({ ...form, gst_number: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vphone">Phone</Label>
-                <Input id="vphone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <Input
+                  id="vphone"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="vaddr">Address</Label>
-              <Input id="vaddr" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              <Input
+                id="vaddr"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="vcity">City</Label>
-                <Input id="vcity" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                <Input
+                  id="vcity"
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vstate">State</Label>
-                <Input id="vstate" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
+                <Input
+                  id="vstate"
+                  value={form.state}
+                  onChange={(e) => setForm({ ...form, state: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vpin">Pincode</Label>
-                <Input id="vpin" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} />
+                <Input
+                  id="vpin"
+                  value={form.pincode}
+                  onChange={(e) => setForm({ ...form, pincode: e.target.value })}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="vemail">Email</Label>
-              <Input id="vemail" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <Input
+                id="vemail"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="vwcat">Work Category *</Label>
@@ -750,7 +904,9 @@ function VendorsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
             <Button disabled={saving} onClick={handleSave}>
               {saving ? "Saving..." : "Save"}
             </Button>
@@ -764,37 +920,54 @@ function VendorsPage() {
           <DialogHeader>
             <DialogTitle>Record payment — {paymentVendor?.name}</DialogTitle>
             <DialogDescription>
-              Outstanding: {inr(paymentVendor?.outstanding_amount ?? 0)} · All fields including proof of bill are mandatory
+              Outstanding: {inr(paymentVendor?.outstanding_amount ?? 0)} · All fields including
+              proof of bill are mandatory
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="pamt">Amount paid (₹) *</Label>
-              <Input id="pamt" type="number" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} placeholder="Enter amount" />
+              <Input
+                id="pamt"
+                type="number"
+                value={paymentForm.amount}
+                onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                placeholder="Enter amount"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="ptype">Payment type *</Label>
-                <Select value={paymentForm.payment_type} onValueChange={(val) => setPaymentForm({ ...paymentForm, payment_type: val })}>
+                <Select
+                  value={paymentForm.payment_type}
+                  onValueChange={(val) => setPaymentForm({ ...paymentForm, payment_type: val })}
+                >
                   <SelectTrigger id="ptype">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
                     {PAYMENT_METHODS.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="pappr">Approved by *</Label>
-                <Select value={paymentForm.approved_by} onValueChange={(val) => setPaymentForm({ ...paymentForm, approved_by: val })}>
+                <Select
+                  value={paymentForm.approved_by}
+                  onValueChange={(val) => setPaymentForm({ ...paymentForm, approved_by: val })}
+                >
                   <SelectTrigger id="pappr">
                     <SelectValue placeholder="Select approver" />
                   </SelectTrigger>
                   <SelectContent>
                     {approvers.map((a: any) => (
-                      <SelectItem key={a.id} value={a.id}>{a.name} ({a.role})</SelectItem>
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} ({a.role})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -803,11 +976,19 @@ function VendorsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="pdate">Payment date</Label>
-                <Input id="pdate" type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })} />
+                <Input
+                  id="pdate"
+                  type="date"
+                  value={paymentForm.payment_date}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="pstatus">Status</Label>
-                <Select value={paymentForm.status} onValueChange={(val) => setPaymentForm({ ...paymentForm, status: val })}>
+                <Select
+                  value={paymentForm.status}
+                  onValueChange={(val) => setPaymentForm({ ...paymentForm, status: val })}
+                >
                   <SelectTrigger id="pstatus">
                     <SelectValue />
                   </SelectTrigger>
@@ -820,7 +1001,14 @@ function VendorsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="pref">Reference / transaction number</Label>
-              <Input id="pref" value={paymentForm.reference_number} onChange={(e) => setPaymentForm({ ...paymentForm, reference_number: e.target.value })} placeholder="e.g. UTR, cheque no, transaction ID" />
+              <Input
+                id="pref"
+                value={paymentForm.reference_number}
+                onChange={(e) =>
+                  setPaymentForm({ ...paymentForm, reference_number: e.target.value })
+                }
+                placeholder="e.g. UTR, cheque no, transaction ID"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="pproof">Proof of bill *</Label>
@@ -831,7 +1019,9 @@ function VendorsPage() {
                 >
                   <Upload className="size-6 text-muted-foreground" />
                   <span className="text-sm font-medium">Click to upload proof</span>
-                  <span className="text-xs text-muted-foreground">PDF, JPG, PNG or WebP (max 10 MB)</span>
+                  <span className="text-xs text-muted-foreground">
+                    PDF, JPG, PNG or WebP (max 10 MB)
+                  </span>
                   <input
                     id="pproof"
                     type="file"
@@ -864,30 +1054,51 @@ function VendorsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="pnotes">Notes</Label>
-              <Textarea id="pnotes" value={paymentForm.notes} onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })} placeholder="Optional notes" />
+              <Textarea
+                id="pnotes"
+                value={paymentForm.notes}
+                onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                placeholder="Optional notes"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
+              Cancel
+            </Button>
             <Button disabled={proofUploading || paymentSaving} onClick={handlePaymentSave}>
-              {proofUploading ? "Uploading proof..." : paymentSaving ? "Saving..." : "Record payment"}
+              {proofUploading
+                ? "Uploading proof..."
+                : paymentSaving
+                  ? "Saving..."
+                  : "Record payment"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Payment History Dialog */}
-      <Dialog open={historyDialogOpen} onOpenChange={(v) => { setHistoryDialogOpen(v); if (!v) setHistoryVendor(null); }}>
+      <Dialog
+        open={historyDialogOpen}
+        onOpenChange={(v) => {
+          setHistoryDialogOpen(v);
+          if (!v) setHistoryVendor(null);
+        }}
+      >
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Payment history — {historyVendor?.name}</DialogTitle>
             <DialogDescription>
-              Total: {inr(historyVendor?.total_amount ?? 0)} · Paid: {inr(historyVendor?.amount_paid ?? 0)} · Outstanding: {inr(historyVendor?.outstanding_amount ?? 0)}
+              Total: {inr(historyVendor?.total_amount ?? 0)} · Paid:{" "}
+              {inr(historyVendor?.amount_paid ?? 0)} · Outstanding:{" "}
+              {inr(historyVendor?.outstanding_amount ?? 0)}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-2">
             {historyPayments.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No payments recorded yet.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No payments recorded yet.
+              </p>
             ) : (
               <>
                 {/* Desktop table */}
@@ -911,7 +1122,9 @@ function VendorsPage() {
                           <td className="py-2.5 text-xs text-muted-foreground">
                             {new Date(p.payment_date).toLocaleDateString("en-IN")}
                           </td>
-                          <td className="py-2.5 text-right font-mono font-semibold">{inr(p.amount)}</td>
+                          <td className="py-2.5 text-right font-mono font-semibold">
+                            {inr(p.amount)}
+                          </td>
                           <td className="py-2.5">
                             <StatusPill tone="info">{p.payment_type}</StatusPill>
                           </td>
@@ -926,21 +1139,40 @@ function VendorsPage() {
                           <td className="py-2.5 text-xs">
                             <span className="font-medium">{p.created_by_name}</span>
                             {p.updated_by_name && (
-                              <span className="text-muted-foreground"> (edited by {p.updated_by_name})</span>
+                              <span className="text-muted-foreground">
+                                {" "}
+                                (edited by {p.updated_by_name})
+                              </span>
                             )}
                           </td>
                           <td className="py-2.5">
-                            <Button variant="ghost" size="sm" onClick={() => handleViewProof(p.proof_path)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewProof(p.proof_path)}
+                            >
                               <FileText className="size-3.5" />
                             </Button>
                           </td>
                           {canManage && (
                             <td className="py-2.5">
                               <div className="flex items-center gap-1">
-                                <Button variant="ghost" size="sm" className="size-7 p-0" onClick={() => openEditPayment(p)} title="Edit payment">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="size-7 p-0"
+                                  onClick={() => openEditPayment(p)}
+                                  title="Edit payment"
+                                >
                                   <Pencil className="size-3.5" />
                                 </Button>
-                                <Button variant="ghost" size="sm" className="size-7 p-0" onClick={() => openAuditTrail(p.id)} title="Audit trail">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="size-7 p-0"
+                                  onClick={() => openAuditTrail(p.id)}
+                                  title="Audit trail"
+                                >
                                   <History className="size-3.5" />
                                 </Button>
                               </div>
@@ -968,18 +1200,35 @@ function VendorsPage() {
                         {new Date(p.payment_date).toLocaleDateString("en-IN")} · {p.created_by_name}
                       </p>
                       {p.reference_number && (
-                        <p className="text-xs font-mono text-muted-foreground">Ref: {p.reference_number}</p>
+                        <p className="text-xs font-mono text-muted-foreground">
+                          Ref: {p.reference_number}
+                        </p>
                       )}
                       <div className="mt-2 flex items-center gap-2">
-                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleViewProof(p.proof_path)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => handleViewProof(p.proof_path)}
+                        >
                           <FileText className="mr-1 size-3" /> View proof
                         </Button>
                         {canManage && (
                           <>
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => openEditPayment(p)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => openEditPayment(p)}
+                            >
                               <Pencil className="mr-1 size-3" /> Edit
                             </Button>
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => openAuditTrail(p.id)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => openAuditTrail(p.id)}
+                            >
                               <History className="mr-1 size-3" /> Audit
                             </Button>
                           </>
@@ -1005,7 +1254,9 @@ function VendorsPage() {
           </DialogHeader>
           <div className="mt-2">
             {allPayments.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No payments recorded yet.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No payments recorded yet.
+              </p>
             ) : (
               <>
                 {/* Desktop table */}
@@ -1029,7 +1280,9 @@ function VendorsPage() {
                           <td className="py-2.5 text-xs text-muted-foreground">
                             {new Date(p.payment_date).toLocaleDateString("en-IN")}
                           </td>
-                          <td className="py-2.5 text-right font-mono font-semibold">{inr(p.amount)}</td>
+                          <td className="py-2.5 text-right font-mono font-semibold">
+                            {inr(p.amount)}
+                          </td>
                           <td className="py-2.5">
                             <StatusPill tone="info">{p.payment_type}</StatusPill>
                           </td>
@@ -1037,9 +1290,15 @@ function VendorsPage() {
                             <span className="font-medium">{p.approved_by_name}</span>
                             <span className="text-muted-foreground"> ({p.approved_by_role})</span>
                           </td>
-                          <td className="py-2.5 text-xs text-muted-foreground">{p.created_by_name}</td>
+                          <td className="py-2.5 text-xs text-muted-foreground">
+                            {p.created_by_name}
+                          </td>
                           <td className="py-2.5">
-                            <Button variant="ghost" size="sm" onClick={() => handleViewProof(p.proof_path)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewProof(p.proof_path)}
+                            >
                               <FileText className="size-3.5" />
                             </Button>
                           </td>
@@ -1063,9 +1322,15 @@ function VendorsPage() {
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Approved by {p.approved_by_name} ({p.approved_by_role}) · Recorded by {p.created_by_name}
+                        Approved by {p.approved_by_name} ({p.approved_by_role}) · Recorded by{" "}
+                        {p.created_by_name}
                       </p>
-                      <Button variant="ghost" size="sm" className="mt-2 h-7 px-2 text-xs" onClick={() => handleViewProof(p.proof_path)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 h-7 px-2 text-xs"
+                        onClick={() => handleViewProof(p.proof_path)}
+                      >
                         <FileText className="mr-1 size-3" /> View proof
                       </Button>
                     </div>
@@ -1089,31 +1354,46 @@ function VendorsPage() {
           <div className="grid gap-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="eamt">Amount (₹) *</Label>
-              <Input id="eamt" type="number" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} />
+              <Input
+                id="eamt"
+                type="number"
+                value={editForm.amount}
+                onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="etype">Payment type *</Label>
-                <Select value={editForm.payment_type} onValueChange={(val) => setEditForm({ ...editForm, payment_type: val })}>
+                <Select
+                  value={editForm.payment_type}
+                  onValueChange={(val) => setEditForm({ ...editForm, payment_type: val })}
+                >
                   <SelectTrigger id="etype">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {PAYMENT_METHODS.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="eappr">Approved by *</Label>
-                <Select value={editForm.approved_by} onValueChange={(val) => setEditForm({ ...editForm, approved_by: val })}>
+                <Select
+                  value={editForm.approved_by}
+                  onValueChange={(val) => setEditForm({ ...editForm, approved_by: val })}
+                >
                   <SelectTrigger id="eappr">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {approvers.map((a: any) => (
-                      <SelectItem key={a.id} value={a.id}>{a.name} ({a.role})</SelectItem>
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} ({a.role})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1122,11 +1402,19 @@ function VendorsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edate">Payment date</Label>
-                <Input id="edate" type="date" value={editForm.payment_date} onChange={(e) => setEditForm({ ...editForm, payment_date: e.target.value })} />
+                <Input
+                  id="edate"
+                  type="date"
+                  value={editForm.payment_date}
+                  onChange={(e) => setEditForm({ ...editForm, payment_date: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="estatus">Status</Label>
-                <Select value={editForm.status} onValueChange={(val) => setEditForm({ ...editForm, status: val })}>
+                <Select
+                  value={editForm.status}
+                  onValueChange={(val) => setEditForm({ ...editForm, status: val })}
+                >
                   <SelectTrigger id="estatus">
                     <SelectValue />
                   </SelectTrigger>
@@ -1139,11 +1427,20 @@ function VendorsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="eref">Reference / transaction number</Label>
-              <Input id="eref" value={editForm.reference_number} onChange={(e) => setEditForm({ ...editForm, reference_number: e.target.value })} placeholder="e.g. UTR, cheque no, transaction ID" />
+              <Input
+                id="eref"
+                value={editForm.reference_number}
+                onChange={(e) => setEditForm({ ...editForm, reference_number: e.target.value })}
+                placeholder="e.g. UTR, cheque no, transaction ID"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="eproof">
-                Proof {Number(editForm.amount) !== Number(editingPayment?.amount) || editForm.status !== editingPayment?.status ? "* (required — amount or status changed)" : "(optional — upload to replace)"}
+                Proof{" "}
+                {Number(editForm.amount) !== Number(editingPayment?.amount) ||
+                editForm.status !== editingPayment?.status
+                  ? "* (required — amount or status changed)"
+                  : "(optional — upload to replace)"}
               </Label>
               {!editProofFile ? (
                 <label
@@ -1152,7 +1449,9 @@ function VendorsPage() {
                 >
                   <Upload className="size-6 text-muted-foreground" />
                   <span className="text-sm font-medium">Click to upload new proof</span>
-                  <span className="text-xs text-muted-foreground">PDF, JPG, PNG or WebP (max 10 MB)</span>
+                  <span className="text-xs text-muted-foreground">
+                    PDF, JPG, PNG or WebP (max 10 MB)
+                  </span>
                   <input
                     id="eproof"
                     type="file"
@@ -1172,33 +1471,64 @@ function VendorsPage() {
                       </p>
                     </div>
                   </div>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setEditProofFile(null)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditProofFile(null)}
+                  >
                     <X className="size-4 text-destructive" />
                   </Button>
                 </div>
               )}
               {editingPayment?.proof_path && !editProofFile && (
                 <p className="text-xs text-muted-foreground">
-                  Current proof: <button className="text-primary underline" onClick={() => handleViewProof(editingPayment.proof_path)}>view existing</button>
+                  Current proof:{" "}
+                  <button
+                    className="text-primary underline"
+                    onClick={() => handleViewProof(editingPayment.proof_path)}
+                  >
+                    view existing
+                  </button>
                 </p>
               )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="enotes">Notes</Label>
-              <Textarea id="enotes" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} placeholder="Optional notes" />
+              <Textarea
+                id="enotes"
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                placeholder="Optional notes"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditPaymentOpen(false)}>Cancel</Button>
-            <Button disabled={editProofUploading || editPaymentSaving} onClick={handleEditPaymentSave}>
-              {editProofUploading ? "Uploading proof..." : editPaymentSaving ? "Saving..." : "Update payment"}
+            <Button variant="outline" onClick={() => setEditPaymentOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={editProofUploading || editPaymentSaving}
+              onClick={handleEditPaymentSave}
+            >
+              {editProofUploading
+                ? "Uploading proof..."
+                : editPaymentSaving
+                  ? "Saving..."
+                  : "Update payment"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Audit Trail Dialog */}
-      <Dialog open={auditDialogOpen} onOpenChange={(v) => { setAuditDialogOpen(v); if (!v) setAuditPaymentId(null); }}>
+      <Dialog
+        open={auditDialogOpen}
+        onOpenChange={(v) => {
+          setAuditDialogOpen(v);
+          if (!v) setAuditPaymentId(null);
+        }}
+      >
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Payment audit trail</DialogTitle>
@@ -1208,7 +1538,9 @@ function VendorsPage() {
           </DialogHeader>
           <div className="mt-2">
             {auditRecords.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No changes recorded for this payment.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No changes recorded for this payment.
+              </p>
             ) : (
               <>
                 {/* Desktop table */}
@@ -1237,21 +1569,43 @@ function VendorsPage() {
                             <span className="text-muted-foreground"> ({a.changed_by_role})</span>
                           </td>
                           <td className="py-2.5 text-xs text-muted-foreground">{a.reason}</td>
-                          <td className="py-2.5 text-right font-mono text-xs">{a.old_amount ? inr(a.old_amount) : "—"}</td>
-                          <td className="py-2.5 text-right font-mono text-xs font-semibold">{a.new_amount ? inr(a.new_amount) : "—"}</td>
-                          <td className="py-2.5">
-                            <StatusPill tone={a.old_status === "paid" ? "success" : "warning"}>{a.old_status ?? "—"}</StatusPill>
+                          <td className="py-2.5 text-right font-mono text-xs">
+                            {a.old_amount ? inr(a.old_amount) : "—"}
+                          </td>
+                          <td className="py-2.5 text-right font-mono text-xs font-semibold">
+                            {a.new_amount ? inr(a.new_amount) : "—"}
                           </td>
                           <td className="py-2.5">
-                            <StatusPill tone={a.new_status === "paid" ? "success" : "warning"}>{a.new_status ?? "—"}</StatusPill>
+                            <StatusPill tone={a.old_status === "paid" ? "success" : "warning"}>
+                              {a.old_status ?? "—"}
+                            </StatusPill>
                           </td>
                           <td className="py-2.5">
-                            {a.old_proof_path && a.new_proof_path && a.old_proof_path !== a.new_proof_path ? (
+                            <StatusPill tone={a.new_status === "paid" ? "success" : "warning"}>
+                              {a.new_status ?? "—"}
+                            </StatusPill>
+                          </td>
+                          <td className="py-2.5">
+                            {a.old_proof_path &&
+                            a.new_proof_path &&
+                            a.old_proof_path !== a.new_proof_path ? (
                               <div className="flex items-center gap-1">
-                                <Button variant="ghost" size="sm" className="size-7 p-0" onClick={() => handleViewProof(a.old_proof_path)} title="View old proof">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="size-7 p-0"
+                                  onClick={() => handleViewProof(a.old_proof_path)}
+                                  title="View old proof"
+                                >
                                   <FileText className="size-3 text-muted-foreground" />
                                 </Button>
-                                <Button variant="ghost" size="sm" className="size-7 p-0" onClick={() => handleViewProof(a.new_proof_path)} title="View new proof">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="size-7 p-0"
+                                  onClick={() => handleViewProof(a.new_proof_path)}
+                                  title="View new proof"
+                                >
                                   <FileText className="size-3 text-primary" />
                                 </Button>
                               </div>
@@ -1270,25 +1624,43 @@ function VendorsPage() {
                     <div key={a.id} className="rounded-lg border border-border p-3">
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <span className="text-xs font-medium">{a.changed_by_name}</span>
-                        <span className="text-xs text-muted-foreground">{new Date(a.changed_at).toLocaleString("en-IN")}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(a.changed_at).toLocaleString("en-IN")}
+                        </span>
                       </div>
                       <p className="text-xs text-muted-foreground">Reason: {a.reason}</p>
                       <div className="mt-1 flex items-center gap-2 text-xs">
                         <span className="font-mono">{a.old_amount ? inr(a.old_amount) : "—"}</span>
                         <span>→</span>
-                        <span className="font-mono font-semibold">{a.new_amount ? inr(a.new_amount) : "—"}</span>
-                        <StatusPill tone={a.new_status === "paid" ? "success" : "warning"}>{a.new_status}</StatusPill>
+                        <span className="font-mono font-semibold">
+                          {a.new_amount ? inr(a.new_amount) : "—"}
+                        </span>
+                        <StatusPill tone={a.new_status === "paid" ? "success" : "warning"}>
+                          {a.new_status}
+                        </StatusPill>
                       </div>
-                      {a.old_proof_path && a.new_proof_path && a.old_proof_path !== a.new_proof_path && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleViewProof(a.old_proof_path)}>
-                            <FileText className="mr-1 size-3" /> Old proof
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleViewProof(a.new_proof_path)}>
-                            <FileText className="mr-1 size-3" /> New proof
-                          </Button>
-                        </div>
-                      )}
+                      {a.old_proof_path &&
+                        a.new_proof_path &&
+                        a.old_proof_path !== a.new_proof_path && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => handleViewProof(a.old_proof_path)}
+                            >
+                              <FileText className="mr-1 size-3" /> Old proof
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => handleViewProof(a.new_proof_path)}
+                            >
+                              <FileText className="mr-1 size-3" /> New proof
+                            </Button>
+                          </div>
+                        )}
                     </div>
                   ))}
                 </div>

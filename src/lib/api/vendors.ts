@@ -9,7 +9,9 @@ const PAYMENT_METHODS = ["Cash", "Cheque", "UPI", "NEFT", "RTGS", "IMPS"] as con
 
 // Fetches a paginated list of vendors with optional name/GST search.
 export const fetchVendors = createServerFn({ method: "GET" })
-  .validator((input: { page?: number; limit?: number; search?: string; workCategory?: string }) => input)
+  .validator(
+    (input: { page?: number; limit?: number; search?: string; workCategory?: string }) => input,
+  )
   .handler(async ({ data, context }) => {
     await requireSessionUser();
     const page = data.page ?? 1;
@@ -18,7 +20,10 @@ export const fetchVendors = createServerFn({ method: "GET" })
 
     let query = supabaseServer
       .from("vendors")
-      .select("id, name, gst_number, address, city, state, pincode, phone, email, materials_purchased, total_amount, amount_paid, outstanding_amount, payment_method, work_category, created_at", { count: "exact" })
+      .select(
+        "id, name, gst_number, address, city, state, pincode, phone, email, materials_purchased, total_amount, amount_paid, outstanding_amount, payment_method, work_category, created_at",
+        { count: "exact" },
+      )
       .order("name", { ascending: true })
       .range(offset, offset + limit - 1);
 
@@ -107,10 +112,7 @@ export const updateVendor = createServerFn({ method: "POST" })
       (updates as any).outstanding_amount = Math.max(updates.total_amount - paid, 0);
     }
 
-    const { error } = await supabaseServer
-      .from("vendors")
-      .update(updates)
-      .eq("id", id);
+    const { error } = await supabaseServer.from("vendors").update(updates).eq("id", id);
 
     if (error) {
       return { success: false, error: "Failed to update vendor" };
@@ -130,11 +132,19 @@ export const fetchVendorPayments = createServerFn({ method: "GET" })
 
     const { data: payments } = await supabaseServer
       .from("vendor_payments")
-      .select("id, vendor_id, amount, payment_type, approved_by, proof_path, payment_date, notes, reference_number, status, updated_by, updated_at, created_by, created_at")
+      .select(
+        "id, vendor_id, amount, payment_type, approved_by, proof_path, payment_date, notes, reference_number, status, updated_by, updated_at, created_by, created_at",
+      )
       .eq("vendor_id", data.vendorId)
       .order("payment_date", { ascending: false });
 
-    const userIds = [...new Set((payments ?? []).flatMap((p: any) => [p.approved_by, p.created_by, p.updated_by].filter(Boolean)))];
+    const userIds = [
+      ...new Set(
+        (payments ?? []).flatMap((p: any) =>
+          [p.approved_by, p.created_by, p.updated_by].filter(Boolean),
+        ),
+      ),
+    ];
     const { data: users } = await supabaseServer
       .from("users")
       .select("id, name, role")
@@ -148,7 +158,7 @@ export const fetchVendorPayments = createServerFn({ method: "GET" })
         approved_by_name: userMap.get(p.approved_by)?.name ?? "Unknown",
         approved_by_role: userMap.get(p.approved_by)?.role ?? "",
         created_by_name: userMap.get(p.created_by)?.name ?? "Unknown",
-        updated_by_name: p.updated_by ? userMap.get(p.updated_by)?.name ?? "Unknown" : null,
+        updated_by_name: p.updated_by ? (userMap.get(p.updated_by)?.name ?? "Unknown") : null,
       })),
     };
   });
@@ -168,7 +178,10 @@ export const fetchAllVendorPayments = createServerFn({ method: "GET" })
 
     const { data: payments, count } = await supabaseServer
       .from("vendor_payments")
-      .select("id, vendor_id, amount, payment_type, approved_by, proof_path, payment_date, notes, reference_number, status, updated_by, updated_at, created_by, created_at", { count: "exact" })
+      .select(
+        "id, vendor_id, amount, payment_type, approved_by, proof_path, payment_date, notes, reference_number, status, updated_by, updated_at, created_by, created_at",
+        { count: "exact" },
+      )
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -179,7 +192,13 @@ export const fetchAllVendorPayments = createServerFn({ method: "GET" })
       .in("id", vendorIds);
     const vendorMap = new Map((vendors ?? []).map((v: any) => [v.id, v.name]));
 
-    const userIds = [...new Set((payments ?? []).flatMap((p: any) => [p.approved_by, p.created_by, p.updated_by].filter(Boolean)))];
+    const userIds = [
+      ...new Set(
+        (payments ?? []).flatMap((p: any) =>
+          [p.approved_by, p.created_by, p.updated_by].filter(Boolean),
+        ),
+      ),
+    ];
     const { data: users } = await supabaseServer
       .from("users")
       .select("id, name, role")
@@ -193,7 +212,7 @@ export const fetchAllVendorPayments = createServerFn({ method: "GET" })
         approved_by_name: userMap.get(p.approved_by)?.name ?? "Unknown",
         approved_by_role: userMap.get(p.approved_by)?.role ?? "",
         created_by_name: userMap.get(p.created_by)?.name ?? "Unknown",
-        updated_by_name: p.updated_by ? userMap.get(p.updated_by)?.name ?? "Unknown" : null,
+        updated_by_name: p.updated_by ? (userMap.get(p.updated_by)?.name ?? "Unknown") : null,
       })),
       total: count ?? 0,
       page,
@@ -294,7 +313,9 @@ export const updateVendorPayment = createServerFn({ method: "POST" })
     // Fetch current payment to compare
     const { data: current } = await supabaseServer
       .from("vendor_payments")
-      .select("id, vendor_id, amount, status, proof_path, reference_number, payment_type, approved_by, notes, payment_date")
+      .select(
+        "id, vendor_id, amount, status, proof_path, reference_number, payment_type, approved_by, notes, payment_date",
+      )
       .eq("id", data.payment_id)
       .single();
 
@@ -310,7 +331,8 @@ export const updateVendorPayment = createServerFn({ method: "POST" })
     if ((amountChanged || statusChanged) && !proofChanged) {
       return {
         success: false,
-        error: "A new payment proof screenshot is required when changing the amount or status. Please upload a new proof.",
+        error:
+          "A new payment proof screenshot is required when changing the amount or status. Please upload a new proof.",
       };
     }
 
@@ -321,7 +343,8 @@ export const updateVendorPayment = createServerFn({ method: "POST" })
     if (data.approved_by !== undefined) updates.approved_by = data.approved_by;
     if (data.proof_path !== undefined) updates.proof_path = data.proof_path;
     if (data.payment_date !== undefined) updates.payment_date = data.payment_date;
-    if (data.reference_number !== undefined) updates.reference_number = data.reference_number?.trim() || null;
+    if (data.reference_number !== undefined)
+      updates.reference_number = data.reference_number?.trim() || null;
     if (data.status !== undefined) updates.status = data.status;
     if (data.notes !== undefined) updates.notes = data.notes;
 
@@ -330,7 +353,9 @@ export const updateVendorPayment = createServerFn({ method: "POST" })
       amountChanged ? "amount changed" : null,
       statusChanged ? "status changed" : null,
       proofChanged ? "proof replaced" : null,
-    ].filter(Boolean).join(", ");
+    ]
+      .filter(Boolean)
+      .join(", ");
 
     await supabaseServer.from("vendor_payment_audit").insert({
       payment_id: data.payment_id,
@@ -377,7 +402,9 @@ export const fetchPaymentAuditTrail = createServerFn({ method: "GET" })
 
     const { data: auditRecords } = await supabaseServer
       .from("vendor_payment_audit")
-      .select("id, payment_id, old_amount, new_amount, old_status, new_status, old_proof_path, new_proof_path, old_reference_number, new_reference_number, changed_by, changed_at, reason")
+      .select(
+        "id, payment_id, old_amount, new_amount, old_status, new_status, old_proof_path, new_proof_path, old_reference_number, new_reference_number, changed_by, changed_at, reason",
+      )
       .eq("payment_id", data.paymentId)
       .order("changed_at", { ascending: false });
 
@@ -441,15 +468,23 @@ export const createMaterialCategory = createServerFn({ method: "POST" })
       .single();
 
     if (error || !category) {
-      console.error("[createMaterialCategory] Insert failed:", error?.message, error?.code, error?.details);
-      const msg = error?.code === "23505"
-        ? "This category already exists"
-        : error?.code === "42P01"
-        ? "Material categories table does not exist — run migration 003"
-        : `Failed to create category: ${error?.message ?? "Unknown error"}`;
+      console.error(
+        "[createMaterialCategory] Insert failed:",
+        error?.message,
+        error?.code,
+        error?.details,
+      );
+      const msg =
+        error?.code === "23505"
+          ? "This category already exists"
+          : error?.code === "42P01"
+            ? "Material categories table does not exist — run migration 003"
+            : `Failed to create category: ${error?.message ?? "Unknown error"}`;
       return { success: false, error: msg };
     }
 
-    await logAction(user, "create_material_category", "material_category", category.id, { name: category.name });
+    await logAction(user, "create_material_category", "material_category", category.id, {
+      name: category.name,
+    });
     return { success: true, id: category.id, name: category.name };
   });

@@ -67,7 +67,9 @@ export const Route = createFileRoute("/documents")({
   head: () => ({
     meta: [{ title: "Documents — Meditrust ERP" }],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: DocumentsPage,
 });
 
@@ -102,7 +104,11 @@ function expiryTone(status: string): "neutral" | "success" | "warning" | "danger
 
 function formatDate(d: string | null): string {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(d).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -114,7 +120,10 @@ function extractFromOcrText(text: string): {
   expiryDate: string | null;
   licenceNumber: string | null;
 } {
-  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   const result: {
     suggestedName: string | null;
     amount: number | null;
@@ -153,7 +162,8 @@ function extractFromOcrText(text: string): {
   }
 
   // Extract licence number — look for "Licence No", "License Number", "Reg No"
-  const licRegex = /(?:licen[cs]e|lic\.?|reg(?:istration)?\.?)\s*(?:no\.?|number|#)\s*[:.]?\s*([A-Z0-9\-\/]{4,20})/i;
+  const licRegex =
+    /(?:licen[cs]e|lic\.?|reg(?:istration)?\.?)\s*(?:no\.?|number|#)\s*[:.]?\s*([A-Z0-9\-\/]{4,20})/i;
   const licMatch = text.match(licRegex);
   if (licMatch?.[1]) result.licenceNumber = licMatch[1];
 
@@ -200,8 +210,21 @@ function DocumentsPage() {
   const [uploadedPath, setUploadedPath] = useState<string | null>(null);
 
   // Queries
-  const { data: docsData, isLoading, isError, error } = useQuery({
-    queryKey: ["documents", search, typeFilter, expiryFilter, vendorFilter, blockFilter, workCatFilter],
+  const {
+    data: docsData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: [
+      "documents",
+      search,
+      typeFilter,
+      expiryFilter,
+      vendorFilter,
+      blockFilter,
+      workCatFilter,
+    ],
     queryFn: () =>
       fetchDocuments({
         data: {
@@ -279,55 +302,58 @@ function DocumentsPage() {
   // -------------------------------------------------------------------------
   // File selection + OCR
   // -------------------------------------------------------------------------
-  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    setSelectedFile(file);
+      setSelectedFile(file);
 
-    // Auto-suggest name from filename
-    if (!form.name) {
-      const baseName = file.name.replace(/\.[^/.]+$/, "");
-      setForm((f) => ({ ...f, name: baseName }));
-    }
-
-    // OCR for images only (tesseract.js does not handle PDFs in-browser)
-    if (file.type.startsWith("image/")) {
-      setOcrLoading(true);
-      try {
-        const Tesseract = await import("tesseract.js");
-        const worker = await Tesseract.createWorker("eng");
-        const imageUrl = URL.createObjectURL(file);
-        try {
-          const { data: ocrResult } = await worker.recognize(imageUrl);
-          const rawText = (ocrResult as any)?.text ?? "";
-          setForm((f) => ({ ...f, ocr_text: rawText }));
-
-          const extracted = extractFromOcrText(rawText);
-          if (extracted.suggestedName && !form.name) {
-            setForm((f) => ({ ...f, name: extracted.suggestedName! }));
-          }
-          if (extracted.amount !== null) {
-            setForm((f) => ({ ...f, amount: String(extracted.amount) }));
-          }
-          if (extracted.expiryDate) {
-            setForm((f) => ({ ...f, expiry_date: extracted.expiryDate! }));
-          }
-          if (extracted.licenceNumber) {
-            setForm((f) => ({ ...f, licence_number: extracted.licenceNumber! }));
-          }
-          toast.success("OCR completed — review extracted fields before saving.");
-        } finally {
-          URL.revokeObjectURL(imageUrl);
-          await worker.terminate();
-        }
-      } catch (err) {
-        toast.warning("OCR could not process this image. You can fill fields manually.");
-      } finally {
-        setOcrLoading(false);
+      // Auto-suggest name from filename
+      if (!form.name) {
+        const baseName = file.name.replace(/\.[^/.]+$/, "");
+        setForm((f) => ({ ...f, name: baseName }));
       }
-    }
-  }, [form.name]);
+
+      // OCR for images only (tesseract.js does not handle PDFs in-browser)
+      if (file.type.startsWith("image/")) {
+        setOcrLoading(true);
+        try {
+          const Tesseract = await import("tesseract.js");
+          const worker = await Tesseract.createWorker("eng");
+          const imageUrl = URL.createObjectURL(file);
+          try {
+            const { data: ocrResult } = await worker.recognize(imageUrl);
+            const rawText = (ocrResult as any)?.text ?? "";
+            setForm((f) => ({ ...f, ocr_text: rawText }));
+
+            const extracted = extractFromOcrText(rawText);
+            if (extracted.suggestedName && !form.name) {
+              setForm((f) => ({ ...f, name: extracted.suggestedName! }));
+            }
+            if (extracted.amount !== null) {
+              setForm((f) => ({ ...f, amount: String(extracted.amount) }));
+            }
+            if (extracted.expiryDate) {
+              setForm((f) => ({ ...f, expiry_date: extracted.expiryDate! }));
+            }
+            if (extracted.licenceNumber) {
+              setForm((f) => ({ ...f, licence_number: extracted.licenceNumber! }));
+            }
+            toast.success("OCR completed — review extracted fields before saving.");
+          } finally {
+            URL.revokeObjectURL(imageUrl);
+            await worker.terminate();
+          }
+        } catch (err) {
+          toast.warning("OCR could not process this image. You can fill fields manually.");
+        } finally {
+          setOcrLoading(false);
+        }
+      }
+    },
+    [form.name],
+  );
 
   // -------------------------------------------------------------------------
   // Save (create or update)
@@ -467,7 +493,10 @@ function DocumentsPage() {
   }
 
   return (
-    <AppShell title="Documents" subtitle="Centralized document storage — licences, certificates, agreements, bills & more">
+    <AppShell
+      title="Documents"
+      subtitle="Centralized document storage — licences, certificates, agreements, bills & more"
+    >
       {isError && (
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -493,7 +522,9 @@ function DocumentsPage() {
           <SelectContent>
             <SelectItem value="all">All types</SelectItem>
             {DOCUMENT_TYPES.map((t) => (
-              <SelectItem key={t} value={t}>{t}</SelectItem>
+              <SelectItem key={t} value={t}>
+                {t}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -504,7 +535,9 @@ function DocumentsPage() {
           <SelectContent>
             <SelectItem value="all">All expiry</SelectItem>
             {EXPIRY_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
+              <SelectItem key={s} value={s}>
+                {s}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -515,7 +548,9 @@ function DocumentsPage() {
           <SelectContent>
             <SelectItem value="all">All vendors</SelectItem>
             {vendors.map((v: any) => (
-              <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+              <SelectItem key={v.id} value={v.id}>
+                {v.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -526,7 +561,9 @@ function DocumentsPage() {
           <SelectContent>
             <SelectItem value="all">All blocks</SelectItem>
             {blocks.map((b: any) => (
-              <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+              <SelectItem key={b.id} value={b.id}>
+                {b.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -545,9 +582,21 @@ function DocumentsPage() {
 
       {/* Summary stats */}
       <div className="mb-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
-        <span>Total: <span className="font-semibold text-foreground">{docsData?.total ?? 0}</span></span>
-        <span>Expiring Soon: <span className="font-semibold text-warning-foreground">{documents.filter((d: any) => d.expiry_status === "Expiring Soon").length}</span></span>
-        <span>Expired: <span className="font-semibold text-destructive">{documents.filter((d: any) => d.expiry_status === "Expired").length}</span></span>
+        <span>
+          Total: <span className="font-semibold text-foreground">{docsData?.total ?? 0}</span>
+        </span>
+        <span>
+          Expiring Soon:{" "}
+          <span className="font-semibold text-warning-foreground">
+            {documents.filter((d: any) => d.expiry_status === "Expiring Soon").length}
+          </span>
+        </span>
+        <span>
+          Expired:{" "}
+          <span className="font-semibold text-destructive">
+            {documents.filter((d: any) => d.expiry_status === "Expired").length}
+          </span>
+        </span>
       </div>
 
       {/* Documents table */}
@@ -599,14 +648,18 @@ function DocumentsPage() {
                   <TableCell>
                     <span className="text-xs">{doc.document_type}</span>
                   </TableCell>
-                  <TableCell><WorkCategoryBadge category={doc.work_category} /></TableCell>
+                  <TableCell>
+                    <WorkCategoryBadge category={doc.work_category} />
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
                       <StatusPill tone={expiryTone(doc.expiry_status)}>
                         {doc.expiry_status}
                       </StatusPill>
                       {doc.expiry_date && (
-                        <span className="text-xs text-muted-foreground">{formatDate(doc.expiry_date)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(doc.expiry_date)}
+                        </span>
                       )}
                     </div>
                   </TableCell>
@@ -617,21 +670,43 @@ function DocumentsPage() {
                     {doc.project_name ?? doc.customer_name ?? doc.related_entity ?? "—"}
                   </TableCell>
                   <TableCell className="text-xs">{doc.uploaded_by_name ?? "—"}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{formatDate(doc.created_at)}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {formatDate(doc.created_at)}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => handlePreview(doc)} title="Preview">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handlePreview(doc)}
+                        title="Preview"
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} title="Download">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDownload(doc)}
+                        title="Download"
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
                       {canEdit && (
                         <>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(doc)} title="Edit">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEdit(doc)}
+                            title="Edit"
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(doc)} title="Delete">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(doc)}
+                            title="Delete"
+                          >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </>
@@ -678,7 +753,9 @@ function DocumentsPage() {
                     <div className="text-center">
                       <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                       <p className="text-sm text-muted-foreground">Click to select a file</p>
-                      <p className="text-xs text-muted-foreground mt-1">PDF, images, docs up to 10MB</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        PDF, images, docs up to 10MB
+                      </p>
                     </div>
                   )}
                   <input
@@ -720,7 +797,9 @@ function DocumentsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {DOCUMENT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -790,7 +869,9 @@ function DocumentsPage() {
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {blocks.map((b: any) => (
-                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -807,7 +888,9 @@ function DocumentsPage() {
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     {vendors.map((v: any) => (
-                      <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

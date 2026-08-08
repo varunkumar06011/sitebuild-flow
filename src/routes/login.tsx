@@ -99,9 +99,7 @@ function LoginPage() {
           <h1 className="text-3xl font-bold leading-tight lg:text-4xl">
             Vgrand Multi-speciality Hospital
           </h1>
-          <p className="text-base text-primary-foreground/80">
-            Phase 2 · 320 beds · 4 blocks
-          </p>
+          <p className="text-base text-primary-foreground/80">Phase 2 · 320 beds · 4 blocks</p>
           <div className="flex flex-wrap gap-2 pt-2">
             {["Procurement", "Approvals", "Gate Pass", "Traceability", "QC", "Registers"].map(
               (tag) => (

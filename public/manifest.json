@@ -1,0 +1,19 @@
+{
+  "name": "Meditrust ERP — Hospital Construction",
+  "short_name": "Meditrust ERP",
+  "description": "ERP for hospital construction projects: procurement, approvals, gate pass, traceability, QC and registers.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "scope": "/"
+}

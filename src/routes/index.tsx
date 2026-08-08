@@ -57,11 +57,23 @@ export const Route = createFileRoute("/")({
 
 function Overview() {
   const { role } = useRole();
-  const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
+  const { data: reqData } = useQuery({
+    queryKey: ["requisitions"],
+    queryFn: () => fetchRequisitions({ data: {} }),
+  });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
-  const { data: gpData } = useQuery({ queryKey: ["gatePasses"], queryFn: () => fetchGatePasses({ data: {} }) });
-  const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
-  const { data: labData } = useQuery({ queryKey: ["labour"], queryFn: () => fetchLabour({ data: {} }) });
+  const { data: gpData } = useQuery({
+    queryKey: ["gatePasses"],
+    queryFn: () => fetchGatePasses({ data: {} }),
+  });
+  const { data: inspData } = useQuery({
+    queryKey: ["inspections"],
+    queryFn: () => fetchInspections({ data: {} }),
+  });
+  const { data: labData } = useQuery({
+    queryKey: ["labour"],
+    queryFn: () => fetchLabour({ data: {} }),
+  });
 
   const requisitions = reqData?.data ?? [];
   const progress = progData?.data ?? [];
@@ -78,10 +90,24 @@ function Overview() {
       subtitle="Vgrand Multi-speciality Hospital · Phase 2 · 320 beds"
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Open requisitions" value={String(requisitions.length)} note="Across 4 blocks" />
-        <Stat label="Awaiting approval" value={String(pending.length)} note="2 above admin limit" tone="warning" />
+        <Stat
+          label="Open requisitions"
+          value={String(requisitions.length)}
+          note="Across 4 blocks"
+        />
+        <Stat
+          label="Awaiting approval"
+          value={String(pending.length)}
+          note="2 above admin limit"
+          tone="warning"
+        />
         <Stat label="Committed value" value={inr(committed)} note="Purchase orders + pipeline" />
-        <Stat label="Gate passes today" value={String(gatePasses.length)} note="1 awaiting OTP" tone="info" />
+        <Stat
+          label="Gate passes today"
+          value={String(gatePasses.length)}
+          note="1 awaiting OTP"
+          tone="info"
+        />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -154,7 +180,9 @@ function Overview() {
                   <p className="text-xs text-muted-foreground">{i.location}</p>
                 </div>
                 <StatusPill
-                  tone={i.result === "Pass" ? "success" : i.result === "Fail" ? "danger" : "warning"}
+                  tone={
+                    i.result === "Pass" ? "success" : i.result === "Fail" ? "danger" : "warning"
+                  }
                 >
                   {i.result}
                 </StatusPill>

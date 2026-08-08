@@ -8,7 +8,8 @@ export const Route = createFileRoute("/login/a1")({
       { title: "A1 Login — Meditrust ERP" },
       {
         name: "description",
-        content: "A1 sign-in portal: approvals above the admin limit, project overrides and org reports.",
+        content:
+          "A1 sign-in portal: approvals above the admin limit, project overrides and org reports.",
       },
       { property: "og:title", content: "A1 Login — Meditrust ERP" },
       { property: "og:description", content: "Sign in to the A1 senior approval portal." },

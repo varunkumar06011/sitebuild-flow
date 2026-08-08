@@ -22,11 +22,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import {
   fetchCategoryTree,
   createCategoryNode,
@@ -83,14 +79,17 @@ const CHILD_LEVEL: Record<string, string> = {
 export const Route = createFileRoute("/inventory")({
   head: () => ({
     meta: [
-      { title: "Inventory — Meditrust ERP" },
+      { title: "Inventory ΓÇö Meditrust ERP" },
       {
         name: "description",
-        content: "Inventory management: category tree, items, stock register, low-stock alerts, transaction ledger.",
+        content:
+          "Inventory management: category tree, items, stock register, low-stock alerts, transaction ledger.",
       },
     ],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: InventoryPage,
 });
 
@@ -164,9 +163,7 @@ function TreeRow({
           )}
           <span
             className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
-              depth === 0
-                ? "bg-primary/10 text-primary"
-                : "bg-muted text-muted-foreground"
+              depth === 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
             }`}
           >
             {LEVEL_LABELS[node.level] ?? node.level}
@@ -204,7 +201,9 @@ function TreeRow({
 function InventoryPage() {
   const { role } = useRole();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"tree" | "items" | "stock" | "ledger" | "alerts" | "wastage" | "projections" | "budgets">("tree");
+  const [tab, setTab] = useState<
+    "tree" | "items" | "stock" | "ledger" | "alerts" | "wastage" | "projections" | "budgets"
+  >("tree");
   const isAdminRole = ["Administrator", "A1", "A1+"].includes(role);
 
   // Category tree
@@ -219,7 +218,11 @@ function InventoryPage() {
   const [itemWorkCat, setItemWorkCat] = useState("all");
   const { data: itemsData } = useQuery({
     queryKey: ["inventory-items", itemSearch, itemWorkCat],
-    queryFn: () => fetchItems({ data: itemSearch ? { search: itemSearch } : {}, ...(itemWorkCat !== "all" ? { workCategory: itemWorkCat } : {}) } as any),
+    queryFn: () =>
+      fetchItems({
+        data: itemSearch ? { search: itemSearch } : {},
+        ...(itemWorkCat !== "all" ? { workCategory: itemWorkCat } : {}),
+      } as any),
   });
   const items = itemsData?.data ?? [];
 
@@ -256,7 +259,10 @@ function InventoryPage() {
   const [wastageTo, setWastageTo] = useState("");
   const { data: wastageData } = useQuery({
     queryKey: ["inventory-wastage", wastageFrom, wastageTo],
-    queryFn: () => fetchWastageReport({ data: { fromDate: wastageFrom || undefined, toDate: wastageTo || undefined } as { fromDate?: string; toDate?: string } }),
+    queryFn: () =>
+      fetchWastageReport({
+        data: { fromDate: wastageFrom || undefined, toDate: wastageTo || undefined },
+      }),
   });
   const wastageItems = wastageData?.data ?? [];
 
@@ -297,7 +303,11 @@ function InventoryPage() {
     enabled: !!ledgerItem,
   });
   const itemBudget = itemBudgetData?.data;
-  const [budgetForm, setBudgetForm] = useState({ budget_qty: "", budget_value: "", alert_threshold_pct: "80" });
+  const [budgetForm, setBudgetForm] = useState({
+    budget_qty: "",
+    budget_value: "",
+    alert_threshold_pct: "80",
+  });
   const [budgetSaving, setBudgetSaving] = useState(false);
 
   // A2: Resolve alert handler
@@ -400,12 +410,12 @@ function InventoryPage() {
   });
   const [itemSaving, setItemSaving] = useState(false);
 
-  // Flatten tree for item category dropdown — only leaf nodes (subtype) or any node
+  // Flatten tree for item category dropdown ΓÇö only leaf nodes (subtype) or any node
   const flatCategories = useMemo(() => {
     const flat: { id: string; name: string; level: string; path: string }[] = [];
     function walk(nodes: TreeNode[], path: string) {
       for (const n of nodes) {
-        const p = path ? `${path} › ${n.name}` : n.name;
+        const p = path ? `${path} ΓÇ║ ${n.name}` : n.name;
         flat.push({ id: n.id, name: n.name, level: n.level, path: p });
         if (n.children.length > 0) walk(n.children, p);
       }
@@ -416,7 +426,14 @@ function InventoryPage() {
 
   // Opens the add-item dialog with the form fields reset to defaults.
   const openCreateItem = () => {
-    setItemForm({ category_id: "", name: "", unit_of_measure: "", reorder_level: "0", opening_stock: "0", work_category: "uncategorized" });
+    setItemForm({
+      category_id: "",
+      name: "",
+      unit_of_measure: "",
+      reorder_level: "0",
+      opening_stock: "0",
+      work_category: "uncategorized",
+    });
     setItemDialogOpen(true);
   };
 
@@ -469,8 +486,11 @@ function InventoryPage() {
   ];
 
   return (
-    <AppShell title="Inventory" subtitle="Category tree, items, stock register & transaction ledger">
-      {/* B4: Instant consolidated report — summary cards */}
+    <AppShell
+      title="Inventory"
+      subtitle="Category tree, items, stock register & transaction ledger"
+    >
+      {/* B4: Instant consolidated report ΓÇö summary cards */}
       {report && (
         <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <Card className="p-4">
@@ -492,7 +512,9 @@ function InventoryPage() {
               <AlertTriangle className="size-4" />
               <span className="text-xs font-medium uppercase tracking-wide">Open Alerts</span>
             </div>
-            <p className="mt-1 text-2xl font-bold text-warning-foreground">{report.open_alerts_count}</p>
+            <p className="mt-1 text-2xl font-bold text-warning-foreground">
+              {report.open_alerts_count}
+            </p>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -504,7 +526,9 @@ function InventoryPage() {
           <Card className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Wallet className="size-4" />
-              <span className="text-xs font-medium uppercase tracking-wide">Vendor Outstanding</span>
+              <span className="text-xs font-medium uppercase tracking-wide">
+                Vendor Outstanding
+              </span>
             </div>
             <p className="mt-1 text-2xl font-bold">{inr(report.total_vendor_outstanding)}</p>
           </Card>
@@ -520,7 +544,10 @@ function InventoryPage() {
               {lowStock.length} item{lowStock.length > 1 ? "s" : ""} at or below reorder level
             </p>
             <p className="text-xs text-muted-foreground">
-              {lowStock.slice(0, 3).map((i: any) => i.item_name).join(", ")}
+              {lowStock
+                .slice(0, 3)
+                .map((i: any) => i.item_name)
+                .join(", ")}
               {lowStock.length > 3 && ` +${lowStock.length - 3} more`}
             </p>
           </div>
@@ -566,7 +593,8 @@ function InventoryPage() {
             </Button>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Category → Type → Subcategory → Subtype. Click "Add" under any node to create a child.
+            Category ΓåÆ Type ΓåÆ Subcategory ΓåÆ Subtype. Click "Add" under any node to create a
+            child.
           </p>
           <div className="mt-4 space-y-0.5">
             {tree.length === 0 ? (
@@ -637,11 +665,15 @@ function InventoryPage() {
                       <tr key={i.item_id} className="align-middle">
                         <td className="py-3 font-medium">{i.item_name}</td>
                         <td className="py-3 text-xs text-muted-foreground">{i.category_path}</td>
-                        <td className="py-3"><WorkCategoryBadge category={i.work_category} /></td>
-                        <td className="py-3 text-muted-foreground">{i.unit_of_measure ?? "—"}</td>
+                        <td className="py-3">
+                          <WorkCategoryBadge category={i.work_category} />
+                        </td>
+                        <td className="py-3 text-muted-foreground">{i.unit_of_measure ?? "ΓÇö"}</td>
                         <td className="py-3 text-right font-mono">{i.reorder_level}</td>
                         <td className="py-3 text-right">
-                          <span className={`font-mono font-semibold ${isLow ? "text-destructive" : ""}`}>
+                          <span
+                            className={`font-mono font-semibold ${isLow ? "text-destructive" : ""}`}
+                          >
                             {i.current_stock}
                           </span>
                           {isLow && (
@@ -675,10 +707,22 @@ function InventoryPage() {
                       )}
                     </div>
                     <p className="mb-2 text-xs text-muted-foreground">{i.category_path}</p>
-                    <div className="mb-2"><WorkCategoryBadge category={i.work_category} /></div>
+                    <div className="mb-2">
+                      <WorkCategoryBadge category={i.work_category} />
+                    </div>
                     <div className="flex items-center justify-between border-t border-border pt-2 text-sm">
-                      <span className="text-muted-foreground">Stock: <span className={`font-mono font-semibold ${isLow ? "text-destructive" : ""}`}>{i.current_stock}</span> {i.unit_of_measure ?? ""}</span>
-                      <span className="text-xs text-muted-foreground">Reorder: {i.reorder_level}</span>
+                      <span className="text-muted-foreground">
+                        Stock:{" "}
+                        <span
+                          className={`font-mono font-semibold ${isLow ? "text-destructive" : ""}`}
+                        >
+                          {i.current_stock}
+                        </span>{" "}
+                        {i.unit_of_measure ?? ""}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Reorder: {i.reorder_level}
+                      </span>
                     </div>
                   </div>
                 );
@@ -693,7 +737,7 @@ function InventoryPage() {
         <Card className="p-5">
           <h2 className="text-sm font-bold">Stock register</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Current stock = opening + in − out ± adjustment (computed on read)
+            Current stock = opening + in ΓêÆ out ┬▒ adjustment (computed on read)
           </p>
           <div className="mt-4">
             {/* Desktop table */}
@@ -724,9 +768,11 @@ function InventoryPage() {
                       <tr key={i.item_id} className="align-middle">
                         <td className="py-3 font-medium">{i.item_name}</td>
                         <td className="py-3 text-xs text-muted-foreground">{i.category_path}</td>
-                        <td className="py-3 text-muted-foreground">{i.unit_of_measure ?? "—"}</td>
+                        <td className="py-3 text-muted-foreground">{i.unit_of_measure ?? "ΓÇö"}</td>
                         <td className="py-3 text-right font-mono">{i.opening_stock}</td>
-                        <td className="py-3 text-right font-mono font-semibold">{i.current_stock}</td>
+                        <td className="py-3 text-right font-mono font-semibold">
+                          {i.current_stock}
+                        </td>
                         <td className="py-3 text-right font-mono">{i.reorder_level}</td>
                         <td className="py-3">
                           {isLow ? (
@@ -745,7 +791,9 @@ function InventoryPage() {
             {/* Mobile cards */}
             <div className="space-y-3 md:hidden">
               {stockItems.length === 0 && (
-                <p className="py-8 text-center text-sm text-muted-foreground">No stock data. Create items first.</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No stock data. Create items first.
+                </p>
               )}
               {stockItems.map((i: any) => {
                 const isLow = Number(i.current_stock) <= Number(i.reorder_level);
@@ -753,13 +801,30 @@ function InventoryPage() {
                   <div key={i.item_id} className="rounded-xl border border-border p-4">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="font-medium">{i.item_name}</span>
-                      {isLow ? <StatusPill tone="danger">Low stock</StatusPill> : <StatusPill tone="success">OK</StatusPill>}
+                      {isLow ? (
+                        <StatusPill tone="danger">Low stock</StatusPill>
+                      ) : (
+                        <StatusPill tone="success">OK</StatusPill>
+                      )}
                     </div>
-                    <p className="mb-2 text-xs text-muted-foreground">{i.category_path} · {i.unit_of_measure ?? "—"}</p>
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      {i.category_path} ┬╖ {i.unit_of_measure ?? "ΓÇö"}
+                    </p>
                     <div className="grid grid-cols-3 gap-2 border-t border-border pt-2 text-center text-xs">
-                      <div><p className="text-muted-foreground">Opening</p><p className="font-mono font-semibold">{i.opening_stock}</p></div>
-                      <div><p className="text-muted-foreground">Current</p><p className={`font-mono font-semibold ${isLow ? "text-destructive" : ""}`}>{i.current_stock}</p></div>
-                      <div><p className="text-muted-foreground">Reorder</p><p className="font-mono">{i.reorder_level}</p></div>
+                      <div>
+                        <p className="text-muted-foreground">Opening</p>
+                        <p className="font-mono font-semibold">{i.opening_stock}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Current</p>
+                        <p className={`font-mono font-semibold ${isLow ? "text-destructive" : ""}`}>
+                          {i.current_stock}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Reorder</p>
+                        <p className="font-mono">{i.reorder_level}</p>
+                      </div>
                     </div>
                   </div>
                 );
@@ -829,7 +894,11 @@ function InventoryPage() {
                           <div className="flex items-center gap-1.5">
                             <StatusPill
                               tone={
-                                t.type === "in" ? "success" : t.type === "out" ? "danger" : "warning"
+                                t.type === "in"
+                                  ? "success"
+                                  : t.type === "out"
+                                    ? "danger"
+                                    : "warning"
                               }
                             >
                               {t.type}
@@ -843,8 +912,8 @@ function InventoryPage() {
                         </td>
                         <td className="py-3 text-right font-mono font-semibold">{t.quantity}</td>
                         <td className="py-3 text-muted-foreground">{t.block_name}</td>
-                        <td className="py-3 font-mono text-xs">{t.reference ?? "—"}</td>
-                        <td className="py-3 text-muted-foreground">{t.remarks ?? "—"}</td>
+                        <td className="py-3 font-mono text-xs">{t.reference ?? "ΓÇö"}</td>
+                        <td className="py-3 text-muted-foreground">{t.remarks ?? "ΓÇö"}</td>
                         <td className="py-3 text-xs">{t.created_by_name}</td>
                       </tr>
                     ))}
@@ -855,13 +924,19 @@ function InventoryPage() {
               {/* Mobile cards */}
               <div className="space-y-3 md:hidden">
                 {ledger.length === 0 && (
-                  <p className="py-8 text-center text-sm text-muted-foreground">No transactions recorded for this item.</p>
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    No transactions recorded for this item.
+                  </p>
                 )}
                 {ledger.map((t: any) => (
                   <div key={t.id} className="rounded-xl border border-border p-4">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
-                        <StatusPill tone={t.type === "in" ? "success" : t.type === "out" ? "danger" : "warning"}>
+                        <StatusPill
+                          tone={
+                            t.type === "in" ? "success" : t.type === "out" ? "danger" : "warning"
+                          }
+                        >
                           {t.type}
                         </StatusPill>
                         {t.is_wastage && (
@@ -875,10 +950,14 @@ function InventoryPage() {
                     <p className="mb-1 text-xs text-muted-foreground">
                       {new Date(t.created_at).toLocaleString("en-IN")}
                     </p>
-                    <p className="text-sm">{t.block_name ?? "—"}</p>
+                    <p className="text-sm">{t.block_name ?? "ΓÇö"}</p>
                     {(t.reference || t.remarks) && (
                       <div className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
-                        {t.reference && <p>Ref: <span className="font-mono">{t.reference}</span></p>}
+                        {t.reference && (
+                          <p>
+                            Ref: <span className="font-mono">{t.reference}</span>
+                          </p>
+                        )}
                         {t.remarks && <p>{t.remarks}</p>}
                       </div>
                     )}
@@ -894,25 +973,43 @@ function InventoryPage() {
             <div className="mt-4 rounded-lg border border-border p-4">
               <h3 className="text-sm font-bold">Material budget</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Set an expected usage quantity. You'll be warned when actual usage crosses the threshold.
+                Set an expected usage quantity. You'll be warned when actual usage crosses the
+                threshold.
               </p>
               {itemBudget && (
-                <div className={`mt-3 rounded-md p-3 ${itemBudget.is_over_threshold ? "bg-destructive/10 border border-destructive/30" : "bg-muted/50"}`}>
+                <div
+                  className={`mt-3 rounded-md p-3 ${itemBudget.is_over_threshold ? "bg-destructive/10 border border-destructive/30" : "bg-muted/50"}`}
+                >
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Budget: <span className="font-semibold">{itemBudget.budget_qty}</span></span>
-                    <span className="text-muted-foreground">Used: <span className={`font-semibold ${itemBudget.is_over_threshold ? "text-destructive" : ""}`}>{itemBudget.total_usage}</span></span>
-                    <span className={`font-semibold ${itemBudget.is_over_threshold ? "text-destructive" : "text-muted-foreground"}`}>{itemBudget.usage_pct}%</span>
+                    <span className="text-muted-foreground">
+                      Budget: <span className="font-semibold">{itemBudget.budget_qty}</span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Used:{" "}
+                      <span
+                        className={`font-semibold ${itemBudget.is_over_threshold ? "text-destructive" : ""}`}
+                      >
+                        {itemBudget.total_usage}
+                      </span>
+                    </span>
+                    <span
+                      className={`font-semibold ${itemBudget.is_over_threshold ? "text-destructive" : "text-muted-foreground"}`}
+                    >
+                      {itemBudget.usage_pct}%
+                    </span>
                   </div>
                   {itemBudget.is_over_threshold && (
                     <p className="mt-1 text-xs font-semibold text-destructive">
-                      Over {itemBudget.alert_threshold_pct}% threshold — consider reviewing usage.
+                      Over {itemBudget.alert_threshold_pct}% threshold ΓÇö consider reviewing usage.
                     </p>
                   )}
                 </div>
               )}
               <div className="mt-3 grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="bqty" className="text-xs">Budget Qty</Label>
+                  <Label htmlFor="bqty" className="text-xs">
+                    Budget Qty
+                  </Label>
                   <Input
                     id="bqty"
                     type="number"
@@ -922,7 +1019,9 @@ function InventoryPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="bval" className="text-xs">Budget Value (₹)</Label>
+                  <Label htmlFor="bval" className="text-xs">
+                    Budget Value (Γé╣)
+                  </Label>
                   <Input
                     id="bval"
                     type="number"
@@ -932,12 +1031,16 @@ function InventoryPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="bthr" className="text-xs">Alert %</Label>
+                  <Label htmlFor="bthr" className="text-xs">
+                    Alert %
+                  </Label>
                   <Input
                     id="bthr"
                     type="number"
                     value={budgetForm.alert_threshold_pct}
-                    onChange={(e) => setBudgetForm({ ...budgetForm, alert_threshold_pct: e.target.value })}
+                    onChange={(e) =>
+                      setBudgetForm({ ...budgetForm, alert_threshold_pct: e.target.value })
+                    }
                     placeholder="80"
                   />
                 </div>
@@ -972,16 +1075,13 @@ function InventoryPage() {
                     <div className="flex-1">
                       <p className="text-sm font-semibold">{a.item_name}</p>
                       <p className="text-xs text-muted-foreground">
-                        Stock at alert: {a.stock_at_alert} · Reorder level: {a.reorder_level_at_alert}
-                        · Alerted: {new Date(a.created_at).toLocaleDateString("en-IN")}
+                        Stock at alert: {a.stock_at_alert} ┬╖ Reorder level:{" "}
+                        {a.reorder_level_at_alert}
+                        ┬╖ Alerted: {new Date(a.created_at).toLocaleDateString("en-IN")}
                       </p>
                     </div>
                     {isAdminRole && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleResolveAlert(a.id)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => handleResolveAlert(a.id)}>
                         <CheckCircle className="mr-1 size-3.5" /> Resolve
                       </Button>
                     )}
@@ -1002,7 +1102,9 @@ function InventoryPage() {
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="space-y-1">
-              <Label htmlFor="wfrom" className="text-xs">From date</Label>
+              <Label htmlFor="wfrom" className="text-xs">
+                From date
+              </Label>
               <Input
                 id="wfrom"
                 type="date"
@@ -1012,7 +1114,9 @@ function InventoryPage() {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="wto" className="text-xs">To date</Label>
+              <Label htmlFor="wto" className="text-xs">
+                To date
+              </Label>
               <Input
                 id="wto"
                 type="date"
@@ -1053,7 +1157,7 @@ function InventoryPage() {
                         {t.quantity} {t.unit_of_measure ?? ""}
                       </td>
                       <td className="py-3 text-muted-foreground">{t.block_name}</td>
-                      <td className="py-3 font-mono text-xs">{t.reference ?? "—"}</td>
+                      <td className="py-3 font-mono text-xs">{t.reference ?? "ΓÇö"}</td>
                       <td className="py-3 text-xs">{t.created_by_name}</td>
                     </tr>
                   ))}
@@ -1062,15 +1166,21 @@ function InventoryPage() {
             </div>
             <div className="space-y-3 md:hidden">
               {wastageItems.length === 0 && (
-                <p className="py-8 text-center text-sm text-muted-foreground">No wastage recorded in this period.</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No wastage recorded in this period.
+                </p>
               )}
               {wastageItems.map((t: any) => (
                 <div key={t.id} className="rounded-xl border border-border p-4">
                   <div className="mb-1 flex items-center justify-between">
                     <span className="font-medium">{t.item_name}</span>
-                    <span className="font-mono text-sm font-semibold text-destructive">{t.quantity} {t.unit_of_measure ?? ""}</span>
+                    <span className="font-mono text-sm font-semibold text-destructive">
+                      {t.quantity} {t.unit_of_measure ?? ""}
+                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleString("en-IN")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(t.created_at).toLocaleString("en-IN")}
+                  </p>
                   <p className="mt-1 text-sm">Block: {t.block_name}</p>
                   <p className="text-xs text-muted-foreground">By {t.created_by_name}</p>
                 </div>
@@ -1111,17 +1221,25 @@ function InventoryPage() {
                   {projections.map((p: any) => (
                     <tr key={p.item_id} className="align-middle">
                       <td className="py-3 font-medium">{p.item_name}</td>
-                      <td className="py-3 text-right font-mono">{p.current_stock} {p.unit_of_measure ?? ""}</td>
+                      <td className="py-3 text-right font-mono">
+                        {p.current_stock} {p.unit_of_measure ?? ""}
+                      </td>
                       <td className="py-3 text-right font-mono">{p.reorder_level}</td>
                       <td className="py-3 text-right font-mono">{p.total_usage_30d}</td>
                       <td className="py-3 text-right font-mono">{p.avg_daily_usage}</td>
                       <td className="py-3 text-right">
                         {p.days_remaining === null ? (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground">ΓÇö</span>
                         ) : (
-                          <span className={`font-mono font-semibold ${
-                            p.days_remaining <= 7 ? "text-destructive" : p.days_remaining <= 14 ? "text-warning-foreground" : ""
-                          }`}>
+                          <span
+                            className={`font-mono font-semibold ${
+                              p.days_remaining <= 7
+                                ? "text-destructive"
+                                : p.days_remaining <= 14
+                                  ? "text-warning-foreground"
+                                  : ""
+                            }`}
+                          >
                             {p.days_remaining} days
                           </span>
                         )}
@@ -1133,7 +1251,9 @@ function InventoryPage() {
             </div>
             <div className="space-y-3 md:hidden">
               {projections.length === 0 && (
-                <p className="py-8 text-center text-sm text-muted-foreground">No items to project.</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No items to project.
+                </p>
               )}
               {projections.map((p: any) => (
                 <div key={p.item_id} className="rounded-xl border border-border p-4">
@@ -1142,17 +1262,32 @@ function InventoryPage() {
                     {p.days_remaining === null ? (
                       <span className="text-xs text-muted-foreground">No usage</span>
                     ) : (
-                      <span className={`font-mono text-sm font-semibold ${
-                        p.days_remaining <= 7 ? "text-destructive" : p.days_remaining <= 14 ? "text-warning-foreground" : ""
-                      }`}>
+                      <span
+                        className={`font-mono text-sm font-semibold ${
+                          p.days_remaining <= 7
+                            ? "text-destructive"
+                            : p.days_remaining <= 14
+                              ? "text-warning-foreground"
+                              : ""
+                        }`}
+                      >
                         {p.days_remaining} days left
                       </span>
                     )}
                   </div>
                   <div className="grid grid-cols-3 gap-2 border-t border-border pt-2 text-center text-xs">
-                    <div><p className="text-muted-foreground">Stock</p><p className="font-mono font-semibold">{p.current_stock}</p></div>
-                    <div><p className="text-muted-foreground">Usage 30d</p><p className="font-mono">{p.total_usage_30d}</p></div>
-                    <div><p className="text-muted-foreground">Daily avg</p><p className="font-mono">{p.avg_daily_usage}</p></div>
+                    <div>
+                      <p className="text-muted-foreground">Stock</p>
+                      <p className="font-mono font-semibold">{p.current_stock}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Usage 30d</p>
+                      <p className="font-mono">{p.total_usage_30d}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Daily avg</p>
+                      <p className="font-mono">{p.avg_daily_usage}</p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1191,15 +1326,25 @@ function InventoryPage() {
                     <div className="mt-2 grid grid-cols-4 gap-2 text-sm">
                       <div>
                         <p className="text-xs text-muted-foreground">Budget</p>
-                        <p className="font-mono font-semibold">{b.budget_qty} {b.unit_of_measure ?? ""}</p>
+                        <p className="font-mono font-semibold">
+                          {b.budget_qty} {b.unit_of_measure ?? ""}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Used</p>
-                        <p className={`font-mono font-semibold ${b.is_over_threshold ? "text-destructive" : ""}`}>{b.total_usage}</p>
+                        <p
+                          className={`font-mono font-semibold ${b.is_over_threshold ? "text-destructive" : ""}`}
+                        >
+                          {b.total_usage}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Usage</p>
-                        <p className={`font-mono font-semibold ${b.is_over_threshold ? "text-destructive" : ""}`}>{b.usage_pct}%</p>
+                        <p
+                          className={`font-mono font-semibold ${b.is_over_threshold ? "text-destructive" : ""}`}
+                        >
+                          {b.usage_pct}%
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Threshold</p>
@@ -1259,7 +1404,9 @@ function InventoryPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCatDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setCatDialogOpen(false)}>
+              Cancel
+            </Button>
             <Button disabled={catSaving} onClick={handleCatSave}>
               {catSaving ? "Saving..." : "Create"}
             </Button>
@@ -1343,7 +1490,9 @@ function InventoryPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setItemDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setItemDialogOpen(false)}>
+              Cancel
+            </Button>
             <Button disabled={itemSaving} onClick={handleItemSave}>
               {itemSaving ? "Saving..." : "Create item"}
             </Button>

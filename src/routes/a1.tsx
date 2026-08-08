@@ -33,7 +33,9 @@ export const Route = createFileRoute("/a1")({
   head: () => ({
     meta: [{ title: "A1 Dashboard — Meditrust ERP" }],
   }),
-  beforeLoad: async () => { await requireRole("A1"); },
+  beforeLoad: async () => {
+    await requireRole("A1");
+  },
   component: A1Dashboard,
 });
 
@@ -41,13 +43,36 @@ export const Route = createFileRoute("/a1")({
 function A1Dashboard() {
   const actions = useApprovalActions("A1");
 
-  const { data: reqData, isError: reqError, error: reqErr } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }), refetchInterval: 15000 });
-  const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
+  const {
+    data: reqData,
+    isError: reqError,
+    error: reqErr,
+  } = useQuery({
+    queryKey: ["requisitions"],
+    queryFn: () => fetchRequisitions({ data: {} }),
+    refetchInterval: 15000,
+  });
+  const { data: inspData } = useQuery({
+    queryKey: ["inspections"],
+    queryFn: () => fetchInspections({ data: {} }),
+  });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
-  const { data: batchData } = useQuery({ queryKey: ["batches"], queryFn: () => fetchBatches({ data: {} }) });
-  const { data: partsData } = useQuery({ queryKey: ["partsOrders", "a1"], queryFn: () => fetchPartsOrders({ data: { limit: 5 } as any }) });
-  const { data: workData } = useQuery({ queryKey: ["workOrders", "a1"], queryFn: () => fetchWorkOrders({ data: { limit: 5 } as any }) });
-  const { data: docsData } = useQuery({ queryKey: ["documents", "a1"], queryFn: () => fetchDocuments({ data: { limit: 5 } as any }) });
+  const { data: batchData } = useQuery({
+    queryKey: ["batches"],
+    queryFn: () => fetchBatches({ data: {} }),
+  });
+  const { data: partsData } = useQuery({
+    queryKey: ["partsOrders", "a1"],
+    queryFn: () => fetchPartsOrders({ data: { limit: 5 } as any }),
+  });
+  const { data: workData } = useQuery({
+    queryKey: ["workOrders", "a1"],
+    queryFn: () => fetchWorkOrders({ data: { limit: 5 } as any }),
+  });
+  const { data: docsData } = useQuery({
+    queryKey: ["documents", "a1"],
+    queryFn: () => fetchDocuments({ data: { limit: 5 } as any }),
+  });
 
   const requisitions: RequisitionRow[] = reqData?.data ?? [];
   const inspections = inspData?.data ?? [];
@@ -57,10 +82,12 @@ function A1Dashboard() {
   const workOrders = workData?.data ?? [];
   const documents = docsData?.data ?? [];
 
-  const dashboardError = reqError ? reqErr?.message ?? "Failed to load data" : null;
+  const dashboardError = reqError ? (reqErr?.message ?? "Failed to load data") : null;
 
   const a1Queue = requisitions.filter(
-    (r) => (approverFor(r.amount) === "A1" || approverFor(r.amount) === "Administrator") && r.stage !== "Completed",
+    (r) =>
+      (approverFor(r.amount) === "A1" || approverFor(r.amount) === "Administrator") &&
+      r.stage !== "Completed",
   );
   const pendingA1 = a1Queue.filter((r) => r.stage === "A1" && !actions.decided[r.id]);
   const escalatedToA1Plus = requisitions.filter((r) => approverFor(r.amount) === "A1+");
@@ -118,7 +145,10 @@ function A1Dashboard() {
       <Card className="mt-6 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-bold">Approvals within your authority</h2>
-          <Link to="/approvals" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+          <Link
+            to="/approvals"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+          >
             Open full queue <ArrowUpRight className="size-3.5" />
           </Link>
         </div>
@@ -127,12 +157,7 @@ function A1Dashboard() {
             <p className="py-4 text-center text-xs text-muted-foreground">No approvals pending.</p>
           )}
           {pendingA1.map((r) => (
-            <ApprovalQueueItem
-              key={r.id}
-              requisition={r}
-              role="A1"
-              actions={actions}
-            />
+            <ApprovalQueueItem key={r.id} requisition={r} role="A1" actions={actions} />
           ))}
         </div>
       </Card>
@@ -196,7 +221,9 @@ function A1Dashboard() {
                   <p className="text-xs text-muted-foreground">{i.location}</p>
                 </div>
                 <StatusPill
-                  tone={i.result === "Pass" ? "success" : i.result === "Fail" ? "danger" : "warning"}
+                  tone={
+                    i.result === "Pass" ? "success" : i.result === "Fail" ? "danger" : "warning"
+                  }
                 >
                   {i.result}
                 </StatusPill>
@@ -217,7 +244,10 @@ function A1Dashboard() {
               <Package className="size-4 text-muted-foreground" />
               <h2 className="text-sm font-bold">Parts Orders</h2>
             </div>
-            <Link to="/parts-orders" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+            <Link
+              to="/parts-orders"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+            >
               Manage <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
@@ -226,10 +256,19 @@ function A1Dashboard() {
               Total: <span className="font-semibold text-foreground">{partsData?.total ?? 0}</span>
             </span>
             <span className="text-muted-foreground">
-              Draft: <span className="font-semibold text-foreground">{partsOrders.filter((o: any) => o.status === "Draft").length}</span>
+              Draft:{" "}
+              <span className="font-semibold text-foreground">
+                {partsOrders.filter((o: any) => o.status === "Draft").length}
+              </span>
             </span>
             <span className="text-muted-foreground">
-              Pending: <span className="font-semibold text-foreground">{partsOrders.filter((o: any) => !["Received", "Cancelled"].includes(o.status)).length}</span>
+              Pending:{" "}
+              <span className="font-semibold text-foreground">
+                {
+                  partsOrders.filter((o: any) => !["Received", "Cancelled"].includes(o.status))
+                    .length
+                }
+              </span>
             </span>
           </div>
           <div className="mt-4 space-y-2">
@@ -237,14 +276,27 @@ function A1Dashboard() {
               <p className="text-xs text-muted-foreground py-4 text-center">No parts orders yet.</p>
             ) : (
               partsOrders.map((o: any) => (
-                <div key={o.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                <div
+                  key={o.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+                >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{o.order_number}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {o.project_name ?? "—"} · {o.vendor_name ?? "—"}
                     </p>
                   </div>
-                  <StatusPill tone={o.status === "Received" ? "success" : o.status === "Cancelled" ? "danger" : o.status === "Draft" ? "neutral" : "info"}>
+                  <StatusPill
+                    tone={
+                      o.status === "Received"
+                        ? "success"
+                        : o.status === "Cancelled"
+                          ? "danger"
+                          : o.status === "Draft"
+                            ? "neutral"
+                            : "info"
+                    }
+                  >
                     {o.status}
                   </StatusPill>
                 </div>
@@ -259,7 +311,10 @@ function A1Dashboard() {
               <ClipboardList className="size-4 text-muted-foreground" />
               <h2 className="text-sm font-bold">Work Orders</h2>
             </div>
-            <Link to="/work-orders" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+            <Link
+              to="/work-orders"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+            >
               Manage <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
@@ -268,10 +323,23 @@ function A1Dashboard() {
               Total: <span className="font-semibold text-foreground">{workData?.total ?? 0}</span>
             </span>
             <span className="text-muted-foreground">
-              Assigned: <span className="font-semibold text-foreground">{workOrders.filter((o: any) => o.status === "Assigned" || o.status === "In Progress").length}</span>
+              Assigned:{" "}
+              <span className="font-semibold text-foreground">
+                {
+                  workOrders.filter(
+                    (o: any) => o.status === "Assigned" || o.status === "In Progress",
+                  ).length
+                }
+              </span>
             </span>
             <span className="text-muted-foreground">
-              Completed: <span className="font-semibold text-foreground">{workOrders.filter((o: any) => o.status === "Completed" || o.status === "Closed").length}</span>
+              Completed:{" "}
+              <span className="font-semibold text-foreground">
+                {
+                  workOrders.filter((o: any) => o.status === "Completed" || o.status === "Closed")
+                    .length
+                }
+              </span>
             </span>
           </div>
           <div className="mt-4 space-y-2">
@@ -279,14 +347,29 @@ function A1Dashboard() {
               <p className="text-xs text-muted-foreground py-4 text-center">No work orders yet.</p>
             ) : (
               workOrders.map((o: any) => (
-                <div key={o.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                <div
+                  key={o.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+                >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{o.order_number}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {o.project_name ?? "—"} · {o.assigned_supervisor_name ?? "Unassigned"}
                     </p>
                   </div>
-                  <StatusPill tone={o.status === "Completed" || o.status === "Closed" ? "success" : o.status === "Cancelled" ? "danger" : o.status === "Draft" ? "neutral" : o.status === "In Progress" ? "warning" : "info"}>
+                  <StatusPill
+                    tone={
+                      o.status === "Completed" || o.status === "Closed"
+                        ? "success"
+                        : o.status === "Cancelled"
+                          ? "danger"
+                          : o.status === "Draft"
+                            ? "neutral"
+                            : o.status === "In Progress"
+                              ? "warning"
+                              : "info"
+                    }
+                  >
                     {o.status}
                   </StatusPill>
                 </div>
@@ -303,7 +386,10 @@ function A1Dashboard() {
             <FileText className="size-4 text-muted-foreground" />
             <h2 className="text-sm font-bold">Documents</h2>
           </div>
-          <Link to="/documents" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+          <Link
+            to="/documents"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+          >
             Manage <ArrowUpRight className="size-3.5" />
           </Link>
         </div>
@@ -312,25 +398,46 @@ function A1Dashboard() {
             Total: <span className="font-semibold text-foreground">{docsData?.total ?? 0}</span>
           </span>
           <span className="text-muted-foreground">
-            Expiring Soon: <span className="font-semibold text-foreground">{documents.filter((d: any) => d.expiry_status === "Expiring Soon").length}</span>
+            Expiring Soon:{" "}
+            <span className="font-semibold text-foreground">
+              {documents.filter((d: any) => d.expiry_status === "Expiring Soon").length}
+            </span>
           </span>
           <span className="text-muted-foreground">
-            Expired: <span className="font-semibold text-destructive">{documents.filter((d: any) => d.expiry_status === "Expired").length}</span>
+            Expired:{" "}
+            <span className="font-semibold text-destructive">
+              {documents.filter((d: any) => d.expiry_status === "Expired").length}
+            </span>
           </span>
         </div>
         <div className="mt-4 space-y-2">
           {documents.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4 text-center">No documents uploaded yet.</p>
+            <p className="text-xs text-muted-foreground py-4 text-center">
+              No documents uploaded yet.
+            </p>
           ) : (
             documents.map((d: any) => (
-              <div key={d.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+              <div
+                key={d.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+              >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{d.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {d.document_type} · {d.uploaded_by_name ?? "—"}
                   </p>
                 </div>
-                <StatusPill tone={d.expiry_status === "Active" ? "success" : d.expiry_status === "Expiring Soon" ? "warning" : d.expiry_status === "Expired" ? "danger" : "neutral"}>
+                <StatusPill
+                  tone={
+                    d.expiry_status === "Active"
+                      ? "success"
+                      : d.expiry_status === "Expiring Soon"
+                        ? "warning"
+                        : d.expiry_status === "Expired"
+                          ? "danger"
+                          : "neutral"
+                  }
+                >
                   {d.expiry_status}
                 </StatusPill>
               </div>

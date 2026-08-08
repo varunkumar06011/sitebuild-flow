@@ -27,7 +27,9 @@ export const Route = createFileRoute("/audit-log")({
       },
     ],
   }),
-  beforeLoad: async () => { await requireRole("A1+"); },
+  beforeLoad: async () => {
+    await requireRole("A1+");
+  },
   component: AuditLogPage,
 });
 
@@ -70,13 +72,21 @@ function AuditLogPage() {
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Select value={entityFilter} onValueChange={(v) => { setEntityFilter(v); setPage(1); }}>
+            <Select
+              value={entityFilter}
+              onValueChange={(v) => {
+                setEntityFilter(v);
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {ENTITY_TYPES.map((e) => (
-                  <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                  <SelectItem key={e.value} value={e.value}>
+                    {e.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -103,7 +113,9 @@ function AuditLogPage() {
               <tbody className="divide-y divide-border">
                 {isLoading && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-muted-foreground">Loading...</td>
+                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                      Loading...
+                    </td>
                   </tr>
                 )}
                 {!isLoading && logs.length === 0 && (
@@ -121,7 +133,15 @@ function AuditLogPage() {
                     </td>
                     <td className="py-3 font-medium">{log.user_name}</td>
                     <td className="py-3">
-                      <StatusPill tone={log.user_role === "A1+" ? "danger" : log.user_role === "A1" ? "warning" : "info"}>
+                      <StatusPill
+                        tone={
+                          log.user_role === "A1+"
+                            ? "danger"
+                            : log.user_role === "A1"
+                              ? "warning"
+                              : "info"
+                        }
+                      >
                         {log.user_role}
                       </StatusPill>
                     </td>
@@ -153,7 +173,15 @@ function AuditLogPage() {
               <div key={log.id} className="rounded-xl border border-border p-4">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="font-medium">{log.user_name}</span>
-                  <StatusPill tone={log.user_role === "A1+" ? "danger" : log.user_role === "A1" ? "warning" : "info"}>
+                  <StatusPill
+                    tone={
+                      log.user_role === "A1+"
+                        ? "danger"
+                        : log.user_role === "A1"
+                          ? "warning"
+                          : "info"
+                    }
+                  >
                     {log.user_role}
                   </StatusPill>
                 </div>
@@ -162,9 +190,13 @@ function AuditLogPage() {
                   {new Date(log.created_at).toLocaleString("en-IN")}
                 </p>
                 <div className="border-t border-border pt-2 text-xs text-muted-foreground">
-                  <p>{log.entity_type} · {log.entity_id?.substring(0, 8)}...</p>
+                  <p>
+                    {log.entity_type} · {log.entity_id?.substring(0, 8)}...
+                  </p>
                   {log.details && (
-                    <p className="mt-1 break-all">{JSON.stringify(log.details).substring(0, 120)}</p>
+                    <p className="mt-1 break-all">
+                      {JSON.stringify(log.details).substring(0, 120)}
+                    </p>
                   )}
                 </div>
               </div>

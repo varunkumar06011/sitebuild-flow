@@ -135,11 +135,7 @@ export function DecisionHistory({ requisitions, initialLimit = 5 }: DecisionHist
       </div>
       {hiddenCount > 0 && (
         <div className="mt-4 text-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setExpanded((e) => !e)}
-          >
+          <Button variant="outline" size="sm" onClick={() => setExpanded((e) => !e)}>
             {expanded ? (
               <>
                 <ChevronUp className="size-4" /> Show less

@@ -18,9 +18,7 @@ export const NEXT_STAGE: Record<string, string> = {
   Payment: "Completed",
 };
 
-export type ValidationResult =
-  | { valid: true }
-  | { valid: false; error: string };
+export type ValidationResult = { valid: true } | { valid: false; error: string };
 
 // Input shape for the validation function.
 export type TransitionInput = {
@@ -48,7 +46,10 @@ export function validateStageTransition(input: TransitionInput): ValidationResul
     const requiredApprover = approverFor(amount);
     const requiredStage = stageForRole(requiredApprover);
     if (toStage !== requiredStage) {
-      return { valid: false, error: `This amount requires ${requiredApprover} approval (route to ${requiredStage})` };
+      return {
+        valid: false,
+        error: `This amount requires ${requiredApprover} approval (route to ${requiredStage})`,
+      };
     }
     return { valid: true };
   }
@@ -56,15 +57,24 @@ export function validateStageTransition(input: TransitionInput): ValidationResul
   // --- Approval gate: Admin/A1/A1+ → PO (approve) ---
   if ((fromStage === "Admin" || fromStage === "A1" || fromStage === "A1+") && toStage === "PO") {
     if (!canApprove(role, amount)) {
-      return { valid: false, error: `Your role (${role}) cannot approve requisitions of this amount` };
+      return {
+        valid: false,
+        error: `Your role (${role}) cannot approve requisitions of this amount`,
+      };
     }
     return { valid: true };
   }
 
   // --- Reject: Admin/A1/A1+ → Quotation ---
-  if ((fromStage === "Admin" || fromStage === "A1" || fromStage === "A1+") && toStage === "Quotation") {
+  if (
+    (fromStage === "Admin" || fromStage === "A1" || fromStage === "A1+") &&
+    toStage === "Quotation"
+  ) {
     if (!canApprove(role, amount)) {
-      return { valid: false, error: `Your role (${role}) cannot reject requisitions of this amount` };
+      return {
+        valid: false,
+        error: `Your role (${role}) cannot reject requisitions of this amount`,
+      };
     }
     return { valid: true };
   }
@@ -82,7 +92,10 @@ export function validateStageTransition(input: TransitionInput): ValidationResul
   if (SUPERVISOR_STAGES.includes(fromStage as (typeof SUPERVISOR_STAGES)[number])) {
     const expectedNext = NEXT_STAGE[fromStage];
     if (toStage !== expectedNext) {
-      return { valid: false, error: `Invalid stage transition: ${fromStage} → ${toStage}. Expected: ${expectedNext}` };
+      return {
+        valid: false,
+        error: `Invalid stage transition: ${fromStage} → ${toStage}. Expected: ${expectedNext}`,
+      };
     }
     if (role === "Supervisor") {
       return { valid: true };
@@ -90,7 +103,10 @@ export function validateStageTransition(input: TransitionInput): ValidationResul
     if (canApprove(role, amount)) {
       return { valid: true };
     }
-    return { valid: false, error: "Only a Supervisor or approver can advance post-approval stages" };
+    return {
+      valid: false,
+      error: "Only a Supervisor or approver can advance post-approval stages",
+    };
   }
 
   // --- PR → Quotation (supervisor advances) ---
