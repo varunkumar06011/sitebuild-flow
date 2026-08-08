@@ -256,7 +256,7 @@ function InventoryPage() {
   const [wastageTo, setWastageTo] = useState("");
   const { data: wastageData } = useQuery({
     queryKey: ["inventory-wastage", wastageFrom, wastageTo],
-    queryFn: () => fetchWastageReport({ data: { fromDate: wastageFrom || undefined, toDate: wastageTo || undefined } }),
+    queryFn: () => fetchWastageReport({ data: { fromDate: wastageFrom || undefined, toDate: wastageTo || undefined } as { fromDate?: string; toDate?: string } }),
   });
   const wastageItems = wastageData?.data ?? [];
 

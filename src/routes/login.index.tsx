@@ -79,7 +79,6 @@ function LoginPage() {
         }
         setUser({ role: result.user.role, name: result.user.name });
         toast.success(`Welcome back, ${result.user.name}`);
-        document.cookie = `meditrust_session=${encodeURIComponent(result.token)}; path=/; max-age=${result.maxAge}; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
         window.location.href = ROLE_DASHBOARD[result.user.role as Role];
       } else {
         toast.error(result.error);

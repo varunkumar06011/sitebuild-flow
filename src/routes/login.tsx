@@ -56,7 +56,6 @@ function LoginPage() {
       if (result.success) {
         setUser({ role: result.user.role, name: result.user.name });
         toast.success(`Welcome back, ${result.user.name}`);
-        document.cookie = `meditrust_session=${encodeURIComponent(result.token)}; path=/; max-age=${result.maxAge}; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
         const routes = {
           Supervisor: "/supervisor",
           Administrator: "/administrator",

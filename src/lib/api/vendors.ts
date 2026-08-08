@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
+import { sanitizeSearch } from "./sanitize";
 
 const PAYMENT_METHODS = ["Cash", "Cheque", "UPI", "NEFT", "RTGS", "IMPS"] as const;
 
@@ -22,7 +23,10 @@ export const fetchVendors = createServerFn({ method: "GET" })
       .range(offset, offset + limit - 1);
 
     if (data.search) {
-      query = query.or(`name.ilike.%${data.search}%,gst_number.ilike.%${data.search}%`);
+      const s = sanitizeSearch(data.search);
+      if (s) {
+        query = query.or(`name.ilike.%${s}%,gst_number.ilike.%${s}%`);
+      }
     }
 
     if (data.workCategory && data.workCategory !== "all") {

@@ -51,6 +51,15 @@ function isH3SwallowedErrorBody(body: string): boolean {
 // Cloudflare-style fetch handler that delegates to the server entry and renders an error page on failure.
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    // Health check endpoint — responds without touching the database.
+    const url = new URL(request.url);
+    if (url.pathname === "/api/health") {
+      return new Response(JSON.stringify({ status: "ok", timestamp: new Date().toISOString() }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);

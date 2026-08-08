@@ -3,13 +3,24 @@ import pg from "pg";
 
 const { Pool } = pg;
 
+// Load .env manually
+const env = readFileSync(".env", "utf8");
+for (const line of env.split("\n")) {
+  const m = line.match(/^([A-Z_]+)=(.*)$/);
+  if (m) process.env[m[1]] = m[2];
+}
+
 const file = process.argv[2];
 if (!file) {
   console.error("Usage: node scripts/run-single-migration.mjs <migration-file.sql>");
   process.exit(1);
 }
 
-const conn = "postgresql://postgres.vbnqlsmraiwcqnsenlej:Varun06011%40@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
+const conn = process.env["SUPABASE_DB_URL"];
+if (!conn) {
+  console.error("Missing SUPABASE_DB_URL in .env");
+  process.exit(1);
+}
 
 async function main() {
   const sql = readFileSync(

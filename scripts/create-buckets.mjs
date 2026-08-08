@@ -1,5 +1,18 @@
-const serviceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZibnFsc21yYWl3Y3Fuc2VubGVqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTk5Njg0MSwiZXhwIjoyMTAxNTcyODQxfQ.SFkTmdlQkg1HpP1WfYM7AdJqvNltXTFG83nPU1OKCmM";
-const baseUrl = "https://vbnqlsmraiwcqnsenlej.supabase.co";
+import { readFileSync } from "fs";
+
+const env = readFileSync(".env", "utf8");
+for (const line of env.split("\n")) {
+  const m = line.match(/^([A-Z_]+)=(.*)$/);
+  if (m) process.env[m[1]] = m[2];
+}
+
+const serviceKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+const baseUrl = process.env["SUPABASE_URL"];
+
+if (!serviceKey || !baseUrl) {
+  console.error("Missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL in .env");
+  process.exit(1);
+}
 
 async function createBucket(id) {
   const r = await fetch(baseUrl + "/storage/v1/bucket", {

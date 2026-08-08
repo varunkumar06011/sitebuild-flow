@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
+import { sanitizeSearch } from "./sanitize";
 import type { Role } from "../erp-data";
 
 const ADMIN_ROLES: Role[] = ["Administrator", "A1", "A1+"];
@@ -93,9 +94,12 @@ export const fetchDocuments = createServerFn({ method: "GET" })
       .range(offset, offset + limit - 1);
 
     if (data.search) {
-      query = query.or(
-        `name.ilike.%${data.search}%,project_name.ilike.%${data.search}%,customer_name.ilike.%${data.search}%,related_entity.ilike.%${data.search}%,licence_number.ilike.%${data.search}%`,
-      );
+      const s = sanitizeSearch(data.search);
+      if (s) {
+        query = query.or(
+          `name.ilike.%${s}%,project_name.ilike.%${s}%,customer_name.ilike.%${s}%,related_entity.ilike.%${s}%,licence_number.ilike.%${s}%`,
+        );
+      }
     }
     if (data.documentType && data.documentType !== "all") {
       query = query.eq("document_type", data.documentType);

@@ -2,6 +2,7 @@ import { QueryClient, QueryCache } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { authStore } from "./lib/auth-store";
+import { logoutUser } from "./lib/auth-server";
 
 function isAuthError(error: unknown): boolean {
   if (error instanceof Error) {
@@ -15,7 +16,11 @@ function isAuthError(error: unknown): boolean {
 
 function handleAuthError() {
   authStore.logout();
-  document.cookie = "meditrust_session=; path=/; max-age=0; samesite=lax";
+  // Cookie is httpOnly — can only be cleared server-side.
+  // Fire-and-forget: the session is already invalid, and we're redirecting.
+  logoutUser().catch(() => {
+    // ignore — session may already be invalid
+  });
   if (typeof window !== "undefined" && window.location.pathname !== "/login") {
     window.location.href = "/login";
   }

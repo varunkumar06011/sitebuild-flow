@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
+import { sanitizeSearch } from "./sanitize";
 
 // Fetches a paginated list of material batches with optional status filter.
 export const fetchBatches = createServerFn({ method: "GET" })
@@ -24,7 +25,7 @@ export const fetchBatches = createServerFn({ method: "GET" })
 
     if (data.status) query = query.eq("status", data.status);
     if (data.search) {
-      const s = data.search.replace(/[,.()\\]/g, " ").trim();
+      const s = sanitizeSearch(data.search);
       if (s) {
         query = query.or(
           `batch_number.ilike.%${s}%,material.ilike.%${s}%,supplier.ilike.%${s}%,manufacturer.ilike.%${s}%`,

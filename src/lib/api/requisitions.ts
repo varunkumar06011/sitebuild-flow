@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
+import { sanitizeSearch } from "./sanitize";
 import { approverFor, canApprove, inr, type Stage } from "../erp-data";
 import { validateStageTransition } from "../stage-transitions";
 
@@ -268,12 +269,6 @@ async function notifyUser(userId: string, type: string, title: string, body: str
   } catch (err) {
     console.error(`notifyUser failed (${userId}/${type}):`, err);
   }
-}
-
-// --- Helper: sanitize search input for PostgREST .or() filter syntax ---
-// Removes characters that could break or inject into PostgREST filter strings.
-function sanitizeSearch(input: string): string {
-  return input.replace(/[,.()\\]/g, " ").trim();
 }
 
 // --- Stage transitions ---

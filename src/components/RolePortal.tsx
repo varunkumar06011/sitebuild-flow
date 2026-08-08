@@ -20,7 +20,6 @@ import { useRole } from "@/lib/role-context";
 import { loginUser } from "@/lib/auth-server";
 import {
   ROLE_SUMMARY,
-  ROLE_LOGIN_CREDENTIALS,
   ROLE_NAV,
   type Role,
 } from "@/lib/erp-data";
@@ -202,7 +201,6 @@ export function RoleLoginPortal({ role }: { role: Role }) {
   const { setUser } = useRole();
   const theme = ROLE_THEME[role];
   const Icon = ROLE_ICONS[role];
-  const creds = ROLE_LOGIN_CREDENTIALS[role];
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -220,7 +218,6 @@ export function RoleLoginPortal({ role }: { role: Role }) {
         }
         setUser({ role: result.user.role, name: result.user.name });
         toast.success(`Welcome back, ${result.user.name}`);
-        document.cookie = `meditrust_session=${encodeURIComponent(result.token)}; path=/; max-age=${result.maxAge}; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
         window.location.href = ROLE_DASHBOARD[result.user.role as Role];
       } else {
         toast.error(result.error);
@@ -289,16 +286,6 @@ export function RoleLoginPortal({ role }: { role: Role }) {
             )}
           </Button>
         </form>
-
-        <div className="mt-5 rounded-lg bg-surface p-3 text-xs text-muted-foreground">
-          <p className="font-semibold text-foreground">Demo credentials</p>
-          <p className="mt-1">
-            Username: <span className="font-mono">{creds.username}</span>
-          </p>
-          <p>
-            Password: <span className="font-mono">{creds.password}</span>
-          </p>
-        </div>
 
         <Link
           to={ROLE_PORTAL_PATH[role]}

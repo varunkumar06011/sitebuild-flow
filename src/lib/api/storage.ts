@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
+import { isSafePath } from "./sanitize";
 
 const DOCUMENT_MIMES = [
   "application/pdf",
@@ -40,6 +41,10 @@ export const uploadFile = createServerFn({ method: "POST" })
   .validator(uploadSchema)
   .handler(async ({ data, context }) => {
     const user = await requireSessionUser();
+
+    if (!isSafePath(data.path)) {
+      return { success: false, error: "Invalid file path" };
+    }
 
     const allowedMimes = data.bucket === "documents" ? DOCUMENT_MIMES : PHOTO_MIMES;
     const maxSize = data.bucket === "documents" ? MAX_DOC_SIZE : MAX_PHOTO_SIZE;
@@ -85,6 +90,10 @@ export const getSignedUrl = createServerFn({ method: "GET" })
   .validator(signedUrlSchema)
   .handler(async ({ data, context }) => {
     const user = await requireSessionUser();
+
+    if (!isSafePath(data.path)) {
+      return { success: false, error: "Invalid file path" };
+    }
 
     const expiry = data.expirySec ?? (data.bucket === "documents" ? 72 * 60 * 60 : 60 * 60);
 

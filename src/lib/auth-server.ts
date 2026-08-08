@@ -18,8 +18,10 @@ export type AuthUser = {
 };
 
 // Discriminated union describing the outcome of a login attempt.
+// The token is never sent to the client — it is set as an httpOnly cookie
+// in the server response itself.
 export type LoginResult =
-  | { success: true; user: AuthUser; token: string; maxAge: number }
+  | { success: true; user: AuthUser; maxAge: number }
   | { success: false; error: string; locked?: boolean };
 
 const COOKIE_NAME = "meditrust_session";
@@ -230,7 +232,10 @@ export const loginUser = createServerFn({ method: "POST" })
         phone: user.phone,
       };
 
-      return { success: true, user: authUser, token, maxAge: Math.floor(expiryMs / 1000) };
+      // Set the session cookie server-side so the client never sees the token value.
+      await setSessionCookie(token, Math.floor(expiryMs / 1000));
+
+      return { success: true, user: authUser, maxAge: Math.floor(expiryMs / 1000) };
     },
   );
 
@@ -288,7 +293,47 @@ export const verifySession = createServerFn({ method: "GET" }).handler(
   },
 );
 
-// Server function that revokes the active session in the database.
+// Sets the session cookie as httpOnly; secure (prod); SameSite=Strict via h3.
+async function setSessionCookie(token: string, maxAgeSeconds: number): Promise<void> {
+  try {
+    // h3's types don't expose getEvent/setCookie as named exports — they're
+    // Nitro-injected globals. Same pattern as readSessionCookie above.
+    const h3: any = await import("h3");
+    const event = h3.getEvent?.();
+    if (event) {
+      h3.setCookie?.(event, COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: process.env["NODE_ENV"] === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: maxAgeSeconds,
+      });
+    }
+  } catch {
+    // h3 not available outside a request context — cookie won't be set.
+    // This should not happen in normal server function execution.
+  }
+}
+
+// Clears the session cookie via h3 deleteCookie.
+async function clearSessionCookie(): Promise<void> {
+  try {
+    const h3: any = await import("h3");
+    const event = h3.getEvent?.();
+    if (event) {
+      h3.deleteCookie?.(event, COOKIE_NAME, {
+        httpOnly: true,
+        secure: process.env["NODE_ENV"] === "production",
+        sameSite: "strict",
+        path: "/",
+      });
+    }
+  } catch {
+    // h3 not available outside a request context
+  }
+}
+
+// Server function that revokes the active session in the database and clears the cookie.
 export const logoutUser = createServerFn({ method: "POST" }).handler(
   async (): Promise<{ success: boolean }> => {
     const token = await readSessionCookie();
@@ -300,10 +345,11 @@ export const logoutUser = createServerFn({ method: "POST" }).handler(
           .update({ revoked: true })
           .eq("token_hash", tokenHash);
       } catch {
-        // ignore — cookie is cleared anyway
+        // ignore — session may already be invalid; cookie is cleared anyway
       }
     }
 
+    await clearSessionCookie();
     return { success: true };
   },
 );
@@ -352,3 +398,86 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(
     }
   },
 );
+
+// Password policy: min 8 chars, at least one uppercase, one lowercase, one digit.
+function validatePasswordPolicy(password: string): string | null {
+  if (password.length < 8) return "Password must be at least 8 characters long";
+  if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter";
+  if (!/[a-z]/.test(password)) return "Password must contain at least one lowercase letter";
+  if (!/\d/.test(password)) return "Password must contain at least one digit";
+  return null;
+}
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(1),
+});
+
+// Server function that changes the current user's password.
+// Verifies the current password, enforces a password policy, hashes with bcrypt,
+// and revokes all existing sessions for that user on success.
+export const changePassword = createServerFn({ method: "POST" })
+  .validator(changePasswordSchema)
+  .handler(
+    async ({ data }): Promise<{ success: boolean; error?: string }> => {
+      // Read the session cookie to identify the current user
+      const token = await readSessionCookie();
+      if (!token) {
+        return { success: false, error: "Not authenticated" };
+      }
+
+      let userId: string;
+      try {
+        const decoded = jwt.verify(token, getJwtSecret()) as { id: string };
+        userId = decoded.id;
+      } catch {
+        return { success: false, error: "Not authenticated" };
+      }
+
+      // Fetch the user's current password hash
+      const { data: user, error } = await supabaseServer
+        .from("users")
+        .select("id, password_hash")
+        .eq("id", userId)
+        .single();
+
+      if (error || !user) {
+        return { success: false, error: "User not found" };
+      }
+
+      // Verify current password
+      const passwordMatch = await bcrypt.compare(data.currentPassword, user.password_hash);
+      if (!passwordMatch) {
+        return { success: false, error: "Current password is incorrect" };
+      }
+
+      // Enforce password policy on new password
+      const policyError = validatePasswordPolicy(data.newPassword);
+      if (policyError) {
+        return { success: false, error: policyError };
+      }
+
+      // Hash new password and update
+      const newHash = await bcrypt.hash(data.newPassword, 12);
+      const { error: updateError } = await supabaseServer
+        .from("users")
+        .update({ password_hash: newHash, failed_login_attempts: 0, locked_until: null })
+        .eq("id", userId);
+
+      if (updateError) {
+        return { success: false, error: "Failed to update password" };
+      }
+
+      // Revoke all existing sessions for this user
+      await supabaseServer
+        .from("sessions")
+        .update({ revoked: true })
+        .eq("user_id", userId)
+        .eq("revoked", false);
+
+      // Clear the current session cookie so the user is redirected to login
+      await clearSessionCookie();
+
+      return { success: true };
+    },
+  );

@@ -38,7 +38,7 @@ if (users.length > 0) {
   console.log("Locked until:", user.locked_until ?? "not locked");
   console.log("Failed attempts:", user.failed_login_attempts);
 
-  const match = await bcrypt.compare("admin123", user.password_hash);
+  const match = await bcrypt.compare(process.env["TEST_ADMIN_PASSWORD"] ?? "", user.password_hash);
   console.log("Password match (admin123):", match);
 
   if (match) {
@@ -79,6 +79,6 @@ const res2 = await fetch(`${supabaseUrl}/rest/v1/users?select=id,username,passwo
 });
 const users2 = await res2.json();
 if (users2.length > 0) {
-  const match2 = await bcrypt.compare("site123", users2[0].password_hash);
+  const match2 = await bcrypt.compare(process.env["TEST_SUPERVISOR_PASSWORD"] ?? "", users2[0].password_hash);
   console.log("supervisor / site123 match:", match2);
 }

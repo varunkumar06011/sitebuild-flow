@@ -3,10 +3,23 @@ import pg from "pg";
 
 const { Pool } = pg;
 
+// Load .env manually
+const env = readFileSync(".env", "utf8");
+for (const line of env.split("\n")) {
+  const m = line.match(/^([A-Z_]+)=(.*)$/);
+  if (m) process.env[m[1]] = m[2];
+}
+
+const dbUrl = process.env["SUPABASE_DB_URL"];
+if (!dbUrl) {
+  console.error("Missing SUPABASE_DB_URL in .env");
+  process.exit(1);
+}
+
 const connections = [
   {
-    name: "Pooler (aws-0-ap-northeast-1)",
-    conn: "postgresql://postgres.vbnqlsmraiwcqnsenlej:Varun06011%40@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres",
+    name: "Pooler (from SUPABASE_DB_URL)",
+    conn: dbUrl,
   },
 ];
 

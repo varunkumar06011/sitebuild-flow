@@ -4,6 +4,7 @@ import { supabaseServer } from "../supabase-server";
 import { checkServerEnv } from "../env-check";
 import type { Role } from "../erp-data";
 import { getStartContext } from "@tanstack/start-storage-context";
+import { checkRateLimit, getClientIp, API_RATE_LIMIT } from "../rate-limiter";
 
 const COOKIE_NAME = "meditrust_session";
 
@@ -135,7 +136,44 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 }
 
 // Returns the current session user or throws if no valid session exists.
+// Also enforces per-IP rate limiting on mutations (POST server functions).
 export async function requireSessionUser(): Promise<SessionUser> {
+  // Rate-limit mutations: every POST server function calls requireSessionUser(),
+  // so this is the single chokepoint for all authenticated mutations.
+  // Note: the limiter is in-memory per-instance — on serverless platforms like
+  // Vercel, each instance has its own counter. This provides basic protection
+  // against abuse from a single client but is not a true distributed rate
+  // limit. For that, use Upstash Redis or Vercel KV as a shared store.
+  try {
+    const ctx = getStartContext({ throwIfNotFound: false });
+    const req = ctx?.request as Request | undefined;
+    if (req && req.method === "POST") {
+      // CSRF defense-in-depth: reject if Origin header is present and doesn't
+      // match the request host. Don't reject requests with no Origin header
+      // (that breaks legitimate non-browser callers like curl).
+      const origin = req.headers.get("origin");
+      if (origin) {
+        const reqUrl = new URL(req.url);
+        const originUrl = new URL(origin);
+        if (originUrl.host !== reqUrl.host) {
+          throw new Error("Cross-origin request blocked");
+        }
+      }
+
+      const ip = getClientIp();
+      const result = checkRateLimit(`mutation:${ip}`, API_RATE_LIMIT.maxRequests, API_RATE_LIMIT.windowMs);
+      if (!result.allowed) {
+        throw new Error("Rate limit exceeded — too many requests");
+      }
+    }
+  } catch (e) {
+    // If the error is our rate-limit or CSRF rejection, re-throw it.
+    if (e instanceof Error && (e.message.startsWith("Rate limit exceeded") || e.message.startsWith("Cross-origin"))) {
+      throw e;
+    }
+    // Otherwise, rate-limit check failed (no request context) — continue.
+  }
+
   const user = await getSessionUser();
   if (!user) {
     throw new Error("Unauthorized — no valid session");

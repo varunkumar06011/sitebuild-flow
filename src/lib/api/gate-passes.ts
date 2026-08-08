@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
+import { sanitizeSearch } from "./sanitize";
 import { verifyFirebasePhoneToken, normalizePhone } from "../firebase-verify";
 import { checkRateLimit, getClientIp } from "../rate-limiter";
 
@@ -75,7 +76,7 @@ export const fetchGatePasses = createServerFn({ method: "GET" })
     if (data.status) query = query.eq("status", data.status);
     if (data.requestedBy) query = query.eq("requested_by", data.requestedBy);
     if (data.search) {
-      const s = data.search.replace(/[,.()\\]/g, " ").trim();
+      const s = sanitizeSearch(data.search);
       if (s) {
         query = query.or(`gp_number.ilike.%${s}%,person_name.ilike.%${s}%,material.ilike.%${s}%`);
       }

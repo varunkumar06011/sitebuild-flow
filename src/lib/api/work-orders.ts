@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
+import { sanitizeSearch } from "./sanitize";
 import type { Role } from "../erp-data";
 
 const ADMIN_ROLES: Role[] = ["Administrator", "A1", "A1+"];
@@ -96,7 +97,10 @@ export const fetchWorkOrders = createServerFn({ method: "GET" })
     if (data.supervisorId) query = query.eq("assigned_supervisor_id", data.supervisorId);
     if (data.workCategory && data.workCategory !== "all") query = query.eq("work_category", data.workCategory);
     if (data.search) {
-      query = query.or(`order_number.ilike.%${data.search}%,project_name.ilike.%${data.search}%,customer_name.ilike.%${data.search}%`);
+      const s = sanitizeSearch(data.search);
+      if (s) {
+        query = query.or(`order_number.ilike.%${s}%,project_name.ilike.%${s}%,customer_name.ilike.%${s}%`);
+      }
     }
 
     const { data: orders, count } = await query;

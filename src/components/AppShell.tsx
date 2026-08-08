@@ -81,7 +81,6 @@ export function AppShell({
     } catch {
       // server call may fail if session is already invalid — continue anyway
     }
-    document.cookie = "meditrust_session=; path=/; max-age=0; samesite=lax";
     logout();
     window.location.href = "/login";
   };
