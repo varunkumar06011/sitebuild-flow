@@ -15,9 +15,12 @@ import { Route as A1plusRouteImport } from './routes/a1plus'
 import { Route as AdministratorRouteImport } from './routes/administrator'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as AuditLogRouteImport } from './routes/audit-log'
+import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as GatePassRouteImport } from './routes/gate-pass'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as InventorySupervisorRouteImport } from './routes/inventory-supervisor'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as PartsOrdersRouteImport } from './routes/parts-orders'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as ProcurementRouteImport } from './routes/procurement'
 import { Route as ProgressConfigRouteImport } from './routes/progress-config'
@@ -29,6 +32,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as TraceabilityRouteImport } from './routes/traceability'
 import { Route as VendorsRouteImport } from './routes/vendors'
+import { Route as WorkOrdersRouteImport } from './routes/work-orders'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
 import { Route as LoginA1RouteImport } from './routes/login.a1'
 import { Route as LoginA1plusRouteImport } from './routes/login.a1plus'
@@ -69,6 +73,11 @@ const AuditLogRoute = AuditLogRouteImport.update({
   path: '/audit-log',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocumentsRoute = DocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GatePassRoute = GatePassRouteImport.update({
   id: '/gate-pass',
   path: '/gate-pass',
@@ -82,6 +91,16 @@ const InventoryRoute = InventoryRouteImport.update({
 const InventorySupervisorRoute = InventorySupervisorRouteImport.update({
   id: '/inventory-supervisor',
   path: '/inventory-supervisor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartsOrdersRoute = PartsOrdersRouteImport.update({
+  id: '/parts-orders',
+  path: '/parts-orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortalRoute = PortalRouteImport.update({
@@ -139,30 +158,35 @@ const VendorsRoute = VendorsRouteImport.update({
   path: '/vendors',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginIndexRoute = LoginIndexRouteImport.update({
-  id: '/login/',
-  path: '/login/',
+const WorkOrdersRoute = WorkOrdersRouteImport.update({
+  id: '/work-orders',
+  path: '/work-orders',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LoginIndexRoute = LoginIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LoginRoute,
 } as any)
 const LoginA1Route = LoginA1RouteImport.update({
-  id: '/login/a1',
-  path: '/login/a1',
-  getParentRoute: () => rootRouteImport,
+  id: '/a1',
+  path: '/a1',
+  getParentRoute: () => LoginRoute,
 } as any)
 const LoginA1plusRoute = LoginA1plusRouteImport.update({
-  id: '/login/a1plus',
-  path: '/login/a1plus',
-  getParentRoute: () => rootRouteImport,
+  id: '/a1plus',
+  path: '/a1plus',
+  getParentRoute: () => LoginRoute,
 } as any)
 const LoginAdministratorRoute = LoginAdministratorRouteImport.update({
-  id: '/login/administrator',
-  path: '/login/administrator',
-  getParentRoute: () => rootRouteImport,
+  id: '/administrator',
+  path: '/administrator',
+  getParentRoute: () => LoginRoute,
 } as any)
 const LoginSupervisorRoute = LoginSupervisorRouteImport.update({
-  id: '/login/supervisor',
-  path: '/login/supervisor',
-  getParentRoute: () => rootRouteImport,
+  id: '/supervisor',
+  path: '/supervisor',
+  getParentRoute: () => LoginRoute,
 } as any)
 const PortalA1Route = PortalA1RouteImport.update({
   id: '/a1',
@@ -192,9 +216,12 @@ export interface FileRoutesByFullPath {
   '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
   '/audit-log': typeof AuditLogRoute
+  '/documents': typeof DocumentsRoute
   '/gate-pass': typeof GatePassRoute
   '/inventory': typeof InventoryRoute
   '/inventory-supervisor': typeof InventorySupervisorRoute
+  '/login': typeof LoginRouteWithChildren
+  '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/progress-config': typeof ProgressConfigRoute
@@ -206,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
   '/vendors': typeof VendorsRoute
+  '/work-orders': typeof WorkOrdersRoute
   '/login/a1': typeof LoginA1Route
   '/login/a1plus': typeof LoginA1plusRoute
   '/login/administrator': typeof LoginAdministratorRoute
@@ -223,9 +251,11 @@ export interface FileRoutesByTo {
   '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
   '/audit-log': typeof AuditLogRoute
+  '/documents': typeof DocumentsRoute
   '/gate-pass': typeof GatePassRoute
   '/inventory': typeof InventoryRoute
   '/inventory-supervisor': typeof InventorySupervisorRoute
+  '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/progress-config': typeof ProgressConfigRoute
@@ -237,6 +267,7 @@ export interface FileRoutesByTo {
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
   '/vendors': typeof VendorsRoute
+  '/work-orders': typeof WorkOrdersRoute
   '/login/a1': typeof LoginA1Route
   '/login/a1plus': typeof LoginA1plusRoute
   '/login/administrator': typeof LoginAdministratorRoute
@@ -255,9 +286,12 @@ export interface FileRoutesById {
   '/administrator': typeof AdministratorRoute
   '/approvals': typeof ApprovalsRoute
   '/audit-log': typeof AuditLogRoute
+  '/documents': typeof DocumentsRoute
   '/gate-pass': typeof GatePassRoute
   '/inventory': typeof InventoryRoute
   '/inventory-supervisor': typeof InventorySupervisorRoute
+  '/login': typeof LoginRouteWithChildren
+  '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/progress-config': typeof ProgressConfigRoute
@@ -269,6 +303,7 @@ export interface FileRoutesById {
   '/supervisor': typeof SupervisorRoute
   '/traceability': typeof TraceabilityRoute
   '/vendors': typeof VendorsRoute
+  '/work-orders': typeof WorkOrdersRoute
   '/login/a1': typeof LoginA1Route
   '/login/a1plus': typeof LoginA1plusRoute
   '/login/administrator': typeof LoginAdministratorRoute
@@ -288,9 +323,12 @@ export interface FileRouteTypes {
     | '/administrator'
     | '/approvals'
     | '/audit-log'
+    | '/documents'
     | '/gate-pass'
     | '/inventory'
     | '/inventory-supervisor'
+    | '/login'
+    | '/parts-orders'
     | '/portal'
     | '/procurement'
     | '/progress-config'
@@ -302,6 +340,7 @@ export interface FileRouteTypes {
     | '/supervisor'
     | '/traceability'
     | '/vendors'
+    | '/work-orders'
     | '/login/a1'
     | '/login/a1plus'
     | '/login/administrator'
@@ -319,9 +358,11 @@ export interface FileRouteTypes {
     | '/administrator'
     | '/approvals'
     | '/audit-log'
+    | '/documents'
     | '/gate-pass'
     | '/inventory'
     | '/inventory-supervisor'
+    | '/parts-orders'
     | '/portal'
     | '/procurement'
     | '/progress-config'
@@ -333,6 +374,7 @@ export interface FileRouteTypes {
     | '/supervisor'
     | '/traceability'
     | '/vendors'
+    | '/work-orders'
     | '/login/a1'
     | '/login/a1plus'
     | '/login/administrator'
@@ -350,9 +392,12 @@ export interface FileRouteTypes {
     | '/administrator'
     | '/approvals'
     | '/audit-log'
+    | '/documents'
     | '/gate-pass'
     | '/inventory'
     | '/inventory-supervisor'
+    | '/login'
+    | '/parts-orders'
     | '/portal'
     | '/procurement'
     | '/progress-config'
@@ -364,6 +409,7 @@ export interface FileRouteTypes {
     | '/supervisor'
     | '/traceability'
     | '/vendors'
+    | '/work-orders'
     | '/login/a1'
     | '/login/a1plus'
     | '/login/administrator'
@@ -382,9 +428,12 @@ export interface RootRouteChildren {
   AdministratorRoute: typeof AdministratorRoute
   ApprovalsRoute: typeof ApprovalsRoute
   AuditLogRoute: typeof AuditLogRoute
+  DocumentsRoute: typeof DocumentsRoute
   GatePassRoute: typeof GatePassRoute
   InventoryRoute: typeof InventoryRoute
   InventorySupervisorRoute: typeof InventorySupervisorRoute
+  LoginRoute: typeof LoginRouteWithChildren
+  PartsOrdersRoute: typeof PartsOrdersRoute
   PortalRoute: typeof PortalRouteWithChildren
   ProcurementRoute: typeof ProcurementRoute
   ProgressConfigRoute: typeof ProgressConfigRoute
@@ -396,11 +445,7 @@ export interface RootRouteChildren {
   SupervisorRoute: typeof SupervisorRoute
   TraceabilityRoute: typeof TraceabilityRoute
   VendorsRoute: typeof VendorsRoute
-  LoginA1Route: typeof LoginA1Route
-  LoginA1plusRoute: typeof LoginA1plusRoute
-  LoginAdministratorRoute: typeof LoginAdministratorRoute
-  LoginSupervisorRoute: typeof LoginSupervisorRoute
-  LoginIndexRoute: typeof LoginIndexRoute
+  WorkOrdersRoute: typeof WorkOrdersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -447,6 +492,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditLogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/documents': {
+      id: '/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof DocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gate-pass': {
       id: '/gate-pass'
       path: '/gate-pass'
@@ -466,6 +518,20 @@ declare module '@tanstack/react-router' {
       path: '/inventory-supervisor'
       fullPath: '/inventory-supervisor'
       preLoaderRoute: typeof InventorySupervisorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parts-orders': {
+      id: '/parts-orders'
+      path: '/parts-orders'
+      fullPath: '/parts-orders'
+      preLoaderRoute: typeof PartsOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portal': {
@@ -545,40 +611,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VendorsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/work-orders': {
+      id: '/work-orders'
+      path: '/work-orders'
+      fullPath: '/work-orders'
+      preLoaderRoute: typeof WorkOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login/': {
       id: '/login/'
-      path: '/login'
+      path: '/'
       fullPath: '/login/'
       preLoaderRoute: typeof LoginIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof LoginRoute
     }
     '/login/a1': {
       id: '/login/a1'
-      path: '/login/a1'
+      path: '/a1'
       fullPath: '/login/a1'
       preLoaderRoute: typeof LoginA1RouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof LoginRoute
     }
     '/login/a1plus': {
       id: '/login/a1plus'
-      path: '/login/a1plus'
+      path: '/a1plus'
       fullPath: '/login/a1plus'
       preLoaderRoute: typeof LoginA1plusRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof LoginRoute
     }
     '/login/administrator': {
       id: '/login/administrator'
-      path: '/login/administrator'
+      path: '/administrator'
       fullPath: '/login/administrator'
       preLoaderRoute: typeof LoginAdministratorRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof LoginRoute
     }
     '/login/supervisor': {
       id: '/login/supervisor'
-      path: '/login/supervisor'
+      path: '/supervisor'
       fullPath: '/login/supervisor'
       preLoaderRoute: typeof LoginSupervisorRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof LoginRoute
     }
     '/portal/a1': {
       id: '/portal/a1'
@@ -611,6 +684,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface LoginRouteChildren {
+  LoginA1Route: typeof LoginA1Route
+  LoginA1plusRoute: typeof LoginA1plusRoute
+  LoginAdministratorRoute: typeof LoginAdministratorRoute
+  LoginSupervisorRoute: typeof LoginSupervisorRoute
+  LoginIndexRoute: typeof LoginIndexRoute
+}
+
+const LoginRouteChildren: LoginRouteChildren = {
+  LoginA1Route: LoginA1Route,
+  LoginA1plusRoute: LoginA1plusRoute,
+  LoginAdministratorRoute: LoginAdministratorRoute,
+  LoginSupervisorRoute: LoginSupervisorRoute,
+  LoginIndexRoute: LoginIndexRoute,
+}
+
+const LoginRouteWithChildren = LoginRoute._addFileChildren(LoginRouteChildren)
+
 interface PortalRouteChildren {
   PortalA1Route: typeof PortalA1Route
   PortalA1plusRoute: typeof PortalA1plusRoute
@@ -635,9 +726,12 @@ const rootRouteChildren: RootRouteChildren = {
   AdministratorRoute: AdministratorRoute,
   ApprovalsRoute: ApprovalsRoute,
   AuditLogRoute: AuditLogRoute,
+  DocumentsRoute: DocumentsRoute,
   GatePassRoute: GatePassRoute,
   InventoryRoute: InventoryRoute,
   InventorySupervisorRoute: InventorySupervisorRoute,
+  LoginRoute: LoginRouteWithChildren,
+  PartsOrdersRoute: PartsOrdersRoute,
   PortalRoute: PortalRouteWithChildren,
   ProcurementRoute: ProcurementRoute,
   ProgressConfigRoute: ProgressConfigRoute,
@@ -649,11 +743,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupervisorRoute: SupervisorRoute,
   TraceabilityRoute: TraceabilityRoute,
   VendorsRoute: VendorsRoute,
-  LoginA1Route: LoginA1Route,
-  LoginA1plusRoute: LoginA1plusRoute,
-  LoginAdministratorRoute: LoginAdministratorRoute,
-  LoginSupervisorRoute: LoginSupervisorRoute,
-  LoginIndexRoute: LoginIndexRoute,
+  WorkOrdersRoute: WorkOrdersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

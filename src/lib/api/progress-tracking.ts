@@ -62,6 +62,7 @@ export type ProgressBlock = {
   id: string;
   name: string;
   sort_order: number;
+  work_category: string;
 };
 
 // Represents a floor within a block in the progress tracking hierarchy.
@@ -153,7 +154,7 @@ const nameSchema = z.object({
 
 // Creates a new progress block (admin only) and logs the action.
 export const createBlock = createServerFn({ method: "POST" })
-  .validator((input: { name: string; sort_order?: number }) => input)
+  .validator((input: { name: string; sort_order?: number; work_category?: string }) => input)
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
     if (!isAdmin(user.role)) return { success: false, error: "Admin only" };
@@ -161,8 +162,8 @@ export const createBlock = createServerFn({ method: "POST" })
     const sortOrder = Math.max(0, Math.floor(Number(data?.sort_order) || 0));
     const { data: block, error } = await supabaseServer
       .from("progress_blocks")
-      .insert({ name: data?.name, sort_order: sortOrder, created_by: user.id })
-      .select("id, name, sort_order")
+      .insert({ name: data?.name, sort_order: sortOrder, work_category: (data as any)?.work_category ?? "uncategorized", created_by: user.id })
+      .select("id, name, sort_order, work_category")
       .single();
 
     if (error || !block) {
@@ -329,7 +330,7 @@ export const fetchHierarchy = createServerFn({ method: "GET" })
     await requireSessionUser();
 
     const [blocks, floors, categories, workItems] = await Promise.all([
-      supabaseServer.from("progress_blocks").select("id, name, sort_order").order("sort_order"),
+      supabaseServer.from("progress_blocks").select("id, name, sort_order, work_category").order("sort_order"),
       supabaseServer.from("progress_floors").select("id, block_id, name, sort_order").order("sort_order"),
       supabaseServer.from("progress_categories").select("id, name, sort_order").order("sort_order"),
       supabaseServer.from("progress_work_items").select("id, category_id, name, sort_order").order("sort_order"),

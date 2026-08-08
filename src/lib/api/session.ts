@@ -5,6 +5,16 @@ import { checkServerEnv } from "../env-check";
 import type { Role } from "../erp-data";
 import { getStartContext } from "@tanstack/start-storage-context";
 
+const COOKIE_NAME = "meditrust_session";
+
+function parseCookieHeader(header: string): string | undefined {
+  for (const part of header.split(";")) {
+    const [key, ...val] = part.trim().split("=");
+    if (key === COOKIE_NAME) return decodeURIComponent(val.join("="));
+  }
+  return undefined;
+}
+
 // Authenticated user shape derived from the JWT session token.
 export type SessionUser = {
   id: string;
@@ -12,8 +22,6 @@ export type SessionUser = {
   role: Role;
   phone: string | null;
 };
-
-const COOKIE_NAME = "meditrust_session";
 
 // Returns the JWT signing secret from env, throwing if unset.
 function getJwtSecret(): string {
@@ -33,28 +41,53 @@ function hashToken(token: string): string {
   return createHmac("sha256", getJwtSecret()).update(token).digest("hex");
 }
 
-// Reads the session cookie from the current request context, with a fallback to getCookie.
+// Reads the session cookie from the current request context using multiple fallbacks.
 async function readSessionCookie(): Promise<string | undefined> {
-  // Try getStartContext first (works for SSR/GET and serverFn POST)
+  // Method 1: getStartContext (works for SSR/GET and some serverFn POST)
   try {
     const ctx = getStartContext({ throwIfNotFound: false });
     const req = ctx?.request as Request | undefined;
     if (req) {
       const cookieHeader = req.headers.get("cookie") ?? "";
-      for (const part of cookieHeader.split(";")) {
-        const [key, ...val] = part.trim().split("=");
-        if (key === COOKIE_NAME) return decodeURIComponent(val.join("="));
-      }
+      const token = parseCookieHeader(cookieHeader);
+      if (token) return token;
     }
   } catch {
     // ignore
   }
 
-  // Fallback: dynamic import for cases where getStartContext doesn't have request
+  // Method 2: getCookie from @tanstack/start-server-core
   try {
     const { getCookie } = await import("@tanstack/start-server-core");
     const value = getCookie(COOKIE_NAME);
     if (value) return decodeURIComponent(value);
+  } catch {
+    // ignore
+  }
+
+  // Method 3: h3 getEvent (works in Nitro/h3 server context for RPC calls)
+  try {
+    const h3: any = await import("h3");
+    const event = h3.getEvent?.();
+    if (event) {
+      const cookieHeader = h3.getHeader?.(event, "cookie") ?? "";
+      const token = parseCookieHeader(cookieHeader);
+      if (token) return token;
+    }
+  } catch {
+    // ignore
+  }
+
+  // Method 4: vinxi/http fallback
+  try {
+    // @ts-ignore — vinxi/http is available at runtime via Nitro
+    const vinxiHttp = await import("vinxi/http");
+    const event = vinxiHttp.getEvent?.();
+    if (event) {
+      const cookieHeader = vinxiHttp.getHeader?.(event, "cookie") ?? "";
+      const token = parseCookieHeader(cookieHeader);
+      if (token) return token;
+    }
   } catch {
     // ignore
   }

@@ -20,6 +20,8 @@ import {
   ArrowUpRight,
   Package,
   AlertCircle,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 
 export const Route = createFileRoute("/supervisor")({
@@ -32,7 +34,7 @@ export const Route = createFileRoute("/supervisor")({
 
 // Supervisor dashboard showing requisitions, quick actions, progress, labour, and QC alerts.
 function SupervisorDashboard() {
-  const { data: reqData } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
+  const { data: reqData, isError: reqError, error: reqErr } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
   const { data: gpData } = useQuery({ queryKey: ["gatePasses"], queryFn: () => fetchGatePasses({ data: {} }) });
   const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
@@ -44,9 +46,20 @@ function SupervisorDashboard() {
   const progress = progData?.data ?? [];
   const labour = labourData?.data ?? [];
 
+  const dashboardError = reqError ? reqErr?.message ?? "Failed to load data" : null;
+
   const myPRs = requisitions;
   const pendingAction = requisitions.filter(
     (r: any) => r.stage === "Quotation" || r.stage === "PR",
+  );
+  const awaitingApproval = requisitions.filter(
+    (r: any) => r.stage === "Admin" || r.stage === "A1" || r.stage === "A1+",
+  );
+  const approved = requisitions.filter(
+    (r: any) => ["PO", "Material Received", "Invoice", "Payment", "Completed"].includes(r.stage),
+  );
+  const rejected = requisitions.filter(
+    (r: any) => r.stage === "Quotation" && r.rejection_reason,
   );
   const awaitingOTP = gatePasses.filter((g: any) => g.status === "Awaiting OTP");
   const failedQC = inspections.filter((i: any) => i.result === "Fail" || i.result === "Re-inspection");
@@ -56,12 +69,22 @@ function SupervisorDashboard() {
       title="Supervisor Dashboard"
       subtitle="Site operations · Vgrand Multi-speciality Hospital · Phase 2"
     >
+      {dashboardError && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+          <AlertCircle className="size-5 shrink-0 text-destructive" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-destructive">Failed to load dashboard data</p>
+            <p className="text-xs text-muted-foreground">{dashboardError}</p>
+          </div>
+        </div>
+      )}
+
       {/* Quick stats */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={ClipboardList} label="My Requisitions" value={String(myPRs.length)} note="Across all blocks" tone="info" />
-        <StatCard icon={AlertCircle} label="Pending Action" value={String(pendingAction.length)} note="Need quotation upload" tone="warning" />
-        <StatCard icon={ScanLine} label="Gate Passes" value={String(awaitingOTP.length)} note="Awaiting OTP" tone="warning" />
-        <StatCard icon={BadgeCheck} label="QC Issues" value={String(failedQC.length)} note="Fail or re-inspection" tone="danger" />
+        <StatCard icon={Clock} label="Awaiting Approval" value={String(awaitingApproval.length)} note="Sent to admin/A1/A1+" tone="warning" />
+        <StatCard icon={CheckCircle2} label="Approved" value={String(approved.length)} note="PO issued or beyond" tone="success" />
+        <StatCard icon={AlertCircle} label="Needs Action" value={String(pendingAction.length)} note="PR/Quotation stage" tone="danger" />
       </div>
 
       {/* Quick actions */}
@@ -76,6 +99,101 @@ function SupervisorDashboard() {
           <QuickAction to="/procurement" icon={Package} title="Receive Materials" desc="Update inventory & progress" />
         </div>
       </Card>
+
+      {/* Approval status section */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {/* Awaiting approval */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="size-4 text-warning" />
+              <h2 className="text-sm font-bold">Awaiting Approval</h2>
+            </div>
+            <Link to="/procurement" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+              View all <ArrowUpRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="mt-4 divide-y divide-border">
+            {awaitingApproval.length === 0 ? (
+              <p className="py-4 text-center text-xs text-muted-foreground">No PRs awaiting approval.</p>
+            ) : (
+              awaitingApproval.map((r: any) => (
+                <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{r.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {r.pr_number} · {r.block} · {inr(r.amount)}
+                    </p>
+                  </div>
+                  <StatusPill tone="warning">
+                    {r.stage}
+                  </StatusPill>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+
+        {/* Approved */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-success" />
+              <h2 className="text-sm font-bold">Approved</h2>
+            </div>
+            <Link to="/procurement" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+              View all <ArrowUpRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="mt-4 divide-y divide-border">
+            {approved.length === 0 ? (
+              <p className="py-4 text-center text-xs text-muted-foreground">No approved PRs yet.</p>
+            ) : (
+              approved.slice(0, 5).map((r: any) => (
+                <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{r.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {r.pr_number} · {r.po_number ?? "—"} · {inr(r.amount)}
+                    </p>
+                  </div>
+                  <StatusPill tone={r.stage === "Completed" ? "success" : "info"}>
+                    {r.stage}
+                  </StatusPill>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Rejected items */}
+      {rejected.length > 0 && (
+        <Card className="mt-6 p-5">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="size-4 text-destructive" />
+            <h2 className="text-sm font-bold">Sent Back for Rework</h2>
+          </div>
+          <div className="mt-4 divide-y divide-border">
+            {rejected.map((r: any) => (
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{r.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {r.pr_number} · {r.block} · {inr(r.amount)}
+                  </p>
+                  {r.rejection_reason && (
+                    <p className="mt-1 text-xs text-destructive">Reason: {r.rejection_reason}</p>
+                  )}
+                </div>
+                <StatusPill tone="danger">
+                  Rejected
+                </StatusPill>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Two-column layout */}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
@@ -114,8 +232,8 @@ function SupervisorDashboard() {
           <Card className="p-5">
             <h2 className="text-sm font-bold">Block progress</h2>
             <div className="mt-4 space-y-4">
-              {progress.map((p: any) => (
-                <div key={p.block}>
+              {progress.map((p: any, i: number) => (
+                <div key={`${p.block}-${i}`}>
                   <div className="flex justify-between text-xs font-medium">
                     <span>{p.block}</span>
                     <span className="text-muted-foreground">{p.pct}%</span>

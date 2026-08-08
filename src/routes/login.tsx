@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRole } from "@/lib/role-context";
-import { loginUser } from "@/lib/auth-server";
+import { loginUser, verifySession } from "@/lib/auth-server";
 import { HardHat, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,17 +20,20 @@ export const Route = createFileRoute("/login")({
     ],
   }),
   beforeLoad: async () => {
-    // Temporarily disabled to debug login issue
-    // const session = await verifySession();
-    // if (session.authenticated && session.user) {
-    //   const routes = {
-    //     Supervisor: "/supervisor",
-    //     Administrator: "/administrator",
-    //     A1: "/a1",
-    //     "A1+": "/a1plus",
-    //   } as const;
-    //   throw redirect({ to: routes[session.user.role] });
-    // }
+    try {
+      const session = await verifySession();
+      if (session.authenticated && session.user) {
+        const routes = {
+          Supervisor: "/supervisor",
+          Administrator: "/administrator",
+          A1: "/a1",
+          "A1+": "/a1plus",
+        } as const;
+        throw redirect({ to: routes[session.user.role] });
+      }
+    } catch (e: any) {
+      if (e && typeof e === "object" && "status" in e) throw e;
+    }
   },
   component: LoginPage,
 });

@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { fetchItems, recordTransaction, fetchBlocks } from "@/lib/api/inventory";
 import { useRole } from "@/lib/role-context";
 import { requireAuth } from "@/lib/auth-guards";
@@ -37,6 +38,7 @@ export const Route = createFileRoute("/inventory-supervisor")({
 
 // Page for searching inventory items and logging stock in, out, or adjustment transactions.
 function InventorySupervisorPage() {
+  const { role } = useRole();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({
@@ -46,8 +48,10 @@ function InventorySupervisorPage() {
     block_id: "",
     reference: "",
     remarks: "",
+    is_wastage: false,
   });
   const [saving, setSaving] = useState(false);
+  const canAdjust = role !== "Supervisor";
 
   const { data: itemsData } = useQuery({
     queryKey: ["inventory-items", search],
@@ -84,6 +88,7 @@ function InventorySupervisorPage() {
           item_id: form.item_id,
           type: form.type as any,
           quantity: Number(form.quantity),
+          is_wastage: form.type === "out" ? form.is_wastage : undefined,
           block_id: form.block_id || null,
           reference: form.reference.trim() || undefined,
           remarks: form.remarks.trim() || undefined,
@@ -91,7 +96,7 @@ function InventorySupervisorPage() {
       });
       if (result.success) {
         toast.success("Movement logged");
-        setForm({ item_id: "", type: "", quantity: "", block_id: "", reference: "", remarks: "" });
+        setForm({ item_id: "", type: "", quantity: "", block_id: "", reference: "", remarks: "", is_wastage: false });
         queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
       } else {
         toast.error(result.error ?? "Failed to log movement");
@@ -179,15 +184,19 @@ function InventorySupervisorPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setForm({ ...form, type: "adjustment" })}
+                  disabled={!canAdjust}
+                  onClick={() => canAdjust && setForm({ ...form, type: "adjustment" })}
                   className={`flex flex-col items-center gap-1.5 rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
-                    form.type === "adjustment"
+                    !canAdjust
+                      ? "cursor-not-allowed border-input opacity-40"
+                      : form.type === "adjustment"
                       ? "border-warning bg-warning-soft text-warning-foreground"
                       : "border-input hover:border-muted-foreground"
                   }`}
                 >
                   <SlidersHorizontal className="size-5" />
                   Adjust
+                  {!canAdjust && <span className="text-[10px] font-normal">Admin only</span>}
                 </button>
               </div>
             </div>
@@ -221,6 +230,20 @@ function InventorySupervisorPage() {
                 </Select>
               </div>
             </div>
+
+            {/* Wastage checkbox — only visible when type is 'out' */}
+            {form.type === "out" && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="iwastage"
+                  checked={form.is_wastage}
+                  onCheckedChange={(checked) => setForm({ ...form, is_wastage: checked === true })}
+                />
+                <Label htmlFor="iwastage" className="cursor-pointer text-sm">
+                  Mark as wastage / damage
+                </Label>
+              </div>
+            )}
 
             {/* Reference */}
             <div className="space-y-2">

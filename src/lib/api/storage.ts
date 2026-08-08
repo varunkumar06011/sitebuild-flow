@@ -4,8 +4,26 @@ import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
 
-const DOCUMENT_MIMES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
-const PHOTO_MIMES = ["image/jpeg", "image/png", "image/webp"];
+const DOCUMENT_MIMES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/tiff",
+  "image/bmp",
+  "image/heic",
+  "image/heif",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/csv",
+  "text/plain",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/octet-stream",
+];
+const PHOTO_MIMES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "image/bmp", "image/tiff"];
 const MAX_DOC_SIZE = 10 * 1024 * 1024;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 

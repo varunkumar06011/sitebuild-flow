@@ -1308,7 +1308,7 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                         id="pay-proof-input"
                         type="file"
                         className="hidden"
-                        accept=".pdf,.jpg,.jpeg,.png,.webp"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff,.tif,.bmp,.heic,.heif,.xls,.xlsx,.doc,.docx,.csv,.txt,.zip"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -2011,7 +2011,7 @@ function DocumentSection({ req, onChanged }: { req: RequisitionRow; onChanged: (
           {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
           Upload
         </Button>
-        <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.webp" />
+        <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff,.tif,.bmp,.heic,.heif,.xls,.xlsx,.doc,.docx,.csv,.txt,.zip" />
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
         {documents.length === 0 && (

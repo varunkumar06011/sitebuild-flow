@@ -64,9 +64,9 @@ function hashToken(token: string): string {
   return createHmac("sha256", getJwtSecret()).update(token).digest("hex");
 }
 
-// Reads the session JWT from the request cookie, trying SSR context then RPC fallback.
+// Reads the session JWT from the request cookie, trying multiple methods.
 async function readSessionCookie(): Promise<string | undefined> {
-  // Try getStartContext first (works for SSR/GET)
+  // Method 1: getStartContext (works for SSR/GET and some serverFn POST)
   try {
     const ctx = getStartContext({ throwIfNotFound: false });
     const req = ctx?.request as Request | undefined;
@@ -81,11 +81,42 @@ async function readSessionCookie(): Promise<string | undefined> {
     // ignore
   }
 
-  // Fallback: dynamic import of server-only module (works for POST RPC)
+  // Method 2: getCookie from @tanstack/start-server-core
   try {
     const { getCookie } = await import("@tanstack/start-server-core");
     const value = getCookie(COOKIE_NAME);
     if (value) return decodeURIComponent(value);
+  } catch {
+    // ignore
+  }
+
+  // Method 3: h3 getEvent (works in Nitro/h3 server context for RPC calls)
+  try {
+    const h3: any = await import("h3");
+    const event = h3.getEvent?.();
+    if (event) {
+      const cookieHeader = h3.getHeader?.(event, "cookie") ?? "";
+      for (const part of cookieHeader.split(";")) {
+        const [key, ...val] = part.trim().split("=");
+        if (key === COOKIE_NAME) return decodeURIComponent(val.join("="));
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // Method 4: vinxi/http fallback
+  try {
+    // @ts-ignore — vinxi/http is available at runtime via Nitro
+    const vinxiHttp: any = await import("vinxi/http");
+    const event = vinxiHttp.getEvent?.();
+    if (event) {
+      const cookieHeader = vinxiHttp.getHeader?.(event, "cookie") ?? "";
+      for (const part of cookieHeader.split(";")) {
+        const [key, ...val] = part.trim().split("=");
+        if (key === COOKIE_NAME) return decodeURIComponent(val.join("="));
+      }
+    }
   } catch {
     // ignore
   }

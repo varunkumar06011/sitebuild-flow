@@ -34,6 +34,7 @@ import {
 } from "@/lib/api/progress-tracking";
 import { toast } from "sonner";
 import { Settings2, Plus, Layers, Building2, Tag, Wrench, Grid3x3, UserCheck } from "lucide-react";
+import { WorkCategorySelect, WorkCategoryBadge } from "@/components/WorkCategory";
 
 export const Route = createFileRoute("/progress-config")({
   head: () => ({
@@ -102,6 +103,7 @@ function BlocksTab() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [sortOrder, setSortOrder] = useState("0");
+  const [workCategory, setWorkCategory] = useState("uncategorized");
   const qc = useQueryClient();
 
   const blocks = hier?.blocks ?? [];
@@ -110,13 +112,14 @@ function BlocksTab() {
   const handleCreate = async () => {
     if (!name.trim()) return;
     try {
-      const result = await createBlock({ data: { name: name.trim(), sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)) } });
+      const result = await createBlock({ data: { name: name.trim(), sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)), work_category: workCategory } });
       if (result.success) {
         toast.success("Block created");
         qc.invalidateQueries({ queryKey: ["hierarchy"] });
         setOpen(false);
         setName("");
         setSortOrder("0");
+        setWorkCategory("uncategorized");
       } else {
         toast.error(result.error || "Failed");
       }
@@ -136,6 +139,7 @@ function BlocksTab() {
           <Card key={b.id} className="p-3">
             <p className="font-medium">{b.name}</p>
             <p className="text-xs text-muted-foreground">Sort: {b.sort_order}</p>
+            <div className="mt-1"><WorkCategoryBadge category={b.work_category} /></div>
           </Card>
         ))}
         {blocks.length === 0 && <p className="text-sm text-muted-foreground">No blocks yet.</p>}
@@ -151,6 +155,7 @@ function BlocksTab() {
             <div className="space-y-3">
               <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="OT Block" /></div>
               <div><Label>Sort Order</Label><Input type="number" min={0} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} /></div>
+              <div><Label>Work Category *</Label><WorkCategorySelect value={workCategory} onChange={setWorkCategory} placeholder="Select work category..." /></div>
               <Button onClick={handleCreate} disabled={!name.trim()} className="w-full">Create</Button>
             </div>
           </DialogContent>

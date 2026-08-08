@@ -3,7 +3,7 @@ import { z } from "zod";
 import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
-import { approverFor, canApprove, type Stage } from "../erp-data";
+import { approverFor, canApprove, inr, type Stage } from "../erp-data";
 import { validateStageTransition } from "../stage-transitions";
 
 // Shape of a requisition row returned to the client with vendor and raiser names joined.
@@ -166,6 +166,15 @@ export const createRequisition = createServerFn({ method: "POST" })
     }
 
     await logAction(user, "create_requisition", "requisition", req.id, { pr_number: req.pr_number, title: data.title, amount: data.amount });
+
+    // Notify all Administrator-role users that a new PR has been raised
+    await notifyByRole(
+      "Administrator",
+      "new_pr",
+      `New PR: ${req.pr_number}`,
+      `${data.title} · ${data.block} · ${inr(data.amount)} · raised by ${user.name}`,
+      { requisition_id: req.id, pr_number: req.pr_number, amount: data.amount },
+    );
 
     return { success: true, id: req.id, pr_number: req.pr_number };
   });

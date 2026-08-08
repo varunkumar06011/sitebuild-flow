@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Settings2,
   Package,
+  FileText,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useRole } from "@/lib/role-context";
@@ -48,6 +49,7 @@ const ICON_MAP: Record<string, typeof HardHat> = {
   TrendingUp,
   Settings2,
   Package,
+  FileText,
 };
 
 // Top-level layout shell with sidebar navigation, header, notifications, and logout.

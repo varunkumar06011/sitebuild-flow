@@ -18,14 +18,6 @@ for (const [key, value] of Object.entries(env)) {
 }
 
 export default defineConfig({
-  vite: {
-    server: {
-      hmr: {
-        host: "localhost",
-        clientPort: 8080,
-      },
-    },
-  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
