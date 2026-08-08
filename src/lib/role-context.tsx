@@ -1,4 +1,11 @@
-import { createContext, useContext, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import type { Role } from "./erp-data";
 import { authStore } from "./auth-store";
 

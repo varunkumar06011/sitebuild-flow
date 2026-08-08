@@ -62,6 +62,92 @@ export const fetchLabour = createServerFn({ method: "GET" })
     return { data: labour ?? [], total: count ?? 0, page, limit };
   });
 
+// Zod schema validating visitor check-in fields (name, org, purpose, host).
+const visitorSchema = z.object({
+  name: z.string().min(1),
+  org: z.string().optional(),
+  purpose: z.string().optional(),
+  host: z.string().optional(),
+});
+
+// Creates a new visitor check-in entry and logs the action to the audit trail.
+export const createVisitor = createServerFn({ method: "POST" })
+  .validator(visitorSchema)
+  .handler(async ({ data, context }) => {
+    const user = await requireSessionUser();
+
+    const { data: visitor, error } = await supabaseServer
+      .from("visitors")
+      .insert(data)
+      .select("id, name")
+      .single();
+
+    if (error || !visitor) {
+      return { success: false, error: "Failed to check in visitor" };
+    }
+
+    await logAction(user, "create_visitor", "visitor", visitor.id, { name: visitor.name });
+    return { success: true, id: visitor.id };
+  });
+
+// Zod schema validating vehicle entry fields (number, type, driver, material).
+const vehicleSchema = z.object({
+  number: z.string().min(1),
+  type: z.string().optional(),
+  driver: z.string().optional(),
+  material: z.string().optional(),
+});
+
+// Creates a new vehicle entry log and logs the action to the audit trail.
+export const createVehicle = createServerFn({ method: "POST" })
+  .validator(vehicleSchema)
+  .handler(async ({ data, context }) => {
+    const user = await requireSessionUser();
+
+    const { data: vehicle, error } = await supabaseServer
+      .from("vehicles")
+      .insert(data)
+      .select("id, number")
+      .single();
+
+    if (error || !vehicle) {
+      return { success: false, error: "Failed to log vehicle entry" };
+    }
+
+    await logAction(user, "create_vehicle", "vehicle", vehicle.id, { number: vehicle.number });
+    return { success: true, id: vehicle.id };
+  });
+
+// Zod schema validating labour attendance fields (trade, contractor, counts, block, date).
+const labourSchema = z.object({
+  trade: z.string().min(1),
+  contractor: z.string().optional(),
+  planned: z.number().int().min(0).default(0),
+  present: z.number().int().min(0).default(0),
+  block: z.string().optional(),
+  date: z.string().optional(),
+});
+
+// Creates a new labour attendance record and logs the action to the audit trail.
+export const createLabour = createServerFn({ method: "POST" })
+  .validator(labourSchema)
+  .handler(async ({ data, context }) => {
+    const user = await requireSessionUser();
+
+    const { data: labour, error } = await supabaseServer
+      .from("labour")
+      .insert(data)
+      .select("id, trade")
+      .single();
+
+    if (error || !labour) {
+      return { success: false, error: "Failed to record labour attendance" };
+    }
+
+    await logAction(user, "create_labour", "labour", labour.id, { trade: labour.trade });
+    return { success: true, id: labour.id };
+  });
+
 // Checks out a visitor by recording the exit timestamp (only if not already checked out).
 export const checkOutVisitor = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().uuid() }))

@@ -90,11 +90,22 @@ export const Route = createFileRoute("/work-orders")({
       },
     ],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: WorkOrdersPage,
 });
 
-const STATUS_OPTIONS = ["Draft", "Sent", "Approved", "Assigned", "In Progress", "Completed", "Closed", "Cancelled"] as const;
+const STATUS_OPTIONS = [
+  "Draft",
+  "Sent",
+  "Approved",
+  "Assigned",
+  "In Progress",
+  "Completed",
+  "Closed",
+  "Cancelled",
+] as const;
 
 type CostRow = {
   description: string;
@@ -147,9 +158,21 @@ function WorkOrdersPage() {
   const [costItems, setCostItems] = useState<CostRow[]>([emptyCostRow()]);
 
   // Queries
-  const { data: ordersData, isLoading, isError, error } = useQuery({
+  const {
+    data: ordersData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["workOrders", search, statusFilter, workCatFilter],
-    queryFn: () => fetchWorkOrders({ data: { search: search || undefined, status: statusFilter !== "all" ? statusFilter : undefined, workCategory: workCatFilter !== "all" ? workCatFilter : undefined } as any }),
+    queryFn: () =>
+      fetchWorkOrders({
+        data: {
+          search: search || undefined,
+          status: statusFilter !== "all" ? statusFilter : undefined,
+          workCategory: workCatFilter !== "all" ? workCatFilter : undefined,
+        } as any,
+      }),
   });
 
   const { data: blocksData } = useQuery({
@@ -172,15 +195,27 @@ function WorkOrdersPage() {
   const supervisors = supervisorsData?.data ?? [];
   const orders = ordersData?.data ?? [];
 
-
   function openCreate() {
     setEditing(null);
     setForm({
-      block_id: "", project_name: "", site_name: "", site_address: "",
-      customer_name: "", customer_id: "", customer_contact: "",
-      billing_address: "", billing_city: "", billing_state: "", billing_pincode: "",
-      customer_phone: "", customer_email: "", department: "",
-      work_description: "", payment_terms: "", due_date: "", comments: "",
+      block_id: "",
+      project_name: "",
+      site_name: "",
+      site_address: "",
+      customer_name: "",
+      customer_id: "",
+      customer_contact: "",
+      billing_address: "",
+      billing_city: "",
+      billing_state: "",
+      billing_pincode: "",
+      customer_phone: "",
+      customer_email: "",
+      department: "",
+      work_description: "",
+      payment_terms: "",
+      due_date: "",
+      comments: "",
       assigned_supervisor_id: "",
       work_category: "uncategorized",
     });
@@ -212,12 +247,14 @@ function WorkOrdersPage() {
       assigned_supervisor_id: order.assigned_supervisor_id ?? "",
       work_category: order.work_category ?? "uncategorized",
     });
-    setCostItems(order.items.map((it) => ({
-      description: it.description,
-      quantity: String(it.quantity),
-      taxable: it.taxable,
-      unit_price: String(it.unit_price),
-    })));
+    setCostItems(
+      order.items.map((it) => ({
+        description: it.description,
+        quantity: String(it.quantity),
+        taxable: it.taxable,
+        unit_price: String(it.unit_price),
+      })),
+    );
     setDialogOpen(true);
   }
 
@@ -234,7 +271,7 @@ function WorkOrdersPage() {
   }
 
   function updateCostRow(idx: number, field: keyof CostRow, value: string | boolean) {
-    setCostItems(costItems.map((it, i) => i === idx ? { ...it, [field]: value } : it));
+    setCostItems(costItems.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
   }
 
   function validate(): string | null {
@@ -305,7 +342,9 @@ function WorkOrdersPage() {
         await updateWorkOrderStatus({ data: { id: result.id, status: "Sent" } });
       }
 
-      toast.success(editing ? "Work order updated" : `Work order ${result.order_number ?? ""} created`);
+      toast.success(
+        editing ? "Work order updated" : `Work order ${result.order_number ?? ""} created`,
+      );
       queryClient.invalidateQueries({ queryKey: ["workOrders"] });
 
       if (sendWhatsApp) {
@@ -332,7 +371,8 @@ function WorkOrdersPage() {
           requested_by_name: null,
           department: form.department || null,
           assigned_supervisor_id: form.assigned_supervisor_id || null,
-          assigned_supervisor_name: supervisors.find((s: any) => s.id === form.assigned_supervisor_id)?.name ?? null,
+          assigned_supervisor_name:
+            supervisors.find((s: any) => s.id === form.assigned_supervisor_id)?.name ?? null,
           assigned_at: null,
           work_description: form.work_description || null,
           subtotal: 0,
@@ -375,7 +415,9 @@ function WorkOrdersPage() {
   }
 
   async function handleStatusChange(order: WorkOrderRow, newStatus: string) {
-    const result = await updateWorkOrderStatus({ data: { id: order.id, status: newStatus as any } });
+    const result = await updateWorkOrderStatus({
+      data: { id: order.id, status: newStatus as any },
+    });
     if (result.success) {
       toast.success(`Status changed to ${newStatus}`);
       queryClient.invalidateQueries({ queryKey: ["workOrders"] });
@@ -387,7 +429,9 @@ function WorkOrdersPage() {
   function handleWhatsAppSend(order: WorkOrderRow) {
     const phone = order.customer_phone?.replace(/[^0-9]/g, "") ?? "";
     if (!phone) {
-      toast.error("No customer phone number on this order. Add a phone number to send via WhatsApp.");
+      toast.error(
+        "No customer phone number on this order. Add a phone number to send via WhatsApp.",
+      );
       return;
     }
     const message = buildWorkOrderWhatsAppMessage(order);
@@ -401,7 +445,10 @@ function WorkOrdersPage() {
     : STATUS_OPTIONS;
 
   return (
-    <AppShell title="Work Orders" subtitle="Formal work instructions with cost tracking and supervisor assignment">
+    <AppShell
+      title="Work Orders"
+      subtitle="Formal work instructions with cost tracking and supervisor assignment"
+    >
       {isError && (
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -427,7 +474,9 @@ function WorkOrdersPage() {
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
             {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
+              <SelectItem key={s} value={s}>
+                {s}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -471,7 +520,10 @@ function WorkOrdersPage() {
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   <ClipboardList className="mx-auto mb-2 h-8 w-8 opacity-40" />
-                  No work orders yet. {canEdit ? 'Click "New Work Order" to create one.' : "You have no assigned work orders."}
+                  No work orders yet.{" "}
+                  {canEdit
+                    ? 'Click "New Work Order" to create one.'
+                    : "You have no assigned work orders."}
                 </TableCell>
               </TableRow>
             )}
@@ -481,20 +533,39 @@ function WorkOrdersPage() {
                 <TableCell>{new Date(order.order_date).toLocaleDateString()}</TableCell>
                 <TableCell>{order.project_name ?? "—"}</TableCell>
                 <TableCell>{order.customer_name ?? "—"}</TableCell>
-                <TableCell><WorkCategoryBadge category={order.work_category} /></TableCell>
+                <TableCell>
+                  <WorkCategoryBadge category={order.work_category} />
+                </TableCell>
                 <TableCell>{order.assigned_supervisor_name ?? "—"}</TableCell>
-                <TableCell><StatusPill tone={statusTone(order.status)}>{order.status}</StatusPill></TableCell>
+                <TableCell>
+                  <StatusPill tone={statusTone(order.status)}>{order.status}</StatusPill>
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => setPreviewOrder(order)} title="View">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPreviewOrder(order)}
+                      title="View"
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
                     {canEdit && order.status !== "Closed" && order.status !== "Cancelled" && (
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(order)} title="Edit">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(order)}
+                        title="Edit"
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" onClick={() => handleWhatsAppSend(order)} title="Send WhatsApp">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleWhatsAppSend(order)}
+                      title="Send WhatsApp"
+                    >
                       <Send className="h-4 w-4" />
                     </Button>
                     {(canEdit || isSupervisor) && (
@@ -504,7 +575,9 @@ function WorkOrdersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {availableStatuses.map((s) => (
-                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -531,11 +604,17 @@ function WorkOrdersPage() {
           {org && (
             <div className="rounded-lg border p-4 mb-4">
               <div className="flex items-center gap-3">
-                {org.logo_url && <img src={org.logo_url} alt="logo" className="h-10 w-10 rounded" />}
+                {org.logo_url && (
+                  <img src={org.logo_url} alt="logo" className="h-10 w-10 rounded" />
+                )}
                 <div>
                   <p className="font-semibold">{org.name}</p>
-                  <p className="text-sm text-muted-foreground">{org.address}, {org.city}, {org.state} - {org.pincode}</p>
-                  <p className="text-sm text-muted-foreground">Phone: {org.phone} | Email: {org.email}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {org.address}, {org.city}, {org.state} - {org.pincode}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Phone: {org.phone} | Email: {org.email}
+                  </p>
                 </div>
               </div>
             </div>
@@ -545,33 +624,52 @@ function WorkOrdersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <Label>Project / Block</Label>
-              <Select value={form.block_id} onValueChange={(v) => {
-                const block = blocks.find((b: any) => b.id === v);
-                setForm({ ...form, block_id: v, project_name: block?.name ?? form.project_name });
-              }}>
-                <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+              <Select
+                value={form.block_id}
+                onValueChange={(v) => {
+                  const block = blocks.find((b: any) => b.id === v);
+                  setForm({ ...form, block_id: v, project_name: block?.name ?? form.project_name });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project" />
+                </SelectTrigger>
                 <SelectContent>
                   {blocks.map((b: any) => (
-                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Project Name</Label>
-              <Input value={form.project_name} onChange={(e) => setForm({ ...form, project_name: e.target.value })} />
+              <Input
+                value={form.project_name}
+                onChange={(e) => setForm({ ...form, project_name: e.target.value })}
+              />
             </div>
             <div>
               <Label>Site Name</Label>
-              <Input value={form.site_name} onChange={(e) => setForm({ ...form, site_name: e.target.value })} />
+              <Input
+                value={form.site_name}
+                onChange={(e) => setForm({ ...form, site_name: e.target.value })}
+              />
             </div>
             <div>
               <Label>Site Address</Label>
-              <Input value={form.site_address} onChange={(e) => setForm({ ...form, site_address: e.target.value })} />
+              <Input
+                value={form.site_address}
+                onChange={(e) => setForm({ ...form, site_address: e.target.value })}
+              />
             </div>
             <div>
               <Label>Department</Label>
-              <Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+              <Input
+                value={form.department}
+                onChange={(e) => setForm({ ...form, department: e.target.value })}
+              />
             </div>
             <div>
               <Label>Work Category *</Label>
@@ -583,11 +681,18 @@ function WorkOrdersPage() {
             </div>
             <div>
               <Label>Assign Supervisor</Label>
-              <Select value={form.assigned_supervisor_id} onValueChange={(v) => setForm({ ...form, assigned_supervisor_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Select supervisor" /></SelectTrigger>
+              <Select
+                value={form.assigned_supervisor_id}
+                onValueChange={(v) => setForm({ ...form, assigned_supervisor_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select supervisor" />
+                </SelectTrigger>
                 <SelectContent>
                   {supervisors.map((s: any) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -598,15 +703,69 @@ function WorkOrdersPage() {
           <div className="rounded border p-3 mb-4">
             <p className="font-semibold mb-2">Bill To / Customer</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div><Label>Customer Name</Label><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></div>
-              <div><Label>Customer ID</Label><Input value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value })} /></div>
-              <div><Label>Contact Person</Label><Input value={form.customer_contact} onChange={(e) => setForm({ ...form, customer_contact: e.target.value })} /></div>
-              <div><Label>Phone</Label><Input value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} /></div>
-              <div className="md:col-span-2"><Label>Billing Address</Label><Input value={form.billing_address} onChange={(e) => setForm({ ...form, billing_address: e.target.value })} /></div>
-              <div><Label>City</Label><Input value={form.billing_city} onChange={(e) => setForm({ ...form, billing_city: e.target.value })} /></div>
-              <div><Label>State</Label><Input value={form.billing_state} onChange={(e) => setForm({ ...form, billing_state: e.target.value })} /></div>
-              <div><Label>PIN</Label><Input value={form.billing_pincode} onChange={(e) => setForm({ ...form, billing_pincode: e.target.value })} /></div>
-              <div><Label>Email</Label><Input value={form.customer_email} onChange={(e) => setForm({ ...form, customer_email: e.target.value })} /></div>
+              <div>
+                <Label>Customer Name</Label>
+                <Input
+                  value={form.customer_name}
+                  onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Customer ID</Label>
+                <Input
+                  value={form.customer_id}
+                  onChange={(e) => setForm({ ...form, customer_id: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Contact Person</Label>
+                <Input
+                  value={form.customer_contact}
+                  onChange={(e) => setForm({ ...form, customer_contact: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input
+                  value={form.customer_phone}
+                  onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Billing Address</Label>
+                <Input
+                  value={form.billing_address}
+                  onChange={(e) => setForm({ ...form, billing_address: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>City</Label>
+                <Input
+                  value={form.billing_city}
+                  onChange={(e) => setForm({ ...form, billing_city: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>State</Label>
+                <Input
+                  value={form.billing_state}
+                  onChange={(e) => setForm({ ...form, billing_state: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>PIN</Label>
+                <Input
+                  value={form.billing_pincode}
+                  onChange={(e) => setForm({ ...form, billing_pincode: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  value={form.customer_email}
+                  onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
+                />
+              </div>
             </div>
           </div>
 
@@ -625,7 +784,9 @@ function WorkOrdersPage() {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <Label>Work / Cost Items</Label>
-              <Button variant="outline" size="sm" onClick={addCostRow}><Plus className="mr-1 h-3 w-3" /> Add Row</Button>
+              <Button variant="outline" size="sm" onClick={addCostRow}>
+                <Plus className="mr-1 h-3 w-3" /> Add Row
+              </Button>
             </div>
             <div className="overflow-x-auto rounded border">
               <Table>
@@ -643,16 +804,33 @@ function WorkOrdersPage() {
                   {costItems.map((it, idx) => (
                     <TableRow key={idx}>
                       <TableCell>
-                        <Input value={it.description} onChange={(e) => updateCostRow(idx, "description", e.target.value)} placeholder="Description" />
+                        <Input
+                          value={it.description}
+                          onChange={(e) => updateCostRow(idx, "description", e.target.value)}
+                          placeholder="Description"
+                        />
                       </TableCell>
                       <TableCell>
-                        <Input type="number" value={it.quantity} onChange={(e) => updateCostRow(idx, "quantity", e.target.value)} />
+                        <Input
+                          type="number"
+                          value={it.quantity}
+                          onChange={(e) => updateCostRow(idx, "quantity", e.target.value)}
+                        />
                       </TableCell>
                       <TableCell>
-                        <input type="checkbox" checked={it.taxable} onChange={(e) => updateCostRow(idx, "taxable", e.target.checked)} className="h-4 w-4" />
+                        <input
+                          type="checkbox"
+                          checked={it.taxable}
+                          onChange={(e) => updateCostRow(idx, "taxable", e.target.checked)}
+                          className="h-4 w-4"
+                        />
                       </TableCell>
                       <TableCell>
-                        <Input type="number" value={it.unit_price} onChange={(e) => updateCostRow(idx, "unit_price", e.target.value)} />
+                        <Input
+                          type="number"
+                          value={it.unit_price}
+                          onChange={(e) => updateCostRow(idx, "unit_price", e.target.value)}
+                        />
                       </TableCell>
                       <TableCell className="font-medium">
                         {inr((parseFloat(it.quantity) || 0) * (parseFloat(it.unit_price) || 0))}
@@ -673,11 +851,19 @@ function WorkOrdersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <Label>Payment Terms</Label>
-              <Input value={form.payment_terms} onChange={(e) => setForm({ ...form, payment_terms: e.target.value })} placeholder="e.g. Net 30" />
+              <Input
+                value={form.payment_terms}
+                onChange={(e) => setForm({ ...form, payment_terms: e.target.value })}
+                placeholder="e.g. Net 30"
+              />
             </div>
             <div>
               <Label>Due Date</Label>
-              <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+              <Input
+                type="date"
+                value={form.due_date}
+                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+              />
             </div>
           </div>
 
@@ -693,13 +879,23 @@ function WorkOrdersPage() {
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
             <Button onClick={() => handleSave(false)} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+              {saving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="mr-2 h-4 w-4" />
+              )}
               Save
             </Button>
             <Button onClick={() => handleSave(true)} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {saving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
               Save & Send to WhatsApp
             </Button>
           </DialogFooter>
@@ -718,9 +914,15 @@ function WorkOrdersPage() {
               {org && (
                 <div className="border-b pb-3">
                   <p className="text-lg font-bold">{org.name}</p>
-                  <p className="text-sm text-muted-foreground">{org.address}, {org.city}, {org.state} - {org.pincode}</p>
-                  <p className="text-sm text-muted-foreground">Phone: {org.phone} | Email: {org.email}</p>
-                  {org.gst_number && <p className="text-sm text-muted-foreground">GST: {org.gst_number}</p>}
+                  <p className="text-sm text-muted-foreground">
+                    {org.address}, {org.city}, {org.state} - {org.pincode}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Phone: {org.phone} | Email: {org.email}
+                  </p>
+                  {org.gst_number && (
+                    <p className="text-sm text-muted-foreground">GST: {org.gst_number}</p>
+                  )}
                 </div>
               )}
 
@@ -728,19 +930,41 @@ function WorkOrdersPage() {
 
               {/* Order info */}
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><p className="font-semibold">Work Order Number</p><p>{previewOrder.order_number}</p></div>
-                <div><p className="font-semibold">Date</p><p>{new Date(previewOrder.order_date).toLocaleDateString()}</p></div>
-                <div><p className="font-semibold">Project</p><p>{previewOrder.project_name ?? "—"}</p></div>
-                <div><p className="font-semibold">Site</p><p>{previewOrder.site_name ?? "—"}</p></div>
-                <div><p className="font-semibold">Work Category</p><div className="mt-0.5"><WorkCategoryBadge category={previewOrder.work_category} /></div></div>
+                <div>
+                  <p className="font-semibold">Work Order Number</p>
+                  <p>{previewOrder.order_number}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Date</p>
+                  <p>{new Date(previewOrder.order_date).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Project</p>
+                  <p>{previewOrder.project_name ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Site</p>
+                  <p>{previewOrder.site_name ?? "—"}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Work Category</p>
+                  <div className="mt-0.5">
+                    <WorkCategoryBadge category={previewOrder.work_category} />
+                  </div>
+                </div>
               </div>
 
               {/* Bill To */}
               <div className="rounded border p-3">
                 <p className="font-semibold mb-1">Bill To</p>
                 <p className="text-sm">{previewOrder.customer_name ?? "—"}</p>
-                <p className="text-sm text-muted-foreground">{previewOrder.billing_address ?? ""}, {previewOrder.billing_city ?? ""}</p>
-                <p className="text-sm text-muted-foreground">Phone: {previewOrder.customer_phone ?? "—"} | Email: {previewOrder.customer_email ?? "—"}</p>
+                <p className="text-sm text-muted-foreground">
+                  {previewOrder.billing_address ?? ""}, {previewOrder.billing_city ?? ""}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Phone: {previewOrder.customer_phone ?? "—"} | Email:{" "}
+                  {previewOrder.customer_email ?? "—"}
+                </p>
               </div>
 
               {/* Job details */}
@@ -755,7 +979,9 @@ function WorkOrdersPage() {
               {previewOrder.assigned_supervisor_name && (
                 <div className="flex items-center gap-2 text-sm">
                   <UserCheck className="h-4 w-4" />
-                  <span>Assigned Supervisor: <strong>{previewOrder.assigned_supervisor_name}</strong></span>
+                  <span>
+                    Assigned Supervisor: <strong>{previewOrder.assigned_supervisor_name}</strong>
+                  </span>
                 </div>
               )}
 
@@ -801,13 +1027,16 @@ function WorkOrdersPage() {
                     <p>Completed Date: {previewOrder.completed_date ?? "—"}</p>
                     <p>Completed By: {previewOrder.completed_by_name ?? "—"}</p>
                     {previewOrder.customer_acknowledgement && (
-                      <p className="col-span-2">Customer Acknowledgement: {previewOrder.customer_acknowledgement}</p>
+                      <p className="col-span-2">
+                        Customer Acknowledgement: {previewOrder.customer_acknowledgement}
+                      </p>
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="rounded border border-dashed p-3 text-center text-sm text-muted-foreground">
-                  Completion and acknowledgement fields will be filled when the work order is completed.
+                  Completion and acknowledgement fields will be filled when the work order is
+                  completed.
                 </div>
               )}
 

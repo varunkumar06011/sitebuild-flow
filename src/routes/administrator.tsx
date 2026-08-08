@@ -32,7 +32,9 @@ export const Route = createFileRoute("/administrator")({
   head: () => ({
     meta: [{ title: "Administrator Dashboard — Meditrust ERP" }],
   }),
-  beforeLoad: async () => { await requireRole("Administrator"); },
+  beforeLoad: async () => {
+    await requireRole("Administrator");
+  },
   component: AdministratorDashboard,
 });
 
@@ -41,12 +43,32 @@ function AdministratorDashboard() {
   const { name } = useRole();
   const actions = useApprovalActions();
 
-  const { data: reqData, isError: reqError, error: reqErr } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }), refetchInterval: 15000 });
-  const { data: inspData } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchInspections({ data: {} }) });
+  const {
+    data: reqData,
+    isError: reqError,
+    error: reqErr,
+  } = useQuery({
+    queryKey: ["requisitions"],
+    queryFn: () => fetchRequisitions({ data: {} }),
+    refetchInterval: 15000,
+  });
+  const { data: inspData } = useQuery({
+    queryKey: ["inspections"],
+    queryFn: () => fetchInspections({ data: {} }),
+  });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
-  const { data: partsData } = useQuery({ queryKey: ["partsOrders", "admin"], queryFn: () => fetchPartsOrders({ data: { limit: 5 } as any }) });
-  const { data: workData } = useQuery({ queryKey: ["workOrders", "admin"], queryFn: () => fetchWorkOrders({ data: { limit: 5 } as any }) });
-  const { data: docsData } = useQuery({ queryKey: ["documents", "admin"], queryFn: () => fetchDocuments({ data: { limit: 5 } as any }) });
+  const { data: partsData } = useQuery({
+    queryKey: ["partsOrders", "admin"],
+    queryFn: () => fetchPartsOrders({ data: { limit: 5 } as any }),
+  });
+  const { data: workData } = useQuery({
+    queryKey: ["workOrders", "admin"],
+    queryFn: () => fetchWorkOrders({ data: { limit: 5 } as any }),
+  });
+  const { data: docsData } = useQuery({
+    queryKey: ["documents", "admin"],
+    queryFn: () => fetchDocuments({ data: { limit: 5 } as any }),
+  });
 
   const requisitions: RequisitionRow[] = reqData?.data ?? [];
   const inspections = inspData?.data ?? [];
@@ -55,12 +77,10 @@ function AdministratorDashboard() {
   const workOrders = workData?.data ?? [];
   const documents = docsData?.data ?? [];
 
-  const dashboardError = reqError ? reqErr?.message ?? "Failed to load data" : null;
+  const dashboardError = reqError ? (reqErr?.message ?? "Failed to load data") : null;
 
   const withinLimit = requisitions.filter((r) => approverFor(r.amount) === "Administrator");
-  const pendingApproval = withinLimit.filter(
-    (r) => r.stage === "Admin" && !actions.decided[r.id],
-  );
+  const pendingApproval = withinLimit.filter((r) => r.stage === "Admin" && !actions.decided[r.id]);
   const totalCommitted = requisitions
     .filter((r) => r.stage === "Completed")
     .reduce((s, r) => s + r.amount, 0);
@@ -116,7 +136,10 @@ function AdministratorDashboard() {
       <Card className="mt-6 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-bold">Approvals within your limit</h2>
-          <Link to="/approvals" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+          <Link
+            to="/approvals"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+          >
             Open full queue <ArrowUpRight className="size-3.5" />
           </Link>
         </div>
@@ -125,12 +148,7 @@ function AdministratorDashboard() {
             <p className="py-4 text-center text-xs text-muted-foreground">No approvals pending.</p>
           )}
           {pendingApproval.map((r) => (
-            <ApprovalQueueItem
-              key={r.id}
-              requisition={r}
-              role="Administrator"
-              actions={actions}
-            />
+            <ApprovalQueueItem key={r.id} requisition={r} role="Administrator" actions={actions} />
           ))}
         </div>
       </Card>
@@ -142,26 +160,30 @@ function AdministratorDashboard() {
           Items above ₹50,000 are outside your approval limit.
         </p>
         <div className="mt-4 space-y-3">
-          {requisitions.filter((r) => approverFor(r.amount) !== "Administrator").map((r) => (
-            <div
-              key={r.id}
-              className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-dashed border-border p-4"
-            >
-              <div className="min-w-0">
-                <p className="font-semibold">{r.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {r.pr_number} · {r.vendor_name ?? "—"} · {inr(r.amount)}
-                </p>
+          {requisitions
+            .filter((r) => approverFor(r.amount) !== "Administrator")
+            .map((r) => (
+              <div
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-dashed border-border p-4"
+              >
+                <div className="min-w-0">
+                  <p className="font-semibold">{r.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {r.pr_number} · {r.vendor_name ?? "—"} · {inr(r.amount)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <Lock className="size-3.5" />
+                    Needs {approverFor(r.amount)}
+                  </span>
+                  <StatusPill tone={r.stage === "A1" || r.stage === "A1+" ? "warning" : "info"}>
+                    {r.stage}
+                  </StatusPill>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <Lock className="size-3.5" />
-                  Needs {approverFor(r.amount)}
-                </span>
-                <StatusPill tone={r.stage === "A1" || r.stage === "A1+" ? "warning" : "info"}>{r.stage}</StatusPill>
-              </div>
-            </div>
-          ))}
+            ))}
         </div>
       </Card>
 
@@ -194,7 +216,9 @@ function AdministratorDashboard() {
                   <p className="text-xs text-muted-foreground">{i.location}</p>
                 </div>
                 <StatusPill
-                  tone={i.result === "Pass" ? "success" : i.result === "Fail" ? "danger" : "warning"}
+                  tone={
+                    i.result === "Pass" ? "success" : i.result === "Fail" ? "danger" : "warning"
+                  }
                 >
                   {i.result}
                 </StatusPill>
@@ -216,7 +240,10 @@ function AdministratorDashboard() {
               <Package className="size-4 text-muted-foreground" />
               <h2 className="text-sm font-bold">Parts Orders</h2>
             </div>
-            <Link to="/parts-orders" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+            <Link
+              to="/parts-orders"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+            >
               Manage <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
@@ -225,10 +252,19 @@ function AdministratorDashboard() {
               Total: <span className="font-semibold text-foreground">{partsData?.total ?? 0}</span>
             </span>
             <span className="text-muted-foreground">
-              Draft: <span className="font-semibold text-foreground">{partsOrders.filter((o: any) => o.status === "Draft").length}</span>
+              Draft:{" "}
+              <span className="font-semibold text-foreground">
+                {partsOrders.filter((o: any) => o.status === "Draft").length}
+              </span>
             </span>
             <span className="text-muted-foreground">
-              Pending: <span className="font-semibold text-foreground">{partsOrders.filter((o: any) => !["Received", "Cancelled"].includes(o.status)).length}</span>
+              Pending:{" "}
+              <span className="font-semibold text-foreground">
+                {
+                  partsOrders.filter((o: any) => !["Received", "Cancelled"].includes(o.status))
+                    .length
+                }
+              </span>
             </span>
           </div>
           <div className="mt-4 space-y-2">
@@ -236,14 +272,27 @@ function AdministratorDashboard() {
               <p className="text-xs text-muted-foreground py-4 text-center">No parts orders yet.</p>
             ) : (
               partsOrders.map((o: any) => (
-                <div key={o.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                <div
+                  key={o.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+                >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{o.order_number}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {o.project_name ?? "—"} · {o.vendor_name ?? "—"}
                     </p>
                   </div>
-                  <StatusPill tone={o.status === "Received" ? "success" : o.status === "Cancelled" ? "danger" : o.status === "Draft" ? "neutral" : "info"}>
+                  <StatusPill
+                    tone={
+                      o.status === "Received"
+                        ? "success"
+                        : o.status === "Cancelled"
+                          ? "danger"
+                          : o.status === "Draft"
+                            ? "neutral"
+                            : "info"
+                    }
+                  >
                     {o.status}
                   </StatusPill>
                 </div>
@@ -259,7 +308,10 @@ function AdministratorDashboard() {
               <ClipboardList className="size-4 text-muted-foreground" />
               <h2 className="text-sm font-bold">Work Orders</h2>
             </div>
-            <Link to="/work-orders" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+            <Link
+              to="/work-orders"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+            >
               Manage <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
@@ -268,10 +320,23 @@ function AdministratorDashboard() {
               Total: <span className="font-semibold text-foreground">{workData?.total ?? 0}</span>
             </span>
             <span className="text-muted-foreground">
-              Assigned: <span className="font-semibold text-foreground">{workOrders.filter((o: any) => o.status === "Assigned" || o.status === "In Progress").length}</span>
+              Assigned:{" "}
+              <span className="font-semibold text-foreground">
+                {
+                  workOrders.filter(
+                    (o: any) => o.status === "Assigned" || o.status === "In Progress",
+                  ).length
+                }
+              </span>
             </span>
             <span className="text-muted-foreground">
-              Completed: <span className="font-semibold text-foreground">{workOrders.filter((o: any) => o.status === "Completed" || o.status === "Closed").length}</span>
+              Completed:{" "}
+              <span className="font-semibold text-foreground">
+                {
+                  workOrders.filter((o: any) => o.status === "Completed" || o.status === "Closed")
+                    .length
+                }
+              </span>
             </span>
           </div>
           <div className="mt-4 space-y-2">
@@ -279,14 +344,29 @@ function AdministratorDashboard() {
               <p className="text-xs text-muted-foreground py-4 text-center">No work orders yet.</p>
             ) : (
               workOrders.map((o: any) => (
-                <div key={o.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                <div
+                  key={o.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+                >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{o.order_number}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {o.project_name ?? "—"} · {o.assigned_supervisor_name ?? "Unassigned"}
                     </p>
                   </div>
-                  <StatusPill tone={o.status === "Completed" || o.status === "Closed" ? "success" : o.status === "Cancelled" ? "danger" : o.status === "Draft" ? "neutral" : o.status === "In Progress" ? "warning" : "info"}>
+                  <StatusPill
+                    tone={
+                      o.status === "Completed" || o.status === "Closed"
+                        ? "success"
+                        : o.status === "Cancelled"
+                          ? "danger"
+                          : o.status === "Draft"
+                            ? "neutral"
+                            : o.status === "In Progress"
+                              ? "warning"
+                              : "info"
+                    }
+                  >
                     {o.status}
                   </StatusPill>
                 </div>
@@ -303,7 +383,10 @@ function AdministratorDashboard() {
             <FileText className="size-4 text-muted-foreground" />
             <h2 className="text-sm font-bold">Documents</h2>
           </div>
-          <Link to="/documents" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+          <Link
+            to="/documents"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+          >
             Manage <ArrowUpRight className="size-3.5" />
           </Link>
         </div>
@@ -312,25 +395,46 @@ function AdministratorDashboard() {
             Total: <span className="font-semibold text-foreground">{docsData?.total ?? 0}</span>
           </span>
           <span className="text-muted-foreground">
-            Expiring Soon: <span className="font-semibold text-foreground">{documents.filter((d: any) => d.expiry_status === "Expiring Soon").length}</span>
+            Expiring Soon:{" "}
+            <span className="font-semibold text-foreground">
+              {documents.filter((d: any) => d.expiry_status === "Expiring Soon").length}
+            </span>
           </span>
           <span className="text-muted-foreground">
-            Expired: <span className="font-semibold text-destructive">{documents.filter((d: any) => d.expiry_status === "Expired").length}</span>
+            Expired:{" "}
+            <span className="font-semibold text-destructive">
+              {documents.filter((d: any) => d.expiry_status === "Expired").length}
+            </span>
           </span>
         </div>
         <div className="mt-4 space-y-2">
           {documents.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4 text-center">No documents uploaded yet.</p>
+            <p className="text-xs text-muted-foreground py-4 text-center">
+              No documents uploaded yet.
+            </p>
           ) : (
             documents.map((d: any) => (
-              <div key={d.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+              <div
+                key={d.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+              >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{d.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {d.document_type} · {d.uploaded_by_name ?? "—"}
                   </p>
                 </div>
-                <StatusPill tone={d.expiry_status === "Active" ? "success" : d.expiry_status === "Expiring Soon" ? "warning" : d.expiry_status === "Expired" ? "danger" : "neutral"}>
+                <StatusPill
+                  tone={
+                    d.expiry_status === "Active"
+                      ? "success"
+                      : d.expiry_status === "Expiring Soon"
+                        ? "warning"
+                        : d.expiry_status === "Expired"
+                          ? "danger"
+                          : "neutral"
+                  }
+                >
                   {d.expiry_status}
                 </StatusPill>
               </div>

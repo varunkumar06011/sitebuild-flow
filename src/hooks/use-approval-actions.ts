@@ -16,7 +16,12 @@ export type ApprovalActions = {
   // Approve a requisition, advancing it to PO. Returns true on success.
   approve: (id: string, prNumber: string, expectedStage: string) => Promise<boolean>;
   // Reject a requisition, sending it back to Quotation. Optional reason is recorded.
-  reject: (id: string, prNumber: string, expectedStage: string, reason?: string) => Promise<boolean>;
+  reject: (
+    id: string,
+    prNumber: string,
+    expectedStage: string,
+    reason?: string,
+  ) => Promise<boolean>;
   // Whether a given requisition id is currently being processed.
   isProcessing: (id: string) => boolean;
 };
@@ -76,4 +81,4 @@ export function useApprovalActions(approverLabel?: string): ApprovalActions {
   const isProcessing = (id: string) => processingId === id;
 
   return { decided, processingId, approve, reject, isProcessing };
-};
+}

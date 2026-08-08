@@ -89,12 +89,28 @@ export const Route = createFileRoute("/parts-orders")({
       },
     ],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: PartsOrdersPage,
 });
 
-const STATUS_OPTIONS = ["Draft", "Sent", "Approved", "Ordered", "Partially Received", "Received", "Cancelled"] as const;
-const ORDER_TYPES = ["Stock Order", "Project Requirement", "Emergency Requirement", "Replacement", "Other"] as const;
+const STATUS_OPTIONS = [
+  "Draft",
+  "Sent",
+  "Approved",
+  "Ordered",
+  "Partially Received",
+  "Received",
+  "Cancelled",
+] as const;
+const ORDER_TYPES = [
+  "Stock Order",
+  "Project Requirement",
+  "Emergency Requirement",
+  "Replacement",
+  "Other",
+] as const;
 
 type ItemRow = {
   item_id: string | null;
@@ -107,7 +123,15 @@ type ItemRow = {
 };
 
 function emptyItem(): ItemRow {
-  return { item_id: null, item_name: "", part_number: "", description: "", quantity: "", unit: "", required_date: "" };
+  return {
+    item_id: null,
+    item_name: "",
+    part_number: "",
+    description: "",
+    quantity: "",
+    unit: "",
+    required_date: "",
+  };
 }
 
 function PartsOrdersPage() {
@@ -144,9 +168,21 @@ function PartsOrdersPage() {
   const [items, setItems] = useState<ItemRow[]>([emptyItem()]);
 
   // Queries
-  const { data: ordersData, isLoading, isError, error } = useQuery({
+  const {
+    data: ordersData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["partsOrders", search, statusFilter, workCatFilter],
-    queryFn: () => fetchPartsOrders({ data: { search: search || undefined, status: statusFilter !== "all" ? statusFilter : undefined, workCategory: workCatFilter !== "all" ? workCatFilter : undefined } as any }),
+    queryFn: () =>
+      fetchPartsOrders({
+        data: {
+          search: search || undefined,
+          status: statusFilter !== "all" ? statusFilter : undefined,
+          workCategory: workCatFilter !== "all" ? workCatFilter : undefined,
+        } as any,
+      }),
   });
 
   const { data: vendorsData } = useQuery({
@@ -219,15 +255,17 @@ function PartsOrdersPage() {
       comments: order.comments ?? "",
       work_category: order.work_category ?? "uncategorized",
     });
-    setItems(order.items.map((it) => ({
-      item_id: it.item_id,
-      item_name: it.item_name,
-      part_number: it.part_number ?? "",
-      description: it.description ?? "",
-      quantity: String(it.quantity),
-      unit: it.unit ?? "",
-      required_date: it.required_date ?? "",
-    })));
+    setItems(
+      order.items.map((it) => ({
+        item_id: it.item_id,
+        item_name: it.item_name,
+        part_number: it.part_number ?? "",
+        description: it.description ?? "",
+        quantity: String(it.quantity),
+        unit: it.unit ?? "",
+        required_date: it.required_date ?? "",
+      })),
+    );
     setDialogOpen(true);
   }
 
@@ -244,18 +282,24 @@ function PartsOrdersPage() {
   }
 
   function updateItem(idx: number, field: keyof ItemRow, value: string) {
-    setItems(items.map((it, i) => i === idx ? { ...it, [field]: value } : it));
+    setItems(items.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
   }
 
   function selectInventoryItem(idx: number, itemId: string) {
     const invItem = inventoryItems.find((i: any) => i.item_id === itemId);
     if (invItem) {
-      setItems(items.map((it, i) => i === idx ? {
-        ...it,
-        item_id: invItem.item_id,
-        item_name: invItem.item_name,
-        unit: invItem.unit_of_measure ?? "",
-      } : it));
+      setItems(
+        items.map((it, i) =>
+          i === idx
+            ? {
+                ...it,
+                item_id: invItem.item_id,
+                item_name: invItem.item_name,
+                unit: invItem.unit_of_measure ?? "",
+              }
+            : it,
+        ),
+      );
     }
   }
 
@@ -322,7 +366,9 @@ function PartsOrdersPage() {
         await updatePartsOrderStatus({ data: { id: result.id, status: "Sent" } });
       }
 
-      toast.success(editing ? "Parts order updated" : `Parts order ${result.order_number ?? ""} created`);
+      toast.success(
+        editing ? "Parts order updated" : `Parts order ${result.order_number ?? ""} created`,
+      );
 
       queryClient.invalidateQueries({ queryKey: ["partsOrders"] });
 
@@ -353,6 +399,7 @@ function PartsOrdersPage() {
           requested_by_name: null,
           department: form.department || null,
           comments: form.comments || null,
+          work_category: form.work_category,
           pdf_path: null,
           items: items.map((it) => ({
             id: "",
@@ -397,7 +444,9 @@ function PartsOrdersPage() {
   }
 
   async function handleStatusChange(order: PartsOrderRow, newStatus: string) {
-    const result = await updatePartsOrderStatus({ data: { id: order.id, status: newStatus as any } });
+    const result = await updatePartsOrderStatus({
+      data: { id: order.id, status: newStatus as any },
+    });
     if (result.success) {
       toast.success(`Status changed to ${newStatus}`);
       queryClient.invalidateQueries({ queryKey: ["partsOrders"] });
@@ -444,7 +493,9 @@ function PartsOrdersPage() {
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
             {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
+              <SelectItem key={s} value={s}>
+                {s}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -499,28 +550,54 @@ function PartsOrdersPage() {
                 <TableCell>{new Date(order.order_date).toLocaleDateString()}</TableCell>
                 <TableCell>{order.project_name ?? "—"}</TableCell>
                 <TableCell>{order.vendor_name ?? "—"}</TableCell>
-                <TableCell><WorkCategoryBadge category={order.work_category} /></TableCell>
+                <TableCell>
+                  <WorkCategoryBadge category={order.work_category} />
+                </TableCell>
                 <TableCell>{order.items.length}</TableCell>
-                <TableCell>{order.requested_delivery_date ? new Date(order.requested_delivery_date).toLocaleDateString() : "—"}</TableCell>
+                <TableCell>
+                  {order.requested_delivery_date
+                    ? new Date(order.requested_delivery_date).toLocaleDateString()
+                    : "—"}
+                </TableCell>
                 <TableCell>
                   <StatusPill tone={statusTone(order.status)}>{order.status}</StatusPill>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => setPreviewOrder(order)} title="View">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPreviewOrder(order)}
+                      title="View"
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
                     {canEdit && order.status !== "Received" && order.status !== "Cancelled" && (
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(order)} title="Edit">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(order)}
+                        title="Edit"
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
                     {canEdit && (
-                      <Button variant="ghost" size="icon" onClick={() => handleDuplicate(order)} title="Duplicate">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDuplicate(order)}
+                        title="Duplicate"
+                      >
                         <Copy className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" onClick={() => handleWhatsAppSend(order)} title="Send WhatsApp">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleWhatsAppSend(order)}
+                      title="Send WhatsApp"
+                    >
                       <Send className="h-4 w-4" />
                     </Button>
                     {canEdit && (
@@ -530,7 +607,9 @@ function PartsOrdersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {STATUS_OPTIONS.map((s) => (
-                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -547,9 +626,13 @@ function PartsOrdersPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? `Edit ${editing.order_number}` : "New Parts Order"}</DialogTitle>
+            <DialogTitle>
+              {editing ? `Edit ${editing.order_number}` : "New Parts Order"}
+            </DialogTitle>
             <DialogDescription>
-              {editing ? "Update parts order details" : "Create a new parts order for materials or equipment"}
+              {editing
+                ? "Update parts order details"
+                : "Create a new parts order for materials or equipment"}
             </DialogDescription>
           </DialogHeader>
 
@@ -557,11 +640,17 @@ function PartsOrdersPage() {
           {org && (
             <div className="rounded-lg border p-4 mb-4">
               <div className="flex items-center gap-3">
-                {org.logo_url && <img src={org.logo_url} alt="logo" className="h-10 w-10 rounded" />}
+                {org.logo_url && (
+                  <img src={org.logo_url} alt="logo" className="h-10 w-10 rounded" />
+                )}
                 <div>
                   <p className="font-semibold">{org.name}</p>
-                  <p className="text-sm text-muted-foreground">{org.address}, {org.city}, {org.state} - {org.pincode}</p>
-                  <p className="text-sm text-muted-foreground">Phone: {org.phone} | Email: {org.email}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {org.address}, {org.city}, {org.state} - {org.pincode}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Phone: {org.phone} | Email: {org.email}
+                  </p>
                 </div>
               </div>
             </div>
@@ -571,33 +660,55 @@ function PartsOrdersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <Label>Project / Block</Label>
-              <Select value={form.block_id} onValueChange={(v) => {
-                const block = blocks.find((b: any) => b.id === v);
-                setForm({ ...form, block_id: v, project_name: block?.name ?? form.project_name });
-              }}>
-                <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+              <Select
+                value={form.block_id}
+                onValueChange={(v) => {
+                  const block = blocks.find((b: any) => b.id === v);
+                  setForm({ ...form, block_id: v, project_name: block?.name ?? form.project_name });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project" />
+                </SelectTrigger>
                 <SelectContent>
                   {blocks.map((b: any) => (
-                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Project Name</Label>
-              <Input value={form.project_name} onChange={(e) => setForm({ ...form, project_name: e.target.value })} placeholder="Project name" />
+              <Input
+                value={form.project_name}
+                onChange={(e) => setForm({ ...form, project_name: e.target.value })}
+                placeholder="Project name"
+              />
             </div>
             <div>
               <Label>Site Address</Label>
-              <Input value={form.site_address} onChange={(e) => setForm({ ...form, site_address: e.target.value })} placeholder="Site address" />
+              <Input
+                value={form.site_address}
+                onChange={(e) => setForm({ ...form, site_address: e.target.value })}
+                placeholder="Site address"
+              />
             </div>
             <div>
               <Label>Vendor / Supplier</Label>
-              <Select value={form.vendor_id} onValueChange={(v) => setForm({ ...form, vendor_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Select vendor" /></SelectTrigger>
+              <Select
+                value={form.vendor_id}
+                onValueChange={(v) => setForm({ ...form, vendor_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select vendor" />
+                </SelectTrigger>
                 <SelectContent>
                   {vendors.map((v: any) => (
-                    <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -609,18 +720,29 @@ function PartsOrdersPage() {
             </div>
             <div>
               <Label>Order Type</Label>
-              <Select value={form.order_type} onValueChange={(v) => setForm({ ...form, order_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.order_type}
+                onValueChange={(v) => setForm({ ...form, order_type: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {ORDER_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Department</Label>
-              <Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Department" />
+              <Input
+                value={form.department}
+                onChange={(e) => setForm({ ...form, department: e.target.value })}
+                placeholder="Department"
+              />
             </div>
             <div>
               <Label>Work Category *</Label>
@@ -636,27 +758,51 @@ function PartsOrdersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <Label>Requested Delivery Date</Label>
-              <Input type="date" value={form.requested_delivery_date} onChange={(e) => setForm({ ...form, requested_delivery_date: e.target.value })} />
+              <Input
+                type="date"
+                value={form.requested_delivery_date}
+                onChange={(e) => setForm({ ...form, requested_delivery_date: e.target.value })}
+              />
             </div>
             <div>
               <Label>Delivery Address</Label>
-              <Input value={form.delivery_address} onChange={(e) => setForm({ ...form, delivery_address: e.target.value })} placeholder="Delivery address" />
+              <Input
+                value={form.delivery_address}
+                onChange={(e) => setForm({ ...form, delivery_address: e.target.value })}
+                placeholder="Delivery address"
+              />
             </div>
             <div>
               <Label>Delivery Contact Person</Label>
-              <Input value={form.delivery_contact} onChange={(e) => setForm({ ...form, delivery_contact: e.target.value })} placeholder="Contact person" />
+              <Input
+                value={form.delivery_contact}
+                onChange={(e) => setForm({ ...form, delivery_contact: e.target.value })}
+                placeholder="Contact person"
+              />
             </div>
             <div>
               <Label>Delivery Contact Phone</Label>
-              <Input value={form.delivery_phone} onChange={(e) => setForm({ ...form, delivery_phone: e.target.value })} placeholder="Phone" />
+              <Input
+                value={form.delivery_phone}
+                onChange={(e) => setForm({ ...form, delivery_phone: e.target.value })}
+                placeholder="Phone"
+              />
             </div>
             <div>
               <Label>Shipping Method</Label>
-              <Input value={form.shipping_method} onChange={(e) => setForm({ ...form, shipping_method: e.target.value })} placeholder="Shipping method" />
+              <Input
+                value={form.shipping_method}
+                onChange={(e) => setForm({ ...form, shipping_method: e.target.value })}
+                placeholder="Shipping method"
+              />
             </div>
             <div>
               <Label>Shipping Account</Label>
-              <Input value={form.shipping_account} onChange={(e) => setForm({ ...form, shipping_account: e.target.value })} placeholder="Shipping account" />
+              <Input
+                value={form.shipping_account}
+                onChange={(e) => setForm({ ...form, shipping_account: e.target.value })}
+                placeholder="Shipping account"
+              />
             </div>
           </div>
 
@@ -664,7 +810,9 @@ function PartsOrdersPage() {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <Label>Parts Request Items</Label>
-              <Button variant="outline" size="sm" onClick={addItem}><Plus className="mr-1 h-3 w-3" /> Add Item</Button>
+              <Button variant="outline" size="sm" onClick={addItem}>
+                <Plus className="mr-1 h-3 w-3" /> Add Item
+              </Button>
             </div>
 
             {/* Inventory search */}
@@ -685,20 +833,25 @@ function PartsOrdersPage() {
                       key={it.item_id}
                       className="flex w-full items-center justify-between rounded px-2 py-1 text-sm hover:bg-accent"
                       onClick={() => {
-                        setItems([...items, {
-                          item_id: it.item_id,
-                          item_name: it.item_name,
-                          part_number: "",
-                          description: it.category_path ?? "",
-                          quantity: "",
-                          unit: it.unit_of_measure ?? "",
-                          required_date: "",
-                        }]);
+                        setItems([
+                          ...items,
+                          {
+                            item_id: it.item_id,
+                            item_name: it.item_name,
+                            part_number: "",
+                            description: it.category_path ?? "",
+                            quantity: "",
+                            unit: it.unit_of_measure ?? "",
+                            required_date: "",
+                          },
+                        ]);
                         setItemSearch("");
                       }}
                     >
                       <span>{it.item_name}</span>
-                      <span className="text-xs text-muted-foreground">Stock: {it.current_stock} {it.unit_of_measure ?? ""}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Stock: {it.current_stock} {it.unit_of_measure ?? ""}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -722,22 +875,47 @@ function PartsOrdersPage() {
                   {items.map((it, idx) => (
                     <TableRow key={idx}>
                       <TableCell>
-                        <Input value={it.item_name} onChange={(e) => updateItem(idx, "item_name", e.target.value)} placeholder="Item name" />
+                        <Input
+                          value={it.item_name}
+                          onChange={(e) => updateItem(idx, "item_name", e.target.value)}
+                          placeholder="Item name"
+                        />
                       </TableCell>
                       <TableCell>
-                        <Input type="number" value={it.quantity} onChange={(e) => updateItem(idx, "quantity", e.target.value)} placeholder="0" />
+                        <Input
+                          type="number"
+                          value={it.quantity}
+                          onChange={(e) => updateItem(idx, "quantity", e.target.value)}
+                          placeholder="0"
+                        />
                       </TableCell>
                       <TableCell>
-                        <Input value={it.part_number} onChange={(e) => updateItem(idx, "part_number", e.target.value)} placeholder="Part no." />
+                        <Input
+                          value={it.part_number}
+                          onChange={(e) => updateItem(idx, "part_number", e.target.value)}
+                          placeholder="Part no."
+                        />
                       </TableCell>
                       <TableCell>
-                        <Input value={it.description} onChange={(e) => updateItem(idx, "description", e.target.value)} placeholder="Description" />
+                        <Input
+                          value={it.description}
+                          onChange={(e) => updateItem(idx, "description", e.target.value)}
+                          placeholder="Description"
+                        />
                       </TableCell>
                       <TableCell>
-                        <Input value={it.unit} onChange={(e) => updateItem(idx, "unit", e.target.value)} placeholder="Unit" />
+                        <Input
+                          value={it.unit}
+                          onChange={(e) => updateItem(idx, "unit", e.target.value)}
+                          placeholder="Unit"
+                        />
                       </TableCell>
                       <TableCell>
-                        <Input type="date" value={it.required_date} onChange={(e) => updateItem(idx, "required_date", e.target.value)} />
+                        <Input
+                          type="date"
+                          value={it.required_date}
+                          onChange={(e) => updateItem(idx, "required_date", e.target.value)}
+                        />
                       </TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => removeItem(idx)}>
@@ -763,13 +941,23 @@ function PartsOrdersPage() {
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
             <Button onClick={() => handleSave(false)} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+              {saving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="mr-2 h-4 w-4" />
+              )}
               Save
             </Button>
             <Button onClick={() => handleSave(true)} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {saving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
               Save & Send to WhatsApp
             </Button>
           </DialogFooter>
@@ -788,9 +976,15 @@ function PartsOrdersPage() {
               {org && (
                 <div className="border-b pb-3">
                   <p className="text-lg font-bold">{org.name}</p>
-                  <p className="text-sm text-muted-foreground">{org.address}, {org.city}, {org.state} - {org.pincode}</p>
-                  <p className="text-sm text-muted-foreground">Phone: {org.phone} | Email: {org.email}</p>
-                  {org.gst_number && <p className="text-sm text-muted-foreground">GST: {org.gst_number}</p>}
+                  <p className="text-sm text-muted-foreground">
+                    {org.address}, {org.city}, {org.state} - {org.pincode}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Phone: {org.phone} | Email: {org.email}
+                  </p>
+                  {org.gst_number && (
+                    <p className="text-sm text-muted-foreground">GST: {org.gst_number}</p>
+                  )}
                 </div>
               )}
 
@@ -819,8 +1013,13 @@ function PartsOrdersPage() {
                 <p className="font-semibold mb-1">Vendor</p>
                 <p className="text-sm">{previewOrder.vendor_name ?? "—"}</p>
                 <p className="text-sm text-muted-foreground">{previewOrder.vendor_address ?? ""}</p>
-                <p className="text-sm text-muted-foreground">Phone: {previewOrder.vendor_phone ?? "—"} | Email: {previewOrder.vendor_email ?? "—"}</p>
-                {previewOrder.vendor_gst && <p className="text-sm text-muted-foreground">GST: {previewOrder.vendor_gst}</p>}
+                <p className="text-sm text-muted-foreground">
+                  Phone: {previewOrder.vendor_phone ?? "—"} | Email:{" "}
+                  {previewOrder.vendor_email ?? "—"}
+                </p>
+                {previewOrder.vendor_gst && (
+                  <p className="text-sm text-muted-foreground">GST: {previewOrder.vendor_gst}</p>
+                )}
               </div>
 
               {/* Delivery info */}
@@ -830,7 +1029,12 @@ function PartsOrdersPage() {
                   <p>Delivery Address: {previewOrder.delivery_address ?? "—"}</p>
                   <p>Contact: {previewOrder.delivery_contact ?? "—"}</p>
                   <p>Phone: {previewOrder.delivery_phone ?? "—"}</p>
-                  <p>Req. Date: {previewOrder.requested_delivery_date ? new Date(previewOrder.requested_delivery_date).toLocaleDateString() : "—"}</p>
+                  <p>
+                    Req. Date:{" "}
+                    {previewOrder.requested_delivery_date
+                      ? new Date(previewOrder.requested_delivery_date).toLocaleDateString()
+                      : "—"}
+                  </p>
                 </div>
               </div>
 

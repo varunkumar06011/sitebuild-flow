@@ -38,7 +38,10 @@ export const fetchWorkCategories = createServerFn({ method: "GET" })
 // Create a new work category (admin only)
 // ---------------------------------------------------------------------------
 const workCategorySchema = z.object({
-  name: z.string().min(1).regex(/^[a-z0-9_-]+$/),
+  name: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9_-]+$/),
   label: z.string().min(1),
   description: z.string().optional(),
   sort_order: z.number().optional(),
@@ -67,6 +70,9 @@ export const createWorkCategory = createServerFn({ method: "POST" })
       return { success: false, error: "Failed to create work category" };
     }
 
-    await logAction(user, "create_work_category", "work_category", cat.id, { name: cat.name, label: cat.label });
+    await logAction(user, "create_work_category", "work_category", cat.id, {
+      name: cat.name,
+      label: cat.label,
+    });
     return { success: true, category: cat };
   });

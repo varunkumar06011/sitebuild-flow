@@ -23,7 +23,9 @@ export const Route = createFileRoute("/settings")({
       },
     ],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: SettingsPage,
 });
 
@@ -103,7 +105,10 @@ function SettingsPage() {
   };
 
   return (
-    <AppShell title="Organization settings" subtitle="Company profile, GST, and contact information">
+    <AppShell
+      title="Organization settings"
+      subtitle="Company profile, GST, and contact information"
+    >
       <Card className="max-w-2xl p-6">
         <div className="flex items-center gap-3 border-b border-border pb-4">
           <Building2 className="size-6 text-primary" />

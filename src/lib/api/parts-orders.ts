@@ -10,8 +10,10 @@ function isAdmin(role: Role): boolean {
   return ADMIN_ROLES.includes(role);
 }
 
-export type PartsOrderStatus = "Draft" | "Sent" | "Approved" | "Ordered" | "Partially Received" | "Received" | "Cancelled";
-export type PartsOrderType = "Stock Order" | "Project Requirement" | "Emergency Requirement" | "Replacement" | "Other";
+export type PartsOrderStatus =
+  "Draft" | "Sent" | "Approved" | "Ordered" | "Partially Received" | "Received" | "Cancelled";
+export type PartsOrderType =
+  "Stock Order" | "Project Requirement" | "Emergency Requirement" | "Replacement" | "Other";
 
 export type PartsOrderRow = {
   id: string;
@@ -61,7 +63,16 @@ export type PartsOrderItemRow = {
 // Fetch list (paginated, filterable)
 // ---------------------------------------------------------------------------
 export const fetchPartsOrders = createServerFn({ method: "GET" })
-  .validator((input: { page?: number; limit?: number; status?: string; vendorId?: string; search?: string; workCategory?: string }) => input)
+  .validator(
+    (input: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      vendorId?: string;
+      search?: string;
+      workCategory?: string;
+    }) => input,
+  )
   .handler(async ({ data }) => {
     await requireSessionUser();
     const page = data.page ?? 1;
@@ -70,15 +81,21 @@ export const fetchPartsOrders = createServerFn({ method: "GET" })
 
     let query = supabaseServer
       .from("parts_orders")
-      .select("id, order_number, order_date, status, order_type, block_id, project_name, site_address, vendor_id, vendor_name, vendor_phone, vendor_email, vendor_address, vendor_gst, requested_delivery_date, delivery_address, delivery_contact, delivery_phone, shipping_method, shipping_account, requested_by, requested_by_name, department, comments, work_category, pdf_path, created_at, updated_at", { count: "exact" })
+      .select(
+        "id, order_number, order_date, status, order_type, block_id, project_name, site_address, vendor_id, vendor_name, vendor_phone, vendor_email, vendor_address, vendor_gst, requested_delivery_date, delivery_address, delivery_contact, delivery_phone, shipping_method, shipping_account, requested_by, requested_by_name, department, comments, work_category, pdf_path, created_at, updated_at",
+        { count: "exact" },
+      )
       .order("order_date", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (data.status) query = query.eq("status", data.status);
     if (data.vendorId) query = query.eq("vendor_id", data.vendorId);
-    if (data.workCategory && data.workCategory !== "all") query = query.eq("work_category", data.workCategory);
+    if (data.workCategory && data.workCategory !== "all")
+      query = query.eq("work_category", data.workCategory);
     if (data.search) {
-      query = query.or(`order_number.ilike.%${data.search}%,project_name.ilike.%${data.search}%,vendor_name.ilike.%${data.search}%`);
+      query = query.or(
+        `order_number.ilike.%${data.search}%,project_name.ilike.%${data.search}%,vendor_name.ilike.%${data.search}%`,
+      );
     }
 
     const { data: orders, count } = await query;
@@ -88,7 +105,9 @@ export const fetchPartsOrders = createServerFn({ method: "GET" })
     if (orderIds.length > 0) {
       const { data: items } = await supabaseServer
         .from("parts_order_items")
-        .select("id, parts_order_id, item_id, item_name, part_number, description, quantity, unit, required_date, sort_order")
+        .select(
+          "id, parts_order_id, item_id, item_name, part_number, description, quantity, unit, required_date, sort_order",
+        )
         .in("parts_order_id", orderIds)
         .order("sort_order", { ascending: true });
       for (const it of items ?? []) {
@@ -200,7 +219,9 @@ const createPartsOrderSchema = z.object({
   project_name: z.string().optional(),
   site_address: z.string().optional(),
   vendor_id: z.string().uuid().nullable().optional(),
-  order_type: z.enum(["Stock Order", "Project Requirement", "Emergency Requirement", "Replacement", "Other"]).optional(),
+  order_type: z
+    .enum(["Stock Order", "Project Requirement", "Emergency Requirement", "Replacement", "Other"])
+    .optional(),
   requested_delivery_date: z.string().optional().nullable(),
   delivery_address: z.string().optional(),
   delivery_contact: z.string().optional(),
@@ -222,8 +243,8 @@ export const createPartsOrder = createServerFn({ method: "POST" })
     }
 
     // Generate order number via RPC
-    const { data: orderNumber, error: seqErr } = await supabaseServer
-      .rpc("next_parts_order_number");
+    const { data: orderNumber, error: seqErr } =
+      await supabaseServer.rpc("next_parts_order_number");
 
     if (seqErr || !orderNumber) {
       return { success: false, error: "Failed to generate order number" };
@@ -289,7 +310,10 @@ export const createPartsOrder = createServerFn({ method: "POST" })
       .single();
 
     if (error || !order) {
-      return { success: false, error: `Failed to create parts order: ${error?.message ?? "Unknown error"}` };
+      return {
+        success: false,
+        error: `Failed to create parts order: ${error?.message ?? "Unknown error"}`,
+      };
     }
 
     // Insert items
@@ -305,9 +329,7 @@ export const createPartsOrder = createServerFn({ method: "POST" })
       sort_order: idx,
     }));
 
-    const { error: itemsErr } = await supabaseServer
-      .from("parts_order_items")
-      .insert(itemRows);
+    const { error: itemsErr } = await supabaseServer.from("parts_order_items").insert(itemRows);
 
     if (itemsErr) {
       return { success: false, error: `Order created but items failed: ${itemsErr.message}` };
@@ -331,7 +353,9 @@ const updatePartsOrderSchema = z.object({
   project_name: z.string().optional(),
   site_address: z.string().optional(),
   vendor_id: z.string().uuid().nullable().optional(),
-  order_type: z.enum(["Stock Order", "Project Requirement", "Emergency Requirement", "Replacement", "Other"]).optional(),
+  order_type: z
+    .enum(["Stock Order", "Project Requirement", "Emergency Requirement", "Replacement", "Other"])
+    .optional(),
   requested_delivery_date: z.string().optional().nullable(),
   delivery_address: z.string().optional(),
   delivery_contact: z.string().optional(),
@@ -427,9 +451,7 @@ export const updatePartsOrder = createServerFn({ method: "POST" })
         required_date: it.required_date ?? null,
         sort_order: idx,
       }));
-      const { error: itemsErr } = await supabaseServer
-        .from("parts_order_items")
-        .insert(itemRows);
+      const { error: itemsErr } = await supabaseServer.from("parts_order_items").insert(itemRows);
       if (itemsErr) {
         return { success: false, error: `Order updated but items failed: ${itemsErr.message}` };
       }
@@ -444,7 +466,15 @@ export const updatePartsOrder = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 const statusSchema = z.object({
   id: z.string().uuid(),
-  status: z.enum(["Draft", "Sent", "Approved", "Ordered", "Partially Received", "Received", "Cancelled"]),
+  status: z.enum([
+    "Draft",
+    "Sent",
+    "Approved",
+    "Ordered",
+    "Partially Received",
+    "Received",
+    "Cancelled",
+  ]),
 });
 
 export const updatePartsOrderStatus = createServerFn({ method: "POST" })
@@ -507,7 +537,14 @@ export const duplicatePartsOrder = createServerFn({ method: "POST" })
     const { data: orderNumber } = await supabaseServer.rpc("next_parts_order_number");
     if (!orderNumber) return { success: false, error: "Failed to generate order number" };
 
-    const { id: _id, order_number: _on, created_at: _ca, updated_at: _ua, pdf_path: _pp, ...rest } = original;
+    const {
+      id: _id,
+      order_number: _on,
+      created_at: _ca,
+      updated_at: _ua,
+      pdf_path: _pp,
+      ...rest
+    } = original;
     const newOrder: any = {
       ...rest,
       order_number: orderNumber,

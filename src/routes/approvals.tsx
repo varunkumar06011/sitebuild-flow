@@ -39,7 +39,9 @@ export const Route = createFileRoute("/approvals")({
       },
     ],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: Approvals,
   errorComponent: ({ error, reset }) => (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
@@ -49,7 +51,9 @@ export const Route = createFileRoute("/approvals")({
         <p className="mt-2 text-sm text-muted-foreground">
           {error?.message ?? "Something went wrong. Please try again."}
         </p>
-        <Button className="mt-6" onClick={reset}>Try again</Button>
+        <Button className="mt-6" onClick={reset}>
+          Try again
+        </Button>
       </div>
     </div>
   ),
@@ -74,7 +78,12 @@ function Approvals() {
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
 
-  const { data: reqData, isLoading, isError, error } = useQuery({
+  const {
+    data: reqData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["requisitions"],
     queryFn: () => fetchRequisitions({ data: {} }),
     refetchInterval: 15000, // poll every 15 seconds for near-real-time updates

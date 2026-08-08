@@ -5,22 +5,21 @@ import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
 
 // Fetches the single organization settings row (name, GST, address, logo, etc.).
-export const fetchOrgSettings = createServerFn({ method: "GET" })
-  .handler(async ({ context }) => {
-    await requireSessionUser();
+export const fetchOrgSettings = createServerFn({ method: "GET" }).handler(async ({ context }) => {
+  await requireSessionUser();
 
-    const { data, error } = await supabaseServer
-      .from("organization_settings")
-      .select("id, name, gst_number, address, city, state, pincode, phone, email, logo_url")
-      .limit(1)
-      .single();
+  const { data, error } = await supabaseServer
+    .from("organization_settings")
+    .select("id, name, gst_number, address, city, state, pincode, phone, email, logo_url")
+    .limit(1)
+    .single();
 
-    if (error || !data) {
-      return { success: false, error: "Failed to fetch settings" };
-    }
+  if (error || !data) {
+    return { success: false, error: "Failed to fetch settings" };
+  }
 
-    return { success: true, data };
-  });
+  return { success: true, data };
+});
 
 // Zod schema validating organization settings fields (name, GST, address, contact, logo).
 const settingsSchema = z.object({

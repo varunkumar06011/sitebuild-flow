@@ -5,10 +5,7 @@ import { authStore } from "./lib/auth-store";
 
 function isAuthError(error: unknown): boolean {
   if (error instanceof Error) {
-    return (
-      error.message.includes("Unauthorized") ||
-      error.message.includes("no valid session")
-    );
+    return error.message.includes("Unauthorized") || error.message.includes("no valid session");
   }
   return false;
 }

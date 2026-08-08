@@ -60,12 +60,18 @@ export const createCategoryNode = createServerFn({ method: "POST" })
       .single();
 
     if (error || !node) {
-      console.error("[createCategoryNode] Insert failed:", error?.message, error?.code, error?.details);
-      const msg = error?.code === "23505"
-        ? "A category with this name already exists at this level"
-        : error?.code === "23503"
-        ? "Foreign key violation — parent or user not found"
-        : `Failed to create category: ${error?.message ?? "Unknown error"}`;
+      console.error(
+        "[createCategoryNode] Insert failed:",
+        error?.message,
+        error?.code,
+        error?.details,
+      );
+      const msg =
+        error?.code === "23505"
+          ? "A category with this name already exists at this level"
+          : error?.code === "23503"
+            ? "Foreign key violation ΓÇö parent or user not found"
+            : `Failed to create category: ${error?.message ?? "Unknown error"}`;
       return { success: false, error: msg };
     }
 
@@ -83,17 +89,40 @@ export const createCategoryNode = createServerFn({ method: "POST" })
 
 // Fetches inventory items with current stock and resolved category paths, optional name search.
 export const fetchItems = createServerFn({ method: "GET" })
-  .validator((input: { search?: string; workCategory?: string }) => input)
+  .validator(
+    (input: {
+      search?: string;
+      workCategory?: string;
+      category_id?: string;
+      includeArchived?: boolean;
+      page?: number;
+      pageSize?: number;
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
+    const page = data.page ?? 1;
+    const pageSize = data.pageSize ?? 50;
+    const offset = (page - 1) * pageSize;
+
     let query = supabaseServer
       .from("inventory_stock_levels")
-      .select("item_id, item_name, unit_of_measure, reorder_level, opening_stock, category_id, current_stock")
-      .order("item_name", { ascending: true });
+      .select(
+        "item_id, item_name, unit_of_measure, reorder_level, reorder_qty, unit_cost, supplier_id, default_warehouse_id, opening_stock, category_id, current_stock, stock_value, archived",
+        { count: "exact" },
+      )
+      .order("item_name", { ascending: true })
+      .range(offset, offset + pageSize - 1);
 
+    if (!data.includeArchived) {
+      query = query.eq("archived", false);
+    }
     if (data.search) {
       query = query.ilike("item_name", `%${data.search}%`);
+    }
+    if (data.category_id) {
+      query = query.eq("category_id", data.category_id);
     }
 
     // Work category filter — join inventory_items to filter by work_category
@@ -105,12 +134,12 @@ export const fetchItems = createServerFn({ method: "GET" })
         .eq("work_category", data.workCategory);
       itemIds = (filteredItems ?? []).map((i: any) => i.id);
       if (itemIds.length === 0) {
-        return { data: [] };
+        return { data: [], total: 0, page, pageSize, totalPages: 0 };
       }
       query = query.in("item_id", itemIds);
     }
 
-    const { data: items } = await query;
+    const { data: items, count } = await query;
 
     // Resolve category paths
     const categoryIds = [...new Set((items ?? []).map((i: any) => i.category_id))];
@@ -131,7 +160,7 @@ export const fetchItems = createServerFn({ method: "GET" })
         parts.unshift(current.name);
         current = current.parent_id ? catMap.get(current.parent_id) : undefined;
       }
-      return parts.join(" › ");
+      return parts.join(" ΓÇ║ ");
     }
 
     // Fetch work_category for each item
@@ -153,6 +182,10 @@ export const fetchItems = createServerFn({ method: "GET" })
         work_category: workCatMap.get(i.item_id) ?? "uncategorized",
         category_path: buildPath(i.category_id),
       })),
+      total: count ?? 0,
+      page,
+      pageSize,
+      totalPages: Math.ceil((count ?? 0) / pageSize),
     };
   });
 
@@ -162,8 +195,12 @@ const itemSchema = z.object({
   name: z.string().min(1),
   unit_of_measure: z.string().optional(),
   reorder_level: z.number().min(0).optional(),
+  reorder_qty: z.number().min(0).optional(),
+  unit_cost: z.number().min(0).optional(),
   opening_stock: z.number().min(0).optional(),
   work_category: z.string().optional(),
+  supplier_id: z.string().uuid().nullable().optional(),
+  default_warehouse_id: z.string().uuid().nullable().optional(),
 });
 
 // Creates a new inventory item (admin only) and logs the action.
@@ -182,8 +219,12 @@ export const createItem = createServerFn({ method: "POST" })
         name: data.name.trim(),
         unit_of_measure: data.unit_of_measure?.trim() || null,
         reorder_level: data.reorder_level ?? 0,
+        reorder_qty: data.reorder_qty ?? 0,
+        unit_cost: data.unit_cost ?? 0,
         opening_stock: data.opening_stock ?? 0,
         work_category: data.work_category ?? "uncategorized",
+        supplier_id: data.supplier_id ?? null,
+        default_warehouse_id: data.default_warehouse_id ?? null,
         created_by: user.id,
       })
       .select("id, name")
@@ -204,15 +245,23 @@ export const createItem = createServerFn({ method: "POST" })
 // Transactions
 // ---------------------------------------------------------------------------
 
-// Zod schema validating an inventory transaction (in/out/adjustment with quantity and reference).
+// Zod schema validating an inventory transaction (in/out/adjustment/transfer with quantity and reference).
 const txSchema = z.object({
   item_id: z.string().uuid(),
-  type: z.enum(["in", "out", "adjustment"]),
+  type: z.enum(["in", "out", "adjustment", "transfer"]),
   quantity: z.number().positive(),
   is_wastage: z.boolean().optional(),
   block_id: z.string().uuid().nullable().optional(),
   reference: z.string().optional(),
   remarks: z.string().optional(),
+  adjustment_direction: z.enum(["up", "down"]).optional(),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  transfer_from_block_id: z.string().uuid().nullable().optional(),
+  transfer_to_block_id: z.string().uuid().nullable().optional(),
+  unit_cost: z.number().min(0).optional(),
+  linked_requisition_id: z.string().uuid().nullable().optional(),
+  linked_gate_pass_id: z.string().uuid().nullable().optional(),
+  linked_batch_id: z.string().uuid().nullable().optional(),
 });
 
 // Records an inventory stock transaction (in/out/adjustment) and logs the action.
@@ -238,6 +287,31 @@ export const recordTransaction = createServerFn({ method: "POST" })
       };
     }
 
+    // Stock-out validation: check current stock before allowing "out", "transfer", or downward "adjustment"
+    if (
+      data.type === "out" ||
+      data.type === "transfer" ||
+      (data.type === "adjustment" && data.adjustment_direction === "down")
+    ) {
+      const { data: stockRow } = await supabaseServer
+        .from("inventory_stock_levels")
+        .select("current_stock")
+        .eq("item_id", data.item_id)
+        .single();
+      const currentStock = Number(stockRow?.current_stock ?? 0);
+      if (currentStock < data.quantity) {
+        return {
+          success: false,
+          error: `Insufficient stock. Current stock is ${currentStock}, attempted to remove ${data.quantity}.`,
+        };
+      }
+    }
+
+    // Transfer validation: both from and to blocks required
+    if (data.type === "transfer" && (!data.transfer_from_block_id || !data.transfer_to_block_id)) {
+      return { success: false, error: "Transfer requires both source and destination blocks" };
+    }
+
     const { data: tx, error } = await supabaseServer
       .from("inventory_transactions")
       .insert({
@@ -248,6 +322,14 @@ export const recordTransaction = createServerFn({ method: "POST" })
         block_id: data.block_id ?? null,
         reference: data.reference?.trim() || null,
         remarks: data.remarks?.trim() || null,
+        adjustment_direction: data.adjustment_direction ?? null,
+        warehouse_id: data.warehouse_id ?? null,
+        transfer_from_block_id: data.transfer_from_block_id ?? null,
+        transfer_to_block_id: data.transfer_to_block_id ?? null,
+        unit_cost: data.unit_cost ?? null,
+        linked_requisition_id: data.linked_requisition_id ?? null,
+        linked_gate_pass_id: data.linked_gate_pass_id ?? null,
+        linked_batch_id: data.linked_batch_id ?? null,
         created_by: user.id,
       })
       .select("id")
@@ -278,7 +360,10 @@ export const fetchStockLevels = createServerFn({ method: "GET" })
 
     const { data: items } = await supabaseServer
       .from("inventory_stock_levels")
-      .select("item_id, item_name, unit_of_measure, reorder_level, opening_stock, category_id, current_stock")
+      .select(
+        "item_id, item_name, unit_of_measure, reorder_level, reorder_qty, unit_cost, supplier_id, default_warehouse_id, opening_stock, category_id, current_stock, stock_value, archived",
+      )
+      .eq("archived", false)
       .order("item_name", { ascending: true });
 
     // Resolve category names
@@ -299,7 +384,7 @@ export const fetchStockLevels = createServerFn({ method: "GET" })
         parts.unshift(current.name);
         current = current.parent_id ? catMap.get(current.parent_id) : undefined;
       }
-      return parts.join(" › ");
+      return parts.join(" ΓÇ║ ");
     }
 
     return {
@@ -319,6 +404,8 @@ export const fetchLowStockAlerts = createServerFn({ method: "GET" })
     const { data: items } = await supabaseServer
       .from("inventory_stock_levels")
       .select("item_id, item_name, unit_of_measure, reorder_level, current_stock")
+      .eq("archived", false)
+      .gt("reorder_level", 0)
       .order("item_name", { ascending: true });
 
     const lowStock = (items ?? []).filter(
@@ -334,15 +421,36 @@ export const fetchLowStockAlerts = createServerFn({ method: "GET" })
 
 // Fetches the full transaction ledger for a single item with user and block names joined (any authenticated role).
 export const fetchItemLedger = createServerFn({ method: "GET" })
-  .validator((input: { itemId: string }) => input)
+  .validator(
+    (input: {
+      itemId: string;
+      fromDate?: string;
+      toDate?: string;
+      page?: number;
+      pageSize?: number;
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
-    const { data: txns } = await supabaseServer
+    const page = data.page ?? 1;
+    const pageSize = data.pageSize ?? 50;
+    const offset = (page - 1) * pageSize;
+
+    let query = supabaseServer
       .from("inventory_transactions")
-      .select("id, item_id, type, quantity, is_wastage, block_id, reference, remarks, created_by, created_at")
+      .select(
+        "id, item_id, type, quantity, is_wastage, adjustment_direction, block_id, warehouse_id, transfer_from_block_id, transfer_to_block_id, unit_cost, reference, remarks, linked_requisition_id, linked_gate_pass_id, linked_batch_id, reversed, is_reversal, reverses_tx_id, created_by, created_at",
+        { count: "exact" },
+      )
       .eq("item_id", data.itemId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (data.fromDate) query = query.gte("created_at", data.fromDate);
+    if (data.toDate) query = query.lte("created_at", data.toDate);
+
+    const { data: txns, count } = await query;
 
     // Resolve user names
     const userIds = [...new Set((txns ?? []).map((t: any) => t.created_by))];
@@ -352,8 +460,14 @@ export const fetchItemLedger = createServerFn({ method: "GET" })
       .in("id", userIds);
     const userMap = new Map((users ?? []).map((u: any) => [u.id, u]));
 
-    // Resolve block names
-    const blockIds = [...new Set((txns ?? []).filter((t: any) => t.block_id).map((t: any) => t.block_id))];
+    // Resolve block names (including transfer from/to)
+    const blockIds = [
+      ...new Set(
+        (txns ?? [])
+          .flatMap((t: any) => [t.block_id, t.transfer_from_block_id, t.transfer_to_block_id])
+          .filter(Boolean),
+      ),
+    ];
     let blockMap = new Map<string, string>();
     if (blockIds.length > 0) {
       const { data: blocks } = await supabaseServer
@@ -363,12 +477,78 @@ export const fetchItemLedger = createServerFn({ method: "GET" })
       blockMap = new Map((blocks ?? []).map((b: any) => [b.id, b.name]));
     }
 
+    // Resolve linked requisition PR numbers
+    const reqIds = [
+      ...new Set(
+        (txns ?? [])
+          .filter((t: any) => t.linked_requisition_id)
+          .map((t: any) => t.linked_requisition_id),
+      ),
+    ];
+    let reqMap = new Map<string, string>();
+    if (reqIds.length > 0) {
+      const { data: reqs } = await supabaseServer
+        .from("requisitions")
+        .select("id, pr_number")
+        .in("id", reqIds);
+      reqMap = new Map((reqs ?? []).map((r: any) => [r.id, r.pr_number]));
+    }
+
+    // Resolve linked gate pass numbers
+    const gpIds = [
+      ...new Set(
+        (txns ?? [])
+          .filter((t: any) => t.linked_gate_pass_id)
+          .map((t: any) => t.linked_gate_pass_id),
+      ),
+    ];
+    let gpMap = new Map<string, string>();
+    if (gpIds.length > 0) {
+      const { data: gps } = await supabaseServer
+        .from("gate_passes")
+        .select("id, gp_number")
+        .in("id", gpIds);
+      gpMap = new Map((gps ?? []).map((g: any) => [g.id, g.gp_number]));
+    }
+
+    // Resolve linked batch numbers
+    const batchIds = [
+      ...new Set(
+        (txns ?? []).filter((t: any) => t.linked_batch_id).map((t: any) => t.linked_batch_id),
+      ),
+    ];
+    let batchMap = new Map<string, string>();
+    if (batchIds.length > 0) {
+      const { data: batches } = await supabaseServer
+        .from("batches")
+        .select("id, batch_number")
+        .in("id", batchIds);
+      batchMap = new Map((batches ?? []).map((b: any) => [b.id, b.batch_number]));
+    }
+
     return {
       data: (txns ?? []).map((t: any) => ({
         ...t,
         created_by_name: userMap.get(t.created_by)?.name ?? "Unknown",
-        block_name: t.block_id ? blockMap.get(t.block_id) ?? "—" : "—",
+        block_name: t.block_id ? (blockMap.get(t.block_id) ?? "—") : "—",
+        transfer_from_block_name: t.transfer_from_block_id
+          ? (blockMap.get(t.transfer_from_block_id) ?? "—")
+          : null,
+        transfer_to_block_name: t.transfer_to_block_id
+          ? (blockMap.get(t.transfer_to_block_id) ?? "—")
+          : null,
+        linked_requisition_number: t.linked_requisition_id
+          ? (reqMap.get(t.linked_requisition_id) ?? "—")
+          : null,
+        linked_gate_pass_number: t.linked_gate_pass_id
+          ? (gpMap.get(t.linked_gate_pass_id) ?? "—")
+          : null,
+        linked_batch_number: t.linked_batch_id ? (batchMap.get(t.linked_batch_id) ?? "—") : null,
       })),
+      total: count ?? 0,
+      page,
+      pageSize,
+      totalPages: Math.ceil((count ?? 0) / pageSize),
     };
   });
 
@@ -402,7 +582,9 @@ export const fetchInventoryAlerts = createServerFn({ method: "GET" })
 
     let query = supabaseServer
       .from("inventory_alerts")
-      .select("id, item_id, stock_at_alert, reorder_level_at_alert, is_resolved, resolved_by, resolved_at, created_at")
+      .select(
+        "id, item_id, stock_at_alert, reorder_level_at_alert, is_resolved, resolved_by, resolved_at, created_at",
+      )
       .order("created_at", { ascending: false });
 
     if (data.resolved !== undefined) {
@@ -429,7 +611,7 @@ export const fetchInventoryAlerts = createServerFn({ method: "GET" })
     };
   });
 
-// Resolves (closes) an inventory alert — admin only.
+// Resolves (closes) an inventory alert ΓÇö admin only.
 export const resolveInventoryAlert = createServerFn({ method: "POST" })
   .validator(z.object({ alertId: z.string().uuid() }))
   .handler(async ({ data, context }) => {
@@ -462,7 +644,7 @@ export const resolveInventoryAlert = createServerFn({ method: "POST" })
 
 // Fetches all wastage-flagged transactions in a date range with item and user names joined.
 export const fetchWastageReport = createServerFn({ method: "GET" })
-  .validator((input: { fromDate?: string; toDate?: string }) => input)
+  .validator((input: { fromDate?: string | undefined; toDate?: string | undefined }) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -491,14 +673,13 @@ export const fetchWastageReport = createServerFn({ method: "GET" })
 
     // Resolve user names
     const userIds = [...new Set((txns ?? []).map((t: any) => t.created_by))];
-    const { data: users } = await supabaseServer
-      .from("users")
-      .select("id, name")
-      .in("id", userIds);
+    const { data: users } = await supabaseServer.from("users").select("id, name").in("id", userIds);
     const userMap = new Map((users ?? []).map((u: any) => [u.id, u.name]));
 
     // Resolve block names
-    const blockIds = [...new Set((txns ?? []).filter((t: any) => t.block_id).map((t: any) => t.block_id))];
+    const blockIds = [
+      ...new Set((txns ?? []).filter((t: any) => t.block_id).map((t: any) => t.block_id)),
+    ];
     let blockMap = new Map<string, string>();
     if (blockIds.length > 0) {
       const { data: blocks } = await supabaseServer
@@ -514,7 +695,7 @@ export const fetchWastageReport = createServerFn({ method: "GET" })
         item_name: itemMap.get(t.item_id)?.name ?? "Unknown",
         unit_of_measure: itemMap.get(t.item_id)?.unit_of_measure ?? null,
         created_by_name: userMap.get(t.created_by) ?? "Unknown",
-        block_name: t.block_id ? blockMap.get(t.block_id) ?? "—" : "—",
+        block_name: t.block_id ? (blockMap.get(t.block_id) ?? "ΓÇö") : "ΓÇö",
       })),
     };
   });
@@ -712,7 +893,8 @@ export const fetchItemBudget = createServerFn({ method: "GET" })
 
     const totalUsage = (outTxns ?? []).reduce((sum, t: any) => sum + Number(t.quantity), 0);
     const threshold = Number(budget.alert_threshold_pct);
-    const usagePct = Number(budget.budget_qty) > 0 ? (totalUsage / Number(budget.budget_qty)) * 100 : 0;
+    const usagePct =
+      Number(budget.budget_qty) > 0 ? (totalUsage / Number(budget.budget_qty)) * 100 : 0;
 
     return {
       data: {
@@ -765,15 +947,10 @@ export const fetchInstantInventoryReport = createServerFn({ method: "GET" })
       .select("quantity")
       .eq("is_wastage", true)
       .gte("created_at", thirtyDaysAgo.toISOString());
-    const wastageTotal = (wastageTxns ?? []).reduce(
-      (sum, t: any) => sum + Number(t.quantity),
-      0,
-    );
+    const wastageTotal = (wastageTxns ?? []).reduce((sum, t: any) => sum + Number(t.quantity), 0);
 
     // Total vendor outstanding (read directly from existing column, not recomputed)
-    const { data: vendors } = await supabaseServer
-      .from("vendors")
-      .select("outstanding_amount");
+    const { data: vendors } = await supabaseServer.from("vendors").select("outstanding_amount");
     const totalVendorOutstanding = (vendors ?? []).reduce(
       (sum, v: any) => sum + Number(v.outstanding_amount),
       0,
@@ -788,4 +965,416 @@ export const fetchInstantInventoryReport = createServerFn({ method: "GET" })
         total_vendor_outstanding: totalVendorOutstanding,
       },
     };
+  });
+
+// ---------------------------------------------------------------------------
+// Linkage data (warehouses, requisitions, gate passes, batches for dropdowns)
+// ---------------------------------------------------------------------------
+
+// Fetches the list of inventory warehouses for the transaction form dropdown.
+export const fetchWarehouses = createServerFn({ method: "GET" })
+  .validator((input: {}) => input)
+  .handler(async ({ data, context }) => {
+    await requireSessionUser();
+
+    const { data: warehouses } = await supabaseServer
+      .from("inventory_warehouses")
+      .select("id, name, location")
+      .order("name", { ascending: true });
+
+    return { data: warehouses ?? [] };
+  });
+
+// Fetches requisitions (PR/PO) for linkage in the transaction form.
+export const fetchRequisitionsForLinkage = createServerFn({ method: "GET" })
+  .validator((input: {}) => input)
+  .handler(async ({ data, context }) => {
+    await requireSessionUser();
+
+    const { data: reqs } = await supabaseServer
+      .from("requisitions")
+      .select("id, pr_number, po_number, title, stage")
+      .order("date", { ascending: false })
+      .limit(100);
+
+    return { data: reqs ?? [] };
+  });
+
+// Fetches gate passes for linkage in the transaction form.
+export const fetchGatePassesForLinkage = createServerFn({ method: "GET" })
+  .validator((input: {}) => input)
+  .handler(async ({ data, context }) => {
+    await requireSessionUser();
+
+    const { data: passes } = await supabaseServer
+      .from("gate_passes")
+      .select("id, gp_number, material")
+      .order("requested_at", { ascending: false })
+      .limit(100);
+
+    return { data: passes ?? [] };
+  });
+
+// Fetches material batches for linkage in the transaction form.
+export const fetchBatchesForLinkage = createServerFn({ method: "GET" })
+  .validator((input: {}) => input)
+  .handler(async ({ data, context }) => {
+    await requireSessionUser();
+
+    const { data: batches } = await supabaseServer
+      .from("batches")
+      .select("id, batch_number, material_name, status")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    return { data: batches ?? [] };
+  });
+
+// ---------------------------------------------------------------------------
+// Category update/archive
+// ---------------------------------------------------------------------------
+
+export const updateCategoryNode = createServerFn({ method: "POST" })
+  .validator(z.object({ id: z.string().uuid(), name: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser();
+    if (!isAdmin(user.role)) {
+      return { success: false, error: "Only administrators can manage categories" };
+    }
+    const { error } = await supabaseServer
+      .from("inventory_categories")
+      .update({ name: data.name.trim() })
+      .eq("id", data.id);
+    if (error) return { success: false, error: "Failed to update category" };
+    await logAction(user, "update_category", "inventory_categories", data.id, { name: data.name });
+    return { success: true };
+  });
+
+export const archiveCategoryNode = createServerFn({ method: "POST" })
+  .validator(z.object({ id: z.string().uuid() }))
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser();
+    if (!isAdmin(user.role)) {
+      return { success: false, error: "Only administrators can manage categories" };
+    }
+    const { count } = await supabaseServer
+      .from("inventory_items")
+      .select("*", { count: "exact", head: true })
+      .eq("category_id", data.id)
+      .eq("archived", false);
+    if ((count ?? 0) > 0) {
+      return { success: false, error: `Cannot archive: ${count} active items in this category` };
+    }
+    const { error } = await supabaseServer
+      .from("inventory_categories")
+      .update({ archived: true, archived_at: new Date().toISOString(), archived_by: user.id })
+      .eq("id", data.id);
+    if (error) return { success: false, error: "Failed to archive category" };
+    await logAction(user, "archive_category", "inventory_categories", data.id, {});
+    return { success: true };
+  });
+
+// ---------------------------------------------------------------------------
+// Item update/archive
+// ---------------------------------------------------------------------------
+
+export const updateItem = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      id: z.string().uuid(),
+      name: z.string().min(1).optional(),
+      unit_of_measure: z.string().optional(),
+      reorder_level: z.number().min(0).optional(),
+      reorder_qty: z.number().min(0).optional(),
+      unit_cost: z.number().min(0).optional(),
+      supplier_id: z.string().uuid().nullable().optional(),
+      default_warehouse_id: z.string().uuid().nullable().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser();
+    if (!isAdmin(user.role)) {
+      return { success: false, error: "Only administrators can edit items" };
+    }
+    const { id, ...updates } = data;
+    const cleanUpdates: Record<string, any> = {};
+    if (updates.name !== undefined) cleanUpdates["name"] = updates.name.trim();
+    if (updates.unit_of_measure !== undefined)
+      cleanUpdates["unit_of_measure"] = updates.unit_of_measure.trim() || null;
+    if (updates.reorder_level !== undefined) cleanUpdates["reorder_level"] = updates.reorder_level;
+    if (updates.reorder_qty !== undefined) cleanUpdates["reorder_qty"] = updates.reorder_qty;
+    if (updates.unit_cost !== undefined) cleanUpdates["unit_cost"] = updates.unit_cost;
+    if (updates.supplier_id !== undefined) cleanUpdates["supplier_id"] = updates.supplier_id;
+    if (updates.default_warehouse_id !== undefined)
+      cleanUpdates["default_warehouse_id"] = updates.default_warehouse_id;
+    const { error } = await supabaseServer
+      .from("inventory_items")
+      .update(cleanUpdates)
+      .eq("id", id);
+    if (error) return { success: false, error: "Failed to update item" };
+    await logAction(user, "update_inventory_item", "inventory_items", id, cleanUpdates);
+    return { success: true };
+  });
+
+export const archiveItem = createServerFn({ method: "POST" })
+  .validator(z.object({ id: z.string().uuid() }))
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser();
+    if (!isAdmin(user.role)) {
+      return { success: false, error: "Only administrators can archive items" };
+    }
+    const { error } = await supabaseServer
+      .from("inventory_items")
+      .update({ archived: true, archived_at: new Date().toISOString(), archived_by: user.id })
+      .eq("id", data.id);
+    if (error) return { success: false, error: "Failed to archive item" };
+    await logAction(user, "archive_inventory_item", "inventory_items", data.id, {});
+    return { success: true };
+  });
+
+// ---------------------------------------------------------------------------
+// Transaction reversal
+// ---------------------------------------------------------------------------
+
+export const reverseTransaction = createServerFn({ method: "POST" })
+  .validator(z.object({ transaction_id: z.string().uuid(), reason: z.string().optional() }))
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser();
+
+    const { data: orig, error: fetchErr } = await supabaseServer
+      .from("inventory_transactions")
+      .select("*")
+      .eq("id", data.transaction_id)
+      .single();
+    if (fetchErr || !orig) return { success: false, error: "Transaction not found" };
+    if (orig.reversed) return { success: false, error: "Transaction already reversed" };
+    if (orig.is_reversal) return { success: false, error: "Cannot reverse a reversal transaction" };
+
+    let compType = orig.type;
+    let compAdjDir = orig.adjustment_direction;
+    if (orig.type === "in") compType = "out";
+    else if (orig.type === "out") compType = "in";
+    else if (orig.type === "adjustment")
+      compAdjDir = orig.adjustment_direction === "up" ? "down" : "up";
+    else if (orig.type === "transfer") compType = "transfer";
+
+    if (compType === "out" || (compType === "adjustment" && compAdjDir === "down")) {
+      const { data: stockRow } = await supabaseServer
+        .from("inventory_stock_levels")
+        .select("current_stock")
+        .eq("item_id", orig.item_id)
+        .single();
+      const currentStock = Number(stockRow?.current_stock ?? 0);
+      if (currentStock < Number(orig.quantity)) {
+        return {
+          success: false,
+          error: `Cannot reverse: insufficient stock (${currentStock}) to remove ${orig.quantity}.`,
+        };
+      }
+    }
+
+    const reversalData: Record<string, any> = {
+      item_id: orig.item_id,
+      type: compType,
+      quantity: Number(orig.quantity),
+      adjustment_direction: compType === "adjustment" ? compAdjDir : null,
+      block_id: orig.block_id,
+      warehouse_id: orig.warehouse_id,
+      transfer_from_block_id: compType === "transfer" ? orig.transfer_to_block_id : null,
+      transfer_to_block_id: compType === "transfer" ? orig.transfer_from_block_id : null,
+      unit_cost: Number(orig.unit_cost ?? 0),
+      reference: `REVERSAL of tx ${orig.id.slice(0, 8)}`,
+      remarks: data.reason?.trim() || `Reversal of ${orig.type} transaction`,
+      linked_requisition_id: orig.linked_requisition_id,
+      linked_gate_pass_id: orig.linked_gate_pass_id,
+      linked_batch_id: orig.linked_batch_id,
+      is_reversal: true,
+      reverses_tx_id: orig.id,
+      created_by: user.id,
+    };
+
+    const { data: revTx, error: revErr } = await supabaseServer
+      .from("inventory_transactions")
+      .insert(reversalData)
+      .select("id")
+      .single();
+    if (revErr || !revTx) return { success: false, error: "Failed to create reversal transaction" };
+
+    const { error: markErr } = await supabaseServer
+      .from("inventory_transactions")
+      .update({
+        reversed: true,
+        reversed_by: user.id,
+        reversed_at: new Date().toISOString(),
+        reversal_tx_id: revTx.id,
+      })
+      .eq("id", orig.id);
+    if (markErr)
+      return { success: false, error: "Reversal created but failed to mark original as reversed" };
+
+    await logAction(user, "reverse_inventory_transaction", "inventory_transaction", orig.id, {
+      reversal_tx_id: revTx.id,
+      reason: data.reason,
+    });
+    return { success: true, reversal_id: revTx.id };
+  });
+
+// ---------------------------------------------------------------------------
+// Warehouse creation
+// ---------------------------------------------------------------------------
+
+export const createWarehouse = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      name: z.string().min(1),
+      code: z.string().optional(),
+      location: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser();
+    if (!isAdmin(user.role))
+      return { success: false, error: "Only administrators can manage warehouses" };
+    const { data: wh, error } = await supabaseServer
+      .from("inventory_warehouses")
+      .insert({
+        name: data.name.trim(),
+        code: data.code?.trim() || null,
+        location: data.location?.trim() || null,
+        created_by: user.id,
+      })
+      .select("id, name")
+      .single();
+    if (error || !wh) return { success: false, error: "Failed to create warehouse" };
+    await logAction(user, "create_warehouse", "inventory_warehouse", wh.id, { name: wh.name });
+    return { success: true, id: wh.id };
+  });
+
+// ---------------------------------------------------------------------------
+// Vendors for inventory supplier dropdown
+// ---------------------------------------------------------------------------
+
+export const fetchVendorsForInventory = createServerFn({ method: "GET" })
+  .validator((input: {}) => input)
+  .handler(async () => {
+    await requireSessionUser();
+    const { data: vendors } = await supabaseServer
+      .from("vendors")
+      .select("id, name")
+      .order("name", { ascending: true });
+    return { data: vendors ?? [] };
+  });
+
+// ---------------------------------------------------------------------------
+// CSV exports
+// ---------------------------------------------------------------------------
+
+function toCSV(rows: Record<string, any>[], headers?: string[]): string {
+  if (rows.length === 0) return "";
+  const cols = headers ?? Object.keys(rows[0]!);
+  const escape = (val: any) => {
+    const s = val === null || val === undefined ? "" : String(val);
+    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  };
+  return [cols.join(","), ...rows.map((r) => cols.map((c) => escape(r[c])).join(","))].join("\n");
+}
+
+export const exportStockRegisterCSV = createServerFn({ method: "GET" })
+  .validator((input: {}) => input)
+  .handler(async () => {
+    const user = await requireSessionUser();
+    if (!isAdmin(user.role)) return { success: false, error: "Only administrators can export" };
+    const { data: items } = await supabaseServer
+      .from("inventory_stock_levels")
+      .select(
+        "item_name, unit_of_measure, reorder_level, reorder_qty, unit_cost, opening_stock, current_stock, stock_value",
+      )
+      .eq("archived", false)
+      .order("item_name", { ascending: true });
+    const { data: allItems } = await supabaseServer
+      .from("inventory_stock_levels")
+      .select("item_id, category_id")
+      .eq("archived", false);
+    const catIds = [...new Set((allItems ?? []).map((i: any) => i.category_id))];
+    const { data: cats } = await supabaseServer
+      .from("inventory_categories")
+      .select("id, name, parent_id")
+      .in("id", catIds);
+    const catMap = new Map((cats ?? []).map((c: any) => [c.id, c]));
+    function buildPath(catId: string): string {
+      const parts: string[] = [];
+      let current = catMap.get(catId);
+      const visited = new Set<string>();
+      while (current && !visited.has(current.id)) {
+        visited.add(current.id);
+        parts.unshift(current.name);
+        current = current.parent_id ? catMap.get(current.parent_id) : undefined;
+      }
+      return parts.join(" > ");
+    }
+    const rows = (items ?? []).map((i: any, idx: number) => ({
+      "Item Name": i.item_name,
+      Category: buildPath(allItems?.[idx]?.category_id ?? ""),
+      Unit: i.unit_of_measure ?? "",
+      "Reorder Level": i.reorder_level,
+      "Reorder Qty": i.reorder_qty,
+      "Unit Cost": i.unit_cost,
+      "Opening Stock": i.opening_stock,
+      "Current Stock": i.current_stock,
+      "Stock Value": i.stock_value,
+      "Low Stock":
+        Number(i.current_stock) <= Number(i.reorder_level) && Number(i.reorder_level) > 0
+          ? "YES"
+          : "NO",
+    }));
+    return { success: true, csv: toCSV(rows) };
+  });
+
+export const exportItemLedgerCSV = createServerFn({ method: "GET" })
+  .validator((input: { itemId: string; fromDate?: string; toDate?: string }) => input)
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser();
+    if (!isAdmin(user.role)) return { success: false, error: "Only administrators can export" };
+    let query = supabaseServer
+      .from("inventory_transactions")
+      .select("type, quantity, adjustment_direction, reference, remarks, created_at")
+      .eq("item_id", data.itemId)
+      .order("created_at", { ascending: false });
+    if (data.fromDate) query = query.gte("created_at", data.fromDate);
+    if (data.toDate) query = query.lte("created_at", data.toDate);
+    const { data: txns } = await query;
+    const rows = (txns ?? []).map((t: any) => ({
+      Date: new Date(t.created_at).toLocaleString("en-IN"),
+      Type: t.type + (t.adjustment_direction ? ` ${t.adjustment_direction}` : ""),
+      Quantity: t.quantity,
+      Reference: t.reference ?? "",
+      Remarks: t.remarks ?? "",
+    }));
+    return { success: true, csv: toCSV(rows) };
+  });
+
+export const exportLowStockCSV = createServerFn({ method: "GET" })
+  .validator((input: {}) => input)
+  .handler(async () => {
+    const user = await requireSessionUser();
+    if (!isAdmin(user.role)) return { success: false, error: "Only administrators can export" };
+    const { data: items } = await supabaseServer
+      .from("inventory_stock_levels")
+      .select("item_name, unit_of_measure, reorder_level, current_stock")
+      .eq("archived", false)
+      .gt("reorder_level", 0)
+      .order("item_name", { ascending: true });
+    const rows = (items ?? [])
+      .filter((i: any) => Number(i.current_stock) <= Number(i.reorder_level))
+      .map((i: any) => ({
+        "Item Name": i.item_name,
+        Unit: i.unit_of_measure ?? "",
+        "Reorder Level": i.reorder_level,
+        "Current Stock": i.current_stock,
+        Shortfall: Number(i.reorder_level) - Number(i.current_stock),
+      }));
+    return { success: true, csv: toCSV(rows) };
   });

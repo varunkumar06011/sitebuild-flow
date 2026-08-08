@@ -16,23 +16,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { fetchItems, recordTransaction, fetchBlocks } from "@/lib/api/inventory";
+import {
+  fetchItems,
+  recordTransaction,
+  fetchBlocks,
+  fetchRequisitionsForLinkage,
+  fetchGatePassesForLinkage,
+  fetchBatchesForLinkage,
+  fetchWarehouses,
+} from "@/lib/api/inventory";
 import { useRole } from "@/lib/role-context";
 import { requireAuth } from "@/lib/auth-guards";
 import { toast } from "sonner";
-import { Search, ArrowDownToLine, ArrowUpFromLine, SlidersHorizontal } from "lucide-react";
+import {
+  Search,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  SlidersHorizontal,
+  ArrowLeftRight,
+} from "lucide-react";
 
 export const Route = createFileRoute("/inventory-supervisor")({
   head: () => ({
     meta: [
-      { title: "Log Material Movement — Meditrust ERP" },
+      { title: "Log Material Movement ΓÇö Meditrust ERP" },
       {
         name: "description",
         content: "Log inventory stock movements: in, out, or adjustment.",
       },
     ],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: InventorySupervisorPage,
 });
 
@@ -49,6 +65,14 @@ function InventorySupervisorPage() {
     reference: "",
     remarks: "",
     is_wastage: false,
+    adjustment_direction: "up" as "up" | "down",
+    warehouse_id: "",
+    transfer_from_block_id: "",
+    transfer_to_block_id: "",
+    unit_cost: "",
+    linked_requisition_id: "",
+    linked_gate_pass_id: "",
+    linked_batch_id: "",
   });
   const [saving, setSaving] = useState(false);
   const canAdjust = role !== "Supervisor";
@@ -96,7 +120,23 @@ function InventorySupervisorPage() {
       });
       if (result.success) {
         toast.success("Movement logged");
-        setForm({ item_id: "", type: "", quantity: "", block_id: "", reference: "", remarks: "", is_wastage: false });
+        setForm({
+          item_id: "",
+          type: "",
+          quantity: "",
+          block_id: "",
+          reference: "",
+          remarks: "",
+          is_wastage: false,
+          adjustment_direction: "up",
+          warehouse_id: "",
+          transfer_from_block_id: "",
+          transfer_to_block_id: "",
+          unit_cost: "",
+          linked_requisition_id: "",
+          linked_gate_pass_id: "",
+          linked_batch_id: "",
+        });
         queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
       } else {
         toast.error(result.error ?? "Failed to log movement");
@@ -108,7 +148,10 @@ function InventorySupervisorPage() {
   };
 
   return (
-    <AppShell title="Log material movement" subtitle="Record stock in / out / adjustment for any inventory item">
+    <AppShell
+      title="Log material movement"
+      subtitle="Record stock in / out / adjustment for any inventory item"
+    >
       <div className="mx-auto max-w-xl">
         <Card className="p-6">
           <div className="space-y-5">
@@ -139,7 +182,7 @@ function InventorySupervisorPage() {
                 <SelectContent>
                   {items.map((i: any) => (
                     <SelectItem key={i.item_id} value={i.item_id}>
-                      {i.item_name} ({i.unit_of_measure ?? "nos"}) — stock: {i.current_stock}
+                      {i.item_name} ({i.unit_of_measure ?? "nos"}) ΓÇö stock: {i.current_stock}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -148,8 +191,10 @@ function InventorySupervisorPage() {
                 <div className="rounded-md bg-muted/50 px-3 py-2 text-xs">
                   <span className="text-muted-foreground">Category: </span>
                   <span className="font-medium">{selectedItem.category_path}</span>
-                  <span className="text-muted-foreground"> · Current stock: </span>
-                  <span className="font-semibold">{selectedItem.current_stock} {selectedItem.unit_of_measure ?? ""}</span>
+                  <span className="text-muted-foreground"> ┬╖ Current stock: </span>
+                  <span className="font-semibold">
+                    {selectedItem.current_stock} {selectedItem.unit_of_measure ?? ""}
+                  </span>
                 </div>
               )}
             </div>
@@ -190,8 +235,8 @@ function InventorySupervisorPage() {
                     !canAdjust
                       ? "cursor-not-allowed border-input opacity-40"
                       : form.type === "adjustment"
-                      ? "border-warning bg-warning-soft text-warning-foreground"
-                      : "border-input hover:border-muted-foreground"
+                        ? "border-warning bg-warning-soft text-warning-foreground"
+                        : "border-input hover:border-muted-foreground"
                   }`}
                 >
                   <SlidersHorizontal className="size-5" />
@@ -224,14 +269,16 @@ function InventorySupervisorPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {blocks.map((b: any) => (
-                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Wastage checkbox — only visible when type is 'out' */}
+            {/* Wastage checkbox ΓÇö only visible when type is 'out' */}
             {form.type === "out" && (
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -287,7 +334,9 @@ function InventorySupervisorPage() {
               >
                 <span className="font-medium">{i.item_name}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{i.unit_of_measure ?? "nos"}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {i.unit_of_measure ?? "nos"}
+                  </span>
                   <StatusPill
                     tone={Number(i.current_stock) <= Number(i.reorder_level) ? "danger" : "neutral"}
                   >

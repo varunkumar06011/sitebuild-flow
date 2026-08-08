@@ -142,3 +142,13 @@ export async function requireSessionUser(): Promise<SessionUser> {
   }
   return user;
 }
+
+// Returns the current session user if their role is in the allowed list, else throws.
+// Use this in server function handlers to enforce role-based access at the API layer.
+export async function requireRole(allowedRoles: Role[]): Promise<SessionUser> {
+  const user = await requireSessionUser();
+  if (!allowedRoles.includes(user.role)) {
+    throw new Error(`Forbidden — requires one of: ${allowedRoles.join(", ")}`);
+  }
+  return user;
+}

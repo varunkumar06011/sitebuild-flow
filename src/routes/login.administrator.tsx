@@ -8,7 +8,8 @@ export const Route = createFileRoute("/login/administrator")({
       { title: "Administrator Login — Meditrust ERP" },
       {
         name: "description",
-        content: "Administrator sign-in portal: approvals up to ₹50,000, vendors, finance and reports.",
+        content:
+          "Administrator sign-in portal: approvals up to ₹50,000, vendors, finance and reports.",
       },
       { property: "og:title", content: "Administrator Login — Meditrust ERP" },
       { property: "og:description", content: "Sign in to the Administrator approvals portal." },

@@ -15,7 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { RoleProvider } from "../lib/role-context";
 import { authStore } from "../lib/auth-store";
 import { Toaster } from "../components/ui/sonner";
-
+import { GlobalSearch } from "../components/GlobalSearch";
 
 // 404 fallback component shown when no route matches the current URL.
 function NotFoundComponent() {
@@ -97,6 +97,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#0f172a" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "Meditrust ERP" },
+      { name: "mobile-web-app-capable", content: "yes" },
     ],
     links: [
       {
@@ -110,6 +114,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/favicon.ico" },
     ],
   }),
 
@@ -140,6 +146,12 @@ function RootComponent() {
 
   useEffect(() => {
     authStore.init();
+    // Register service worker for PWA + offline support
+    if ("serviceWorker" in navigator && typeof window !== "undefined") {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        // SW registration failure is non-fatal
+      });
+    }
   }, []);
 
   return (
@@ -147,9 +159,9 @@ function RootComponent() {
       <RoleProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
+        <GlobalSearch />
         <Toaster position="top-right" />
       </RoleProvider>
     </QueryClientProvider>
   );
 }
-

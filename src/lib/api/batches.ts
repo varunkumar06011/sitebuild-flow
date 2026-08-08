@@ -37,7 +37,7 @@ export const fetchBatches = createServerFn({ method: "GET" })
     return { data: batches ?? [], total: count ?? 0, page, limit };
   });
 
-// Zod schema validating batch creation fields (number, material, documents, status).
+// Zod schema validating batch creation fields (number, material, documents, status, photos).
 const batchSchema = z.object({
   batch_number: z.string().min(1),
   material: z.string().min(1),
@@ -49,6 +49,7 @@ const batchSchema = z.object({
   mtc: z.string().optional(),
   lab_report: z.string().optional(),
   status: z.enum(["Verified", "Pending MTC", "Under Test"]).default("Pending MTC"),
+  photos: z.array(z.string()).default([]),
 });
 
 // Creates a new material batch and logs the action to the audit trail.
@@ -59,7 +60,7 @@ export const createBatch = createServerFn({ method: "POST" })
 
     const { data: batch, error } = await supabaseServer
       .from("batches")
-      .insert({ ...data, photos: [] })
+      .insert({ ...data, photos: data.photos ?? [] })
       .select("id, batch_number")
       .single();
 

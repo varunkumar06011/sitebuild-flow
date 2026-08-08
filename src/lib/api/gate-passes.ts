@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseServer } from "../supabase-server";
 import { requireSessionUser } from "./session";
 import { logAction } from "./audit";
+import { dispatchNotification } from "./notification-system";
 import { verifyFirebasePhoneToken, normalizePhone } from "../firebase-verify";
 import { checkRateLimit, getClientIp } from "../rate-limiter";
 
@@ -237,6 +238,16 @@ export const createGatePass = createServerFn({ method: "POST" })
     await logAction(user, "create_gate_pass", "gate_pass", gp.id, {
       gp_number: gp.gp_number,
       material: data.material,
+    });
+
+    // Notify admins that a gate pass is awaiting OTP approval
+    await dispatchNotification({
+      event: "gate_pass_created",
+      title: "Gate pass awaiting approval",
+      body: `Gate pass ${gp.gp_number} for ${data.material} is awaiting OTP approval.`,
+      entityType: "gate_pass",
+      entityId: gp.id,
+      targetRoles: ["Administrator", "A1", "A1+"],
     });
 
     return { success: true, id: gp.id, gp_number: gp.gp_number };

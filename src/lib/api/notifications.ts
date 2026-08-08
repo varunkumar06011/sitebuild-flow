@@ -42,8 +42,8 @@ export const markNotificationRead = createServerFn({ method: "POST" })
   });
 
 // Marks all unread notifications for the current user as read.
-export const markAllNotificationsRead = createServerFn({ method: "POST" })
-  .handler(async ({ context }) => {
+export const markAllNotificationsRead = createServerFn({ method: "POST" }).handler(
+  async ({ context }) => {
     const user = await requireSessionUser();
 
     const { error } = await supabaseServer
@@ -54,4 +54,5 @@ export const markAllNotificationsRead = createServerFn({ method: "POST" })
 
     if (error) return { success: false, error: "Failed to mark all notifications" };
     return { success: true };
-  });
+  },
+);

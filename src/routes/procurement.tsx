@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell, StatusPill } from "@/components/AppShell";
+import { DocumentVersionHistory } from "@/components/DocumentVersionHistory";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,11 +82,14 @@ export const Route = createFileRoute("/procurement")({
       { property: "og:title", content: "Procurement Pipeline — Meditrust ERP" },
       {
         property: "og:description",
-        content: "PR → Quotation → Approval → PO → Receipt → Invoice → Payment in one linked chain.",
+        content:
+          "PR → Quotation → Approval → PO → Receipt → Invoice → Payment in one linked chain.",
       },
     ],
   }),
-  beforeLoad: async () => { await requireAuth(); },
+  beforeLoad: async () => {
+    await requireAuth();
+  },
   component: Procurement,
   errorComponent: ({ error, reset }) => (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
@@ -95,7 +99,9 @@ export const Route = createFileRoute("/procurement")({
         <p className="mt-2 text-sm text-muted-foreground">
           {error?.message ?? "Something went wrong. Please try again."}
         </p>
-        <Button className="mt-6" onClick={reset}>Try again</Button>
+        <Button className="mt-6" onClick={reset}>
+          Try again
+        </Button>
       </div>
     </div>
   ),
@@ -117,7 +123,12 @@ function Procurement() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: reqData, isLoading, isError, error } = useQuery({
+  const {
+    data: reqData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["requisitions"],
     queryFn: () => fetchRequisitions({ data: {} }),
     refetchInterval: 15000, // poll every 15 seconds for near-real-time updates
@@ -149,18 +160,26 @@ function Procurement() {
   const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
 
   // Reset to page 1 when filters change.
-  useEffect(() => { setCurrentPage(1); }, [stageFilter, search]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [stageFilter, search]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["requisitions"] });
 
   // Summary stats computed from the full requisitions list (not just the current page).
   const stats = {
     total: requisitions.length,
-    pendingApproval: requisitions.filter((r) => r.stage === "Admin" || r.stage === "A1" || r.stage === "A1+").length,
-    inProgress: requisitions.filter((r) => ["PO", "Material Received", "Invoice", "Payment"].includes(r.stage)).length,
+    pendingApproval: requisitions.filter(
+      (r) => r.stage === "Admin" || r.stage === "A1" || r.stage === "A1+",
+    ).length,
+    inProgress: requisitions.filter((r) =>
+      ["PO", "Material Received", "Invoice", "Payment"].includes(r.stage),
+    ).length,
     completed: requisitions.filter((r) => r.stage === "Completed").length,
     cancelled: requisitions.filter((r) => r.stage === "Cancelled").length,
-    totalValue: requisitions.filter((r) => r.stage !== "Cancelled").reduce((sum, r) => sum + r.amount, 0),
+    totalValue: requisitions
+      .filter((r) => r.stage !== "Cancelled")
+      .reduce((sum, r) => sum + r.amount, 0),
   };
 
   return (
@@ -199,11 +218,7 @@ function Procurement() {
       <Card className="mt-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-bold">Requisitions</h2>
-          <Button
-            size="sm"
-            disabled={role !== "Supervisor"}
-            onClick={() => setShowCreate(true)}
-          >
+          <Button size="sm" disabled={role !== "Supervisor"} onClick={() => setShowCreate(true)}>
             <Plus className="size-4" />
             New purchase requisition
           </Button>
@@ -227,7 +242,9 @@ function Procurement() {
             />
           </div>
           <Select value={stageFilter} onValueChange={setStageFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by stage"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by stage">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {STAGE_FILTERS.map((s) => (
                 <SelectItem key={s} value={s}>
@@ -241,7 +258,19 @@ function Procurement() {
             variant="outline"
             disabled={filtered.length === 0}
             onClick={() => {
-              const headers = ["PR Number", "PO Number", "GRN Number", "Title", "Block", "Vendor", "Amount", "Stage", "Authority", "Raised By", "Date"];
+              const headers = [
+                "PR Number",
+                "PO Number",
+                "GRN Number",
+                "Title",
+                "Block",
+                "Vendor",
+                "Amount",
+                "Stage",
+                "Authority",
+                "Raised By",
+                "Date",
+              ];
               const rows = filtered.map((r) => [
                 r.pr_number,
                 r.po_number ?? "",
@@ -295,15 +324,33 @@ function Procurement() {
                   // Loading skeleton rows
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={`skeleton-${i}`}>
-                      <td className="py-3"><Skeleton className="h-4 w-20" /></td>
-                      <td className="py-3"><Skeleton className="h-4 w-16" /></td>
-                      <td className="py-3"><Skeleton className="h-4 w-16" /></td>
-                      <td className="py-3"><Skeleton className="h-4 w-40" /></td>
-                      <td className="py-3"><Skeleton className="h-4 w-24" /></td>
-                      <td className="py-3"><Skeleton className="h-4 w-20" /></td>
-                      <td className="py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
-                      <td className="py-3"><Skeleton className="h-4 w-16" /></td>
-                      <td className="py-3"><Skeleton className="h-8 w-14" /></td>
+                      <td className="py-3">
+                        <Skeleton className="h-4 w-20" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-4 w-16" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-4 w-16" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-4 w-40" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-4 w-24" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-4 w-20" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-4 w-16" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-8 w-14" />
+                      </td>
                     </tr>
                   ))
                 ) : isError ? (
@@ -311,7 +358,9 @@ function Procurement() {
                     <td colSpan={9} className="py-8">
                       <div className="flex flex-col items-center gap-2 text-center">
                         <AlertCircle className="size-8 text-destructive" />
-                        <p className="text-sm font-medium text-destructive">Failed to load requisitions</p>
+                        <p className="text-sm font-medium text-destructive">
+                          Failed to load requisitions
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {error?.message ?? "Please refresh the page to try again."}
                         </p>
@@ -336,8 +385,12 @@ function Procurement() {
                   pageItems.map((r: RequisitionRow) => (
                     <tr key={r.id} className="align-middle">
                       <td className="py-3 font-mono text-xs">{r.pr_number}</td>
-                      <td className="py-3 font-mono text-xs text-muted-foreground">{r.po_number ?? "—"}</td>
-                      <td className="py-3 font-mono text-xs text-muted-foreground">{r.grn_number ?? "—"}</td>
+                      <td className="py-3 font-mono text-xs text-muted-foreground">
+                        {r.po_number ?? "—"}
+                      </td>
+                      <td className="py-3 font-mono text-xs text-muted-foreground">
+                        {r.grn_number ?? "—"}
+                      </td>
                       <td className="py-3">
                         <p className="font-medium">{r.title}</p>
                         <p className="text-xs text-muted-foreground">{r.block}</p>
@@ -359,7 +412,9 @@ function Procurement() {
                           {r.stage}
                         </StatusPill>
                       </td>
-                      <td className="py-3 text-xs text-muted-foreground">{approverFor(r.amount)}</td>
+                      <td className="py-3 text-xs text-muted-foreground">
+                        {approverFor(r.amount)}
+                      </td>
                       <td className="py-3 text-right">
                         <Button variant="ghost" size="sm" onClick={() => setDetailReq(r)}>
                           Open
@@ -412,7 +467,12 @@ function Procurement() {
                   onClick={() => setDetailReq(r)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailReq(r); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setDetailReq(r);
+                    }
+                  }}
                   aria-label={`Open ${r.pr_number} — ${r.title}`}
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">
@@ -432,7 +492,9 @@ function Procurement() {
                     </StatusPill>
                   </div>
                   <p className="mb-1 font-medium leading-snug">{r.title}</p>
-                  <p className="mb-3 text-xs text-muted-foreground">{r.block} · {r.vendor_name ?? "—"}</p>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    {r.block} · {r.vendor_name ?? "—"}
+                  </p>
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-sm font-semibold">{inr(r.amount)}</span>
                     <span className="text-xs text-muted-foreground">{approverFor(r.amount)}</span>
@@ -453,7 +515,8 @@ function Procurement() {
         {!isLoading && !isError && filtered.length > PAGE_SIZE && (
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} of {filtered.length}
+              Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} of{" "}
+              {filtered.length}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -486,7 +549,10 @@ function Procurement() {
         <CreatePRDialog
           open={showCreate}
           onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); refresh(); }}
+          onCreated={() => {
+            setShowCreate(false);
+            refresh();
+          }}
         />
       )}
 
@@ -494,7 +560,10 @@ function Procurement() {
         <RequisitionDetail
           req={detailReq}
           onClose={() => setDetailReq(null)}
-          onChanged={() => { setDetailReq(null); refresh(); }}
+          onChanged={() => {
+            setDetailReq(null);
+            refresh();
+          }}
         />
       )}
     </AppShell>
@@ -504,7 +573,11 @@ function Procurement() {
 // ---------------------------------------------------------------------------
 // Create PR Dialog
 // ---------------------------------------------------------------------------
-function CreatePRDialog({ open, onClose, onCreated }: {
+function CreatePRDialog({
+  open,
+  onClose,
+  onCreated,
+}: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
@@ -517,13 +590,18 @@ function CreatePRDialog({ open, onClose, onCreated }: {
 
   // Line items state — optional, for multi-item PRs
   const [showItems, setShowItems] = useState(false);
-  const [items, setItems] = useState<{ description: string; quantity: string; unit: string; unitPrice: string }[]>([]);
+  const [items, setItems] = useState<
+    { description: string; quantity: string; unit: string; unitPrice: string }[]
+  >([]);
   const [itemDesc, setItemDesc] = useState("");
   const [itemQty, setItemQty] = useState("");
   const [itemUnit, setItemUnit] = useState("");
   const [itemPrice, setItemPrice] = useState("");
 
-  const { data: vendorData } = useQuery({ queryKey: ["vendors"], queryFn: () => fetchVendors({ data: {} }) });
+  const { data: vendorData } = useQuery({
+    queryKey: ["vendors"],
+    queryFn: () => fetchVendors({ data: {} }),
+  });
   const vendors = vendorData?.data ?? [];
 
   // Compute total from line items if present, otherwise use manual amount
@@ -532,7 +610,7 @@ function CreatePRDialog({ open, onClose, onCreated }: {
     const price = Number(it.unitPrice) || 0;
     return sum + qty * price;
   }, 0);
-  const effectiveAmount = showItems && items.length > 0 ? itemsTotal : (amount ? Number(amount) : 0);
+  const effectiveAmount = showItems && items.length > 0 ? itemsTotal : amount ? Number(amount) : 0;
 
   // Validates and submits a new purchase requisition via the API.
   const handleSubmit = async () => {
@@ -583,7 +661,15 @@ function CreatePRDialog({ open, onClose, onCreated }: {
       toast.error("Enter description, quantity and unit price");
       return;
     }
-    setItems([...items, { description: itemDesc.trim(), quantity: itemQty, unit: itemUnit.trim(), unitPrice: itemPrice }]);
+    setItems([
+      ...items,
+      {
+        description: itemDesc.trim(),
+        quantity: itemQty,
+        unit: itemUnit.trim(),
+        unitPrice: itemPrice,
+      },
+    ]);
     setItemDesc("");
     setItemQty("");
     setItemUnit("");
@@ -599,25 +685,41 @@ function CreatePRDialog({ open, onClose, onCreated }: {
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New purchase requisition</DialogTitle>
-          <DialogDescription>Raise a PR for materials or services needed on site.</DialogDescription>
+          <DialogDescription>
+            Raise a PR for materials or services needed on site.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
             <Label htmlFor="pr-title">Item / Work description</Label>
-            <Input id="pr-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. TMT Steel Fe550D — 24 T" />
+            <Input
+              id="pr-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. TMT Steel Fe550D — 24 T"
+            />
           </div>
           <div>
             <Label htmlFor="pr-block">Block / Location</Label>
-            <Input id="pr-block" value={block} onChange={(e) => setBlock(e.target.value)} placeholder="e.g. OT Block · Level 3" />
+            <Input
+              id="pr-block"
+              value={block}
+              onChange={(e) => setBlock(e.target.value)}
+              placeholder="e.g. OT Block · Level 3"
+            />
           </div>
           <div>
             <Label>Preferred vendor (optional)</Label>
             <Select value={vendorId} onValueChange={setVendorId}>
-              <SelectTrigger><SelectValue placeholder="Select vendor" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Select vendor" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">— None —</SelectItem>
                 {vendors.map((v: any) => (
-                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -640,10 +742,17 @@ function CreatePRDialog({ open, onClose, onCreated }: {
                 <div className="space-y-1">
                   {items.map((it, i) => (
                     <div key={i} className="flex items-center justify-between text-sm">
-                      <span>{it.description} · {it.quantity} {it.unit}</span>
+                      <span>
+                        {it.description} · {it.quantity} {it.unit}
+                      </span>
                       <span className="flex items-center gap-2">
-                        <span className="font-mono">{inr(Number(it.quantity) * Number(it.unitPrice))}</span>
-                        <button onClick={() => removeItem(i)} className="text-muted-foreground hover:text-destructive">
+                        <span className="font-mono">
+                          {inr(Number(it.quantity) * Number(it.unitPrice))}
+                        </span>
+                        <button
+                          onClick={() => removeItem(i)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
                           <Trash2 className="size-3.5" />
                         </button>
                       </span>
@@ -652,10 +761,30 @@ function CreatePRDialog({ open, onClose, onCreated }: {
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Input className="col-span-2" placeholder="Description" value={itemDesc} onChange={(e) => setItemDesc(e.target.value)} />
-                <Input type="number" placeholder="Qty" value={itemQty} onChange={(e) => setItemQty(e.target.value)} />
-                <Input placeholder="Unit (kg, m, nos)" value={itemUnit} onChange={(e) => setItemUnit(e.target.value)} />
-                <Input className="col-span-2" type="number" placeholder="Unit price (₹)" value={itemPrice} onChange={(e) => setItemPrice(e.target.value)} />
+                <Input
+                  className="col-span-2"
+                  placeholder="Description"
+                  value={itemDesc}
+                  onChange={(e) => setItemDesc(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  placeholder="Qty"
+                  value={itemQty}
+                  onChange={(e) => setItemQty(e.target.value)}
+                />
+                <Input
+                  placeholder="Unit (kg, m, nos)"
+                  value={itemUnit}
+                  onChange={(e) => setItemUnit(e.target.value)}
+                />
+                <Input
+                  className="col-span-2"
+                  type="number"
+                  placeholder="Unit price (₹)"
+                  value={itemPrice}
+                  onChange={(e) => setItemPrice(e.target.value)}
+                />
               </div>
               <Button size="sm" variant="outline" onClick={addItem}>
                 <Plus className="size-4" />
@@ -668,17 +797,26 @@ function CreatePRDialog({ open, onClose, onCreated }: {
           {(!showItems || items.length === 0) && (
             <div>
               <Label htmlFor="pr-amount">Estimated amount (₹)</Label>
-              <Input id="pr-amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 184000" />
+              <Input
+                id="pr-amount"
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="e.g. 184000"
+              />
             </div>
           )}
           {effectiveAmount > 0 && (
             <p className="text-xs text-muted-foreground">
-              Total: <span className="font-bold">{inr(effectiveAmount)}</span> · Approval authority: <span className="font-semibold">{approverFor(effectiveAmount)}</span>
+              Total: <span className="font-bold">{inr(effectiveAmount)}</span> · Approval authority:{" "}
+              <span className="font-semibold">{approverFor(effectiveAmount)}</span>
             </p>
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button onClick={handleSubmit} disabled={saving}>
             {saving && <Loader2 className="size-4 animate-spin" />}
             Create PR
@@ -692,7 +830,11 @@ function CreatePRDialog({ open, onClose, onCreated }: {
 // ---------------------------------------------------------------------------
 // Requisition Detail — full workflow with stage transitions
 // ---------------------------------------------------------------------------
-function RequisitionDetail({ req, onClose, onChanged }: {
+function RequisitionDetail({
+  req,
+  onClose,
+  onChanged,
+}: {
   req: RequisitionRow;
   onClose: () => void;
   onChanged: () => void;
@@ -739,13 +881,19 @@ function RequisitionDetail({ req, onClose, onChanged }: {
   const [editVendorId, setEditVendorId] = useState<string>(req.vendor_id ?? "none");
   const [savingEdit, setSavingEdit] = useState(false);
 
-  const { data: vendorData } = useQuery({ queryKey: ["vendors"], queryFn: () => fetchVendors({ data: {} }) });
+  const { data: vendorData } = useQuery({
+    queryKey: ["vendors"],
+    queryFn: () => fetchVendors({ data: {} }),
+  });
   const vendors = vendorData?.data ?? [];
 
   // Ref to the quotation editor's save function (for auto-save before submit)
   const saveQuotationsRef = useRef<(() => Promise<boolean>) | null>(null);
 
-  const { data: itemData } = useQuery({ queryKey: ["inventory-items"], queryFn: () => fetchItems({ data: {} }) });
+  const { data: itemData } = useQuery({
+    queryKey: ["inventory-items"],
+    queryFn: () => fetchItems({ data: {} }),
+  });
   const inventoryItems = itemData?.data ?? [];
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["requisitions"] });
@@ -878,16 +1026,24 @@ function RequisitionDetail({ req, onClose, onChanged }: {
     <Dialog open={!!req} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{req.pr_number} · {req.title}</DialogTitle>
+          <DialogTitle>
+            {req.pr_number} · {req.title}
+          </DialogTitle>
           <DialogDescription>
-            {req.block} · raised by {req.raised_by_name ?? "Unknown"} on {new Date(req.date).toLocaleDateString("en-IN")}
+            {req.block} · raised by {req.raised_by_name ?? "Unknown"} on{" "}
+            {new Date(req.date).toLocaleDateString("en-IN")}
             {req.po_number && ` · PO: ${req.po_number}`}
           </DialogDescription>
+          <div className="mt-1">
+            <DocumentVersionHistory entityType="requisition" entityId={req.id} />
+          </div>
         </DialogHeader>
 
         {/* Workflow stepper */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workflow</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Workflow
+          </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {PROCUREMENT_STAGES.filter((s) => s !== "Cancelled").map((s) => {
               const done = PROCUREMENT_STAGES.indexOf(s) <= currentStageIdx;
@@ -927,28 +1083,47 @@ function RequisitionDetail({ req, onClose, onChanged }: {
         {/* Edit form */}
         {editing && (
           <div className="space-y-3 rounded-lg border border-border p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Edit details</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Edit details
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label htmlFor="edit-title">Item / Work description</Label>
-                <Input id="edit-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                <Input
+                  id="edit-title"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
               </div>
               <div>
                 <Label htmlFor="edit-block">Block / Location</Label>
-                <Input id="edit-block" value={editBlock} onChange={(e) => setEditBlock(e.target.value)} />
+                <Input
+                  id="edit-block"
+                  value={editBlock}
+                  onChange={(e) => setEditBlock(e.target.value)}
+                />
               </div>
               <div>
                 <Label htmlFor="edit-amount">Estimated amount (₹)</Label>
-                <Input id="edit-amount" type="number" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} />
+                <Input
+                  id="edit-amount"
+                  type="number"
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
+                />
               </div>
               <div className="col-span-2">
                 <Label>Vendor</Label>
                 <Select value={editVendorId} onValueChange={setEditVendorId}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">— None —</SelectItem>
                     {vendors.map((v: any) => (
-                      <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -959,72 +1134,84 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                 {savingEdit && <Loader2 className="size-4 animate-spin" />}
                 Save changes
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+              <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
             </div>
           </div>
         )}
 
         {/* Key info — hidden when editing */}
         {!editing && (
-        <div className="grid grid-cols-2 gap-4 rounded-lg border border-border p-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Value</p>
-            <p className="text-lg font-bold font-mono">{inr(req.amount)}</p>
+          <div className="grid grid-cols-2 gap-4 rounded-lg border border-border p-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Value</p>
+              <p className="text-lg font-bold font-mono">{inr(req.amount)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Approval authority</p>
+              <p className="text-lg font-bold">{approver}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Vendor</p>
+              <p className="text-sm font-medium">{req.vendor_name ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">PO number</p>
+              <p className="text-sm font-medium font-mono">{req.po_number ?? "—"}</p>
+            </div>
+            {req.grn_number && (
+              <div>
+                <p className="text-xs text-muted-foreground">GRN number</p>
+                <p className="text-sm font-medium font-mono">{req.grn_number}</p>
+              </div>
+            )}
+            {req.delivery_date && (
+              <div>
+                <p className="text-xs text-muted-foreground">Delivery date</p>
+                <p className="text-sm font-medium">
+                  {new Date(req.delivery_date).toLocaleDateString("en-IN")}
+                </p>
+              </div>
+            )}
+            {req.invoice_number && (
+              <div>
+                <p className="text-xs text-muted-foreground">Invoice number</p>
+                <p className="text-sm font-medium font-mono">{req.invoice_number}</p>
+              </div>
+            )}
+            {req.invoice_amount != null && (
+              <div>
+                <p className="text-xs text-muted-foreground">Invoice amount</p>
+                <p className="text-sm font-bold font-mono">{inr(req.invoice_amount)}</p>
+              </div>
+            )}
+            {req.approved_at && (
+              <div>
+                <p className="text-xs text-muted-foreground">Approved on</p>
+                <p className="text-sm font-medium">
+                  {new Date(req.approved_at).toLocaleDateString("en-IN")}
+                </p>
+              </div>
+            )}
+            {req.rejection_reason && (
+              <div className="col-span-2">
+                <p className="text-xs text-muted-foreground">Rejection reason</p>
+                <p className="text-sm font-medium text-destructive">{req.rejection_reason}</p>
+              </div>
+            )}
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Approval authority</p>
-            <p className="text-lg font-bold">{approver}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Vendor</p>
-            <p className="text-sm font-medium">{req.vendor_name ?? "—"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">PO number</p>
-            <p className="text-sm font-medium font-mono">{req.po_number ?? "—"}</p>
-          </div>
-          {req.grn_number && (
-            <div>
-              <p className="text-xs text-muted-foreground">GRN number</p>
-              <p className="text-sm font-medium font-mono">{req.grn_number}</p>
-            </div>
-          )}
-          {req.delivery_date && (
-            <div>
-              <p className="text-xs text-muted-foreground">Delivery date</p>
-              <p className="text-sm font-medium">{new Date(req.delivery_date).toLocaleDateString("en-IN")}</p>
-            </div>
-          )}
-          {req.invoice_number && (
-            <div>
-              <p className="text-xs text-muted-foreground">Invoice number</p>
-              <p className="text-sm font-medium font-mono">{req.invoice_number}</p>
-            </div>
-          )}
-          {req.invoice_amount != null && (
-            <div>
-              <p className="text-xs text-muted-foreground">Invoice amount</p>
-              <p className="text-sm font-bold font-mono">{inr(req.invoice_amount)}</p>
-            </div>
-          )}
-          {req.approved_at && (
-            <div>
-              <p className="text-xs text-muted-foreground">Approved on</p>
-              <p className="text-sm font-medium">{new Date(req.approved_at).toLocaleDateString("en-IN")}</p>
-            </div>
-          )}
-          {req.rejection_reason && (
-            <div className="col-span-2">
-              <p className="text-xs text-muted-foreground">Rejection reason</p>
-              <p className="text-sm font-medium text-destructive">{req.rejection_reason}</p>
-            </div>
-          )}
-        </div>
         )}
 
         {/* Quotations section — editable when in PR or Quotation stage */}
         {(req.stage === "PR" || req.stage === "Quotation") && (
-          <QuotationEditor req={req} onChanged={refresh} onSaveReady={(saveFn) => { saveQuotationsRef.current = saveFn; }} />
+          <QuotationEditor
+            req={req}
+            onChanged={refresh}
+            onSaveReady={(saveFn) => {
+              saveQuotationsRef.current = saveFn;
+            }}
+          />
         )}
 
         {/* Line items — shows saved line items if any */}
@@ -1036,13 +1223,18 @@ function RequisitionDetail({ req, onClose, onChanged }: {
         {/* Quotations — read-only for approvers and post-approval stages */}
         {req.stage !== "PR" && req.stage !== "Quotation" && (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quotations</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Quotations
+            </p>
             <div className="mt-2 space-y-2">
               {req.quotations.length === 0 && (
                 <p className="text-sm text-muted-foreground">No quotations recorded.</p>
               )}
               {req.quotations.map((q: any, i: number) => (
-                <div key={i} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
+                >
                   <span className="flex items-center gap-2">
                     {q.selected && <Check className="size-4 text-success" />}
                     {q.vendor}
@@ -1060,12 +1252,18 @@ function RequisitionDetail({ req, onClose, onChanged }: {
         {/* Stage action buttons */}
         <Separator />
         <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Actions</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Actions
+          </p>
 
           {/* PR → Quotation (supervisor) */}
           {req.stage === "PR" && isSupervisor && (
             <Button onClick={() => advanceStage("Quotation")} disabled={working}>
-              {working ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
+              {working ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ArrowRight className="size-4" />
+              )}
               Move to Quotation stage
             </Button>
           )}
@@ -1073,11 +1271,12 @@ function RequisitionDetail({ req, onClose, onChanged }: {
           {/* Quotation → submit for approval (supervisor) */}
           {req.stage === "Quotation" && isSupervisor && (
             <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={() => advanceStage(approverStage)}
-                disabled={working}
-              >
-                {working ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
+              <Button onClick={() => advanceStage(approverStage)} disabled={working}>
+                {working ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="size-4" />
+                )}
                 Submit for {approver} approval
               </Button>
             </div>
@@ -1089,7 +1288,11 @@ function RequisitionDetail({ req, onClose, onChanged }: {
               {canUserApprove ? (
                 <>
                   <Button onClick={() => advanceStage("PO")} disabled={working}>
-                    {working ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                    {working ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="size-4" />
+                    )}
                     Approve → Issue PO
                   </Button>
                   <Button variant="outline" onClick={() => setShowReject(true)} disabled={working}>
@@ -1099,7 +1302,8 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  This requisition requires {approver} approval. Your role ({role}) cannot approve this amount.
+                  This requisition requires {approver} approval. Your role ({role}) cannot approve
+                  this amount.
                 </p>
               )}
             </div>
@@ -1116,10 +1320,14 @@ function RequisitionDetail({ req, onClose, onChanged }: {
           {req.stage === "PO" && (
             <div className="space-y-3">
               <div className="rounded-lg border border-border p-4 space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground">Record material receipt</p>
+                <p className="text-xs font-semibold text-muted-foreground">
+                  Record material receipt
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="delivery-date">Delivery date <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="delivery-date">
+                      Delivery date <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="delivery-date"
                       type="date"
@@ -1142,7 +1350,9 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                 <div>
                   <Label>Link to inventory item (optional)</Label>
                   <Select value={invItemId} onValueChange={setInvItemId}>
-                    <SelectTrigger className="w-full"><SelectValue placeholder="Select inventory item to update stock" /></SelectTrigger>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select inventory item to update stock" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">— Skip inventory —</SelectItem>
                       {inventoryItems.map((item: any) => (
@@ -1170,16 +1380,23 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                   confirmAdvance(
                     "Mark materials received",
                     `Confirm material receipt for ${req.pr_number}? A GRN number will be auto-generated.`,
-                    () => advanceStage("Material Received", {
-                      inventoryItemId: invItemId !== "none" ? invItemId : null,
-                      quantityReceived: qtyReceived ? Number(qtyReceived) : undefined,
-                      deliveryDate: deliveryDate ? new Date(deliveryDate).toISOString() : undefined,
-                    }),
+                    () =>
+                      advanceStage("Material Received", {
+                        inventoryItemId: invItemId !== "none" ? invItemId : null,
+                        quantityReceived: qtyReceived ? Number(qtyReceived) : undefined,
+                        deliveryDate: deliveryDate
+                          ? new Date(deliveryDate).toISOString()
+                          : undefined,
+                      }),
                   );
                 }}
                 disabled={working}
               >
-                {working ? <Loader2 className="size-4 animate-spin" /> : <Package className="size-4" />}
+                {working ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Package className="size-4" />
+                )}
                 Mark materials received
               </Button>
             </div>
@@ -1192,7 +1409,9 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                 <p className="text-xs font-semibold text-muted-foreground">Invoice details</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="inv-number">Invoice number <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="inv-number">
+                      Invoice number <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="inv-number"
                       placeholder="e.g. INV-9921"
@@ -1220,7 +1439,8 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                       onChange={(e) => setInvoiceAmount(e.target.value)}
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
-                      PR estimated amount: {inr(req.amount)}. Enter the actual invoiced amount if different.
+                      PR estimated amount: {inr(req.amount)}. Enter the actual invoiced amount if
+                      different.
                     </p>
                   </div>
                 </div>
@@ -1245,16 +1465,21 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                   confirmAdvance(
                     "Record invoice",
                     `Confirm invoice ${invoiceNumber.trim()} for ${req.pr_number}?`,
-                    () => advanceStage("Invoice", {
-                      invoiceNumber: invoiceNumber.trim() || undefined,
-                      invoiceDate: invoiceDate ? new Date(invoiceDate).toISOString() : undefined,
-                      invoiceAmount: invoiceAmount ? Number(invoiceAmount) : undefined,
-                    }),
+                    () =>
+                      advanceStage("Invoice", {
+                        invoiceNumber: invoiceNumber.trim() || undefined,
+                        invoiceDate: invoiceDate ? new Date(invoiceDate).toISOString() : undefined,
+                        invoiceAmount: invoiceAmount ? Number(invoiceAmount) : undefined,
+                      }),
                   );
                 }}
                 disabled={working}
               >
-                {working ? <Loader2 className="size-4 animate-spin" /> : <Receipt className="size-4" />}
+                {working ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Receipt className="size-4" />
+                )}
                 Record invoice → advance
               </Button>
             </div>
@@ -1270,16 +1495,22 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                     <div>
                       <Label>Payment method</Label>
                       <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           {["Cash", "Cheque", "UPI", "NEFT", "RTGS", "IMPS"].map((m) => (
-                            <SelectItem key={m} value={m}>{m}</SelectItem>
+                            <SelectItem key={m} value={m}>
+                              {m}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="pay-ref">Reference number <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="pay-ref">
+                        Reference number <span className="text-destructive">*</span>
+                      </Label>
                       <Input
                         id="pay-ref"
                         placeholder="Cheque no / UPI ref / Txn ID"
@@ -1298,11 +1529,17 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                         disabled={uploadingProof}
                         onClick={() => document.getElementById("pay-proof-input")?.click()}
                       >
-                        {uploadingProof ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                        {uploadingProof ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Upload className="size-4" />
+                        )}
                         {paymentProofPath ? "Replace proof" : "Upload proof"}
                       </Button>
                       {paymentProofPath && (
-                        <span className="text-xs text-success">✓ {paymentProofPath.split("/").pop()}</span>
+                        <span className="text-xs text-success">
+                          ✓ {paymentProofPath.split("/").pop()}
+                        </span>
                       )}
                       <input
                         id="pay-proof-input"
@@ -1318,7 +1555,12 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                           reader.onload = async () => {
                             const base64 = (reader.result as string).split(",")[1] ?? "";
                             const result = await uploadFile({
-                              data: { bucket: "documents", path, contentType: file.type || "application/octet-stream", fileData: base64 },
+                              data: {
+                                bucket: "documents",
+                                path,
+                                contentType: file.type || "application/octet-stream",
+                                fileData: base64,
+                              },
                             });
                             setUploadingProof(false);
                             if (result.success) {
@@ -1334,12 +1576,14 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    A vendor payment record will be created for {req.vendor_name ?? "the vendor"} and outstanding balance updated automatically.
+                    A vendor payment record will be created for {req.vendor_name ?? "the vendor"}{" "}
+                    and outstanding balance updated automatically.
                   </p>
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  No vendor linked — payment record will be skipped. Link a vendor to track payments.
+                  No vendor linked — payment record will be skipped. Link a vendor to track
+                  payments.
                 </p>
               )}
               <Button
@@ -1351,16 +1595,21 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                   confirmAdvance(
                     "Record payment",
                     `Confirm payment of ${inr(req.amount)} via ${paymentMethod} for ${req.pr_number}? A vendor payment record will be created.`,
-                    () => advanceStage("Payment", {
-                      paymentMethod: req.vendor_id ? paymentMethod : undefined,
-                      paymentReference: paymentReference.trim() || undefined,
-                      paymentProofPath: paymentProofPath ?? undefined,
-                    }),
+                    () =>
+                      advanceStage("Payment", {
+                        paymentMethod: req.vendor_id ? paymentMethod : undefined,
+                        paymentReference: paymentReference.trim() || undefined,
+                        paymentProofPath: paymentProofPath ?? undefined,
+                      }),
                   );
                 }}
                 disabled={working || uploadingProof}
               >
-                {working ? <Loader2 className="size-4 animate-spin" /> : <IndianRupee className="size-4" />}
+                {working ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <IndianRupee className="size-4" />
+                )}
                 Record payment
               </Button>
             </div>
@@ -1370,12 +1619,16 @@ function RequisitionDetail({ req, onClose, onChanged }: {
           {req.stage === "Payment" && (
             <PaymentsSection
               req={req}
-              onPaymentRecorded={() => { refresh(); }}
-              onCloseRequisition={() => confirmAdvance(
-                "Close requisition",
-                `Close ${req.pr_number}? This will mark the requisition as completed. This action cannot be undone.`,
-                () => advanceStage("Completed"),
-              )}
+              onPaymentRecorded={() => {
+                refresh();
+              }}
+              onCloseRequisition={() =>
+                confirmAdvance(
+                  "Close requisition",
+                  `Close ${req.pr_number}? This will mark the requisition as completed. This action cannot be undone.`,
+                  () => advanceStage("Completed"),
+                )
+              }
               working={working}
             />
           )}
@@ -1396,9 +1649,7 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                 Requisition cancelled
               </div>
               {req.cancel_reason && (
-                <p className="text-sm text-muted-foreground">
-                  Reason: {req.cancel_reason}
-                </p>
+                <p className="text-sm text-muted-foreground">Reason: {req.cancel_reason}</p>
               )}
             </div>
           )}
@@ -1406,7 +1657,12 @@ function RequisitionDetail({ req, onClose, onChanged }: {
           {/* Cancel button — available from any pre-completion, pre-cancel stage */}
           {req.stage !== "Completed" && req.stage !== "Cancelled" && (
             <div className="flex justify-end border-t border-border pt-3">
-              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setShowCancel(true)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setShowCancel(true)}
+              >
                 <XCircle className="size-4" />
                 Cancel requisition
               </Button>
@@ -1421,7 +1677,8 @@ function RequisitionDetail({ req, onClose, onChanged }: {
               <DialogHeader>
                 <DialogTitle>Reject {req.pr_number}?</DialogTitle>
                 <DialogDescription>
-                  The requisition will be sent back to the supervisor for rework. Provide a reason (optional).
+                  The requisition will be sent back to the supervisor for rework. Provide a reason
+                  (optional).
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
@@ -1436,7 +1693,9 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowReject(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setShowReject(false)}>
+                  Cancel
+                </Button>
                 <Button variant="destructive" onClick={rejectRequisition} disabled={working}>
                   {working ? <Loader2 className="size-4 animate-spin" /> : <X className="size-4" />}
                   Reject & send back
@@ -1453,7 +1712,8 @@ function RequisitionDetail({ req, onClose, onChanged }: {
               <DialogHeader>
                 <DialogTitle>Cancel {req.pr_number}?</DialogTitle>
                 <DialogDescription>
-                  The requisition will be permanently cancelled. This cannot be undone. Provide a reason (optional).
+                  The requisition will be permanently cancelled. This cannot be undone. Provide a
+                  reason (optional).
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
@@ -1468,9 +1728,15 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCancel(false)}>Keep requisition</Button>
+                <Button variant="outline" onClick={() => setShowCancel(false)}>
+                  Keep requisition
+                </Button>
                 <Button variant="destructive" onClick={cancelRequisition} disabled={working}>
-                  {working ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />}
+                  {working ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <XCircle className="size-4" />
+                  )}
                   Cancel requisition
                 </Button>
               </DialogFooter>
@@ -1487,7 +1753,9 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                 <DialogDescription>{confirmMessage}</DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowConfirm(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setShowConfirm(false)}>
+                  Cancel
+                </Button>
                 <Button
                   onClick={() => {
                     setShowConfirm(false);
@@ -1495,7 +1763,11 @@ function RequisitionDetail({ req, onClose, onChanged }: {
                   }}
                   disabled={working}
                 >
-                  {working ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                  {working ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="size-4" />
+                  )}
                   Confirm
                 </Button>
               </DialogFooter>
@@ -1511,7 +1783,11 @@ function RequisitionDetail({ req, onClose, onChanged }: {
 // Quotation Editor — add/remove/select quotations (PR and Quotation stages)
 // Auto-saves before submit for approval via onSaveReady callback.
 // ---------------------------------------------------------------------------
-function QuotationEditor({ req, onChanged, onSaveReady }: {
+function QuotationEditor({
+  req,
+  onChanged,
+  onSaveReady,
+}: {
   req: RequisitionRow;
   onChanged: () => void;
   onSaveReady: (saveFn: () => Promise<boolean>) => void;
@@ -1523,7 +1799,10 @@ function QuotationEditor({ req, onChanged, onSaveReady }: {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
-  const { data: vendorData } = useQuery({ queryKey: ["vendors"], queryFn: () => fetchVendors({ data: {} }) });
+  const { data: vendorData } = useQuery({
+    queryKey: ["vendors"],
+    queryFn: () => fetchVendors({ data: {} }),
+  });
   const vendors = vendorData?.data ?? [];
 
   // Track if local quotations differ from saved ones
@@ -1558,19 +1837,23 @@ function QuotationEditor({ req, onChanged, onSaveReady }: {
 
   // Adds a new vendor quotation entry to the local list after validation.
   const addQuotation = () => {
-    const vendorName = newVendorId !== "none"
-      ? vendors.find((v: any) => v.id === newVendorId)?.name ?? newVendorName.trim()
-      : newVendorName.trim();
+    const vendorName =
+      newVendorId !== "none"
+        ? (vendors.find((v: any) => v.id === newVendorId)?.name ?? newVendorName.trim())
+        : newVendorName.trim();
     if (!vendorName || !newAmount || Number(newAmount) <= 0) {
       toast.error("Select a vendor and enter amount");
       return;
     }
-    setQuotations([...quotations, {
-      vendor: vendorName,
-      vendor_id: newVendorId !== "none" ? newVendorId : null,
-      amount: Number(newAmount),
-      selected: false,
-    }]);
+    setQuotations([
+      ...quotations,
+      {
+        vendor: vendorName,
+        vendor_id: newVendorId !== "none" ? newVendorId : null,
+        amount: Number(newAmount),
+        selected: false,
+      },
+    ]);
     setNewVendorId("none");
     setNewVendorName("");
     setNewAmount("");
@@ -1594,23 +1877,35 @@ function QuotationEditor({ req, onChanged, onSaveReady }: {
       </p>
       <div className="mt-2 space-y-2">
         {quotations.map((q, i) => (
-          <div key={i} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
+          <div
+            key={i}
+            className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
+          >
             <div className="flex items-center gap-2">
               <button
                 onClick={() => selectQuotation(i)}
                 className={`flex size-5 items-center justify-center rounded-full border-2 transition-colors ${
-                  q.selected ? "border-success bg-success text-success-foreground" : "border-muted-foreground/30"
+                  q.selected
+                    ? "border-success bg-success text-success-foreground"
+                    : "border-muted-foreground/30"
                 }`}
                 title={q.selected ? "Selected" : "Click to select"}
               >
                 {q.selected && <Check className="size-3" />}
               </button>
               <span className="font-medium">{q.vendor}</span>
-              {q.vendor_id && <Badge variant="outline" className="text-[10px]">linked</Badge>}
+              {q.vendor_id && (
+                <Badge variant="outline" className="text-[10px]">
+                  linked
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <span className="font-mono font-semibold">{inr(q.amount)}</span>
-              <button onClick={() => removeQuotation(i)} className="text-muted-foreground hover:text-destructive">
+              <button
+                onClick={() => removeQuotation(i)}
+                className="text-muted-foreground hover:text-destructive"
+              >
                 <Trash2 className="size-3.5" />
               </button>
             </div>
@@ -1621,12 +1916,22 @@ function QuotationEditor({ req, onChanged, onSaveReady }: {
       {/* Add new quotation */}
       <div className="mt-3 space-y-2">
         <div className="flex flex-wrap gap-2">
-          <Select value={newVendorId} onValueChange={(v) => { setNewVendorId(v); if (v !== "none") setNewVendorName(""); }}>
-            <SelectTrigger className="flex-1"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+          <Select
+            value={newVendorId}
+            onValueChange={(v) => {
+              setNewVendorId(v);
+              if (v !== "none") setNewVendorName("");
+            }}
+          >
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Select vendor" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">— Other (type name) —</SelectItem>
               {vendors.map((v: any) => (
-                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                <SelectItem key={v.id} value={v.id}>
+                  {v.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -1692,7 +1997,10 @@ function LineItemsSection({ requisitionId }: { requisitionId: string }) {
       </p>
       <div className="mt-2 space-y-1.5">
         {lineItems.map((it: any) => (
-          <div key={it.id} className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+          <div
+            key={it.id}
+            className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm"
+          >
             <div>
               <span className="font-medium">{it.description}</span>
               <span className="ml-2 text-xs text-muted-foreground">
@@ -1714,7 +2022,12 @@ function LineItemsSection({ requisitionId }: { requisitionId: string }) {
 // ---------------------------------------------------------------------------
 // Payments Section — shows existing payments, allows recording additional partial payments
 // ---------------------------------------------------------------------------
-function PaymentsSection({ req, onPaymentRecorded, onCloseRequisition, working }: {
+function PaymentsSection({
+  req,
+  onPaymentRecorded,
+  onCloseRequisition,
+  working,
+}: {
   req: RequisitionRow;
   onPaymentRecorded: () => void;
   onCloseRequisition: () => void;
@@ -1793,7 +2106,9 @@ function PaymentsSection({ req, onPaymentRecorded, onCloseRequisition, working }
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Balance</p>
-            <p className={`text-sm font-bold font-mono ${fullyPaid ? "text-success" : "text-warning"}`}>
+            <p
+              className={`text-sm font-bold font-mono ${fullyPaid ? "text-success" : "text-warning"}`}
+            >
               {inr(Math.max(0, balance))}
             </p>
           </div>
@@ -1802,13 +2117,22 @@ function PaymentsSection({ req, onPaymentRecorded, onCloseRequisition, working }
         {/* Existing payments list */}
         {paymentList.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Payments made ({paymentList.length})</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              Payments made ({paymentList.length})
+            </p>
             {paymentList.map((p: any) => (
-              <div key={p.id} className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+              <div
+                key={p.id}
+                className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm"
+              >
                 <div>
                   <span className="font-mono font-semibold">{inr(p.amount)}</span>
                   <span className="ml-2 text-xs text-muted-foreground">{p.payment_type}</span>
-                  {p.reference_number && <span className="ml-2 text-xs text-muted-foreground">· {p.reference_number}</span>}
+                  {p.reference_number && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      · {p.reference_number}
+                    </span>
+                  )}
                 </div>
                 <span className="text-xs text-muted-foreground">
                   {new Date(p.payment_date).toLocaleDateString("en-IN")}
@@ -1824,15 +2148,25 @@ function PaymentsSection({ req, onPaymentRecorded, onCloseRequisition, working }
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <Label htmlFor="partial-amount">Amount (₹)</Label>
-                <Input id="partial-amount" type="number" placeholder={`max ${inr(balance)}`} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+                <Input
+                  id="partial-amount"
+                  type="number"
+                  placeholder={`max ${inr(balance)}`}
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Method</Label>
                 <Select value={payMethod} onValueChange={setPayMethod}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {["Cash", "Cheque", "UPI", "NEFT", "RTGS", "IMPS"].map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1840,25 +2174,38 @@ function PaymentsSection({ req, onPaymentRecorded, onCloseRequisition, working }
             </div>
             <div>
               <Label htmlFor="partial-ref">Reference number</Label>
-              <Input id="partial-ref" placeholder="Cheque no / UPI ref / Txn ID" value={payRef} onChange={(e) => setPayRef(e.target.value)} />
+              <Input
+                id="partial-ref"
+                placeholder="Cheque no / UPI ref / Txn ID"
+                value={payRef}
+                onChange={(e) => setPayRef(e.target.value)}
+              />
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={handleAddPayment} disabled={saving}>
                 {saving && <Loader2 className="size-4 animate-spin" />}
                 Record payment
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowAddPayment(false)}>Cancel</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowAddPayment(false)}>
+                Cancel
+              </Button>
             </div>
           </div>
         )}
 
         {!req.vendor_id && (
-          <p className="text-xs text-muted-foreground">No vendor linked — payment records cannot be created.</p>
+          <p className="text-xs text-muted-foreground">
+            No vendor linked — payment records cannot be created.
+          </p>
         )}
       </div>
 
       <Button onClick={onCloseRequisition} disabled={working}>
-        {working ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+        {working ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <CheckCircle2 className="size-4" />
+        )}
         {fullyPaid ? "Close requisition" : "Close requisition (not fully paid)"}
       </Button>
     </div>
@@ -1880,7 +2227,9 @@ function ApprovalTimeline({ requisitionId }: { requisitionId: string }) {
   if (isLoading) {
     return (
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Timeline</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Timeline
+        </p>
         <div className="mt-2 space-y-2">
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-3/4" />
@@ -1894,20 +2243,26 @@ function ApprovalTimeline({ requisitionId }: { requisitionId: string }) {
   // Map action codes to human-readable labels
   const actionLabel = (action: string, details: any) => {
     switch (action) {
-      case "create_requisition": return "PR created";
-      case "update_requisition": return "Details updated";
+      case "create_requisition":
+        return "PR created";
+      case "update_requisition":
+        return "Details updated";
       case "update_stage":
         if (details.to === "Cancelled") return "Cancelled";
         if (details.to === "Quotation" && details.from !== "PR") return "Rejected → sent back";
-        if (details.to === "PO") return `Approved → PO${details.po_number ? ` ${details.po_number}` : ""}`;
-        if (details.to === "Material Received") return `Material received${details.grn_number ? ` (${details.grn_number})` : ""}`;
+        if (details.to === "PO")
+          return `Approved → PO${details.po_number ? ` ${details.po_number}` : ""}`;
+        if (details.to === "Material Received")
+          return `Material received${details.grn_number ? ` (${details.grn_number})` : ""}`;
         if (details.to === "Invoice") return "Invoice recorded";
         if (details.to === "Payment") return "Payment recorded";
         if (details.to === "Completed") return "Completed";
         if (details.to === "Quotation") return "Moved to Quotation";
         return `${details.from} → ${details.to}`;
-      case "add_payment": return `Payment of ₹${Number(details.amount).toLocaleString("en-IN")} recorded`;
-      default: return action.replace(/_/g, " ");
+      case "add_payment":
+        return `Payment of ₹${Number(details.amount).toLocaleString("en-IN")} recorded`;
+      default:
+        return action.replace(/_/g, " ");
     }
   };
 
@@ -1921,14 +2276,22 @@ function ApprovalTimeline({ requisitionId }: { requisitionId: string }) {
           <div key={entry.id} className="flex gap-3">
             {/* Vertical line + dot */}
             <div className="flex flex-col items-center">
-              <div className={`size-2.5 rounded-full ${i === entries.length - 1 ? "bg-primary" : "bg-muted-foreground/40"}`} />
+              <div
+                className={`size-2.5 rounded-full ${i === entries.length - 1 ? "bg-primary" : "bg-muted-foreground/40"}`}
+              />
               {i < entries.length - 1 && <div className="w-px flex-1 bg-border" />}
             </div>
             {/* Content */}
             <div className="pb-3">
               <p className="text-sm font-medium">{actionLabel(entry.action, entry.details)}</p>
               <p className="text-xs text-muted-foreground">
-                {entry.user_name} · {new Date(entry.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                {entry.user_name} ·{" "}
+                {new Date(entry.created_at).toLocaleString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </p>
             </div>
           </div>
@@ -2007,11 +2370,22 @@ function DocumentSection({ req, onChanged }: { req: RequisitionRow; onChanged: (
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Linked documents ({documents.length})
         </p>
-        <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+        >
           {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
           Upload
         </Button>
-        <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff,.tif,.bmp,.heic,.heif,.xls,.xlsx,.doc,.docx,.csv,.txt,.zip" />
+        <input
+          ref={fileRef}
+          type="file"
+          className="hidden"
+          onChange={handleUpload}
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff,.tif,.bmp,.heic,.heif,.xls,.xlsx,.doc,.docx,.csv,.txt,.zip"
+        />
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
         {documents.length === 0 && (
