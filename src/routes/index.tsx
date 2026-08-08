@@ -11,7 +11,6 @@ import { fetchGatePasses } from "@/lib/api/gate-passes";
 import { fetchInspections } from "@/lib/api/inspections";
 import { fetchLabour } from "@/lib/api/registers";
 import { useRole } from "@/lib/role-context";
-import { authStore } from "@/lib/auth-store";
 import { ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -32,18 +31,24 @@ export const Route = createFileRoute("/")({
     ],
   }),
   beforeLoad: () => {
-    // Only redirect on client — SSR has no localStorage so authStore
-    // is always unauthenticated there, causing redirect mismatches
+    // Only redirect on client — SSR has no localStorage
     if (typeof window === "undefined") return;
-    const state = authStore.getState();
-    if (state.isAuthenticated && state.role) {
-      const routes = {
-        Supervisor: "/supervisor",
-        Administrator: "/administrator",
-        A1: "/a1",
-        "A1+": "/a1plus",
-      } as const;
-      throw redirect({ to: routes[state.role] });
+    try {
+      const saved = localStorage.getItem("meditrust-auth-user");
+      if (saved) {
+        const state = JSON.parse(saved) as { role: string; isAuthenticated: boolean };
+        if (state.isAuthenticated && state.role) {
+          const routes: Record<string, string> = {
+            Supervisor: "/supervisor",
+            Administrator: "/administrator",
+            A1: "/a1",
+            "A1+": "/a1plus",
+          };
+          throw redirect({ to: routes[state.role] ?? "/login" });
+        }
+      }
+    } catch (e) {
+      if (e && typeof e === "object" && "status" in e) throw e;
     }
     throw redirect({ to: "/login" });
   },
