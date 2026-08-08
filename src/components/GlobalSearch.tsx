@@ -26,22 +26,16 @@ import {
   BadgeCheck,
   Users,
   HeartPulse,
-  Radiation,
-  Wind,
-  Flame,
-  ClipboardCheck,
   Wallet,
   TrendingDown,
   Receipt,
   Lock,
-  BarChart3,
   Building2,
   Package,
   Settings2,
   TrendingUp,
   Settings,
   History,
-  Calendar,
   UserCog,
   HardHat,
   Search,
@@ -57,22 +51,16 @@ const ICON_MAP: Record<string, LucideIcon> = {
   BadgeCheck,
   Users,
   HeartPulse,
-  Radiation,
-  Wind,
-  Flame,
-  ClipboardCheck,
   Wallet,
   TrendingDown,
   Receipt,
   Lock,
-  BarChart3,
   Building2,
   Package,
   Settings2,
   TrendingUp,
   Settings,
   History,
-  Calendar,
   UserCog,
   HardHat,
 };
@@ -218,20 +206,6 @@ export function GlobalSearch() {
               <CommandSeparator />
               <CommandGroup heading="Quick actions">
                 <CommandItem
-                  value="daily diary site report"
-                  onSelect={() => handleSelect("/daily-diary")}
-                >
-                  <Calendar className="size-4 text-muted-foreground" />
-                  <span>Daily Site Diary</span>
-                </CommandItem>
-                <CommandItem
-                  value="reports analytics export"
-                  onSelect={() => handleSelect("/reports")}
-                >
-                  <BarChart3 className="size-4 text-muted-foreground" />
-                  <span>Reports & Analytics</span>
-                </CommandItem>
-                <CommandItem
                   value="user management accounts"
                   onSelect={() => handleSelect("/users")}
                 >
@@ -270,13 +244,7 @@ function categorizeRoute(to: string): string {
   if (to.includes("traceability") || to.includes("quality") || to.includes("batches"))
     return "Quality & Traceability";
   if (to.includes("registers") || to.includes("labour")) return "Registers & Labour";
-  if (
-    to.includes("medical") ||
-    to.includes("aerb") ||
-    to.includes("cleanroom") ||
-    to.includes("nabh")
-  )
-    return "Hospital Compliance";
+  if (to.includes("medical")) return "Hospital Compliance";
   if (
     to.includes("budget") ||
     to.includes("cash-flow") ||
@@ -287,7 +255,6 @@ function categorizeRoute(to: string): string {
   if (to.includes("vendor")) return "Vendors";
   if (to.includes("inventory")) return "Inventory";
   if (to.includes("progress")) return "Progress Tracking";
-  if (to.includes("report")) return "Reports";
   if (to.includes("user")) return "Administration";
   if (to.includes("setting") || to.includes("audit")) return "System";
   return "Other";

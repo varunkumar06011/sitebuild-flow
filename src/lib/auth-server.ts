@@ -295,9 +295,8 @@ export const verifySession = createServerFn({ method: "GET" }).handler(
 
 // Sets the session cookie as httpOnly; secure (prod); SameSite=Strict via h3.
 async function setSessionCookie(token: string, maxAgeSeconds: number): Promise<void> {
+  // Method 1: h3 setCookie (works in Nitro/h3 server context)
   try {
-    // h3's types don't expose getEvent/setCookie as named exports — they're
-    // Nitro-injected globals. Same pattern as readSessionCookie above.
     const h3: any = await import("h3");
     const event = h3.getEvent?.();
     if (event) {
@@ -308,15 +307,34 @@ async function setSessionCookie(token: string, maxAgeSeconds: number): Promise<v
         path: "/",
         maxAge: maxAgeSeconds,
       });
+      return;
     }
   } catch {
-    // h3 not available outside a request context — cookie won't be set.
-    // This should not happen in normal server function execution.
+    // h3 not available outside a request context
+  }
+
+  // Method 2: vinxi/http fallback (Nitro-injected globals)
+  try {
+    // @ts-ignore — vinxi/http is available at runtime via Nitro
+    const vinxiHttp: any = await import("vinxi/http");
+    const event = vinxiHttp.getEvent?.();
+    if (event) {
+      vinxiHttp.setCookie?.(event, COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: process.env["NODE_ENV"] === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: maxAgeSeconds,
+      });
+    }
+  } catch {
+    // vinxi/http not available
   }
 }
 
 // Clears the session cookie via h3 deleteCookie.
 async function clearSessionCookie(): Promise<void> {
+  // Method 1: h3 deleteCookie (works in Nitro/h3 server context)
   try {
     const h3: any = await import("h3");
     const event = h3.getEvent?.();
@@ -327,9 +345,27 @@ async function clearSessionCookie(): Promise<void> {
         sameSite: "strict",
         path: "/",
       });
+      return;
     }
   } catch {
     // h3 not available outside a request context
+  }
+
+  // Method 2: vinxi/http fallback (Nitro-injected globals)
+  try {
+    // @ts-ignore — vinxi/http is available at runtime via Nitro
+    const vinxiHttp: any = await import("vinxi/http");
+    const event = vinxiHttp.getEvent?.();
+    if (event) {
+      vinxiHttp.deleteCookie?.(event, COOKIE_NAME, {
+        httpOnly: true,
+        secure: process.env["NODE_ENV"] === "production",
+        sameSite: "strict",
+        path: "/",
+      });
+    }
+  } catch {
+    // vinxi/http not available
   }
 }
 

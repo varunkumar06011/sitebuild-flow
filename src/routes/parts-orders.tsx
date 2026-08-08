@@ -399,9 +399,8 @@ function PartsOrdersPage() {
           requested_by_name: null,
           department: form.department || null,
           comments: form.comments || null,
-          work_category: form.work_category,
-          pdf_path: null,
           work_category: form.work_category ?? "uncategorized",
+          pdf_path: null,
           items: items.map((it) => ({
             id: "",
             item_id: it.item_id,

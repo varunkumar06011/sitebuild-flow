@@ -115,7 +115,6 @@ const PAGE_SIZE = 20;
 
 // Main procurement page showing the requisitions table with create and detail dialogs.
 function Procurement() {
-  const { role } = useRole();
   const queryClient = useQueryClient();
   const [detailReq, setDetailReq] = useState<RequisitionRow | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -218,16 +217,11 @@ function Procurement() {
       <Card className="mt-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-bold">Requisitions</h2>
-          <Button size="sm" disabled={role !== "Supervisor"} onClick={() => setShowCreate(true)}>
+          <Button size="sm" onClick={() => setShowCreate(true)}>
             <Plus className="size-4" />
             New purchase requisition
           </Button>
         </div>
-        {role !== "Supervisor" && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Only a Supervisor raises PRs. Switch role in the header to try it.
-          </p>
-        )}
 
         {/* Filters */}
         <div className="mt-4 flex flex-wrap gap-2">

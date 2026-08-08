@@ -20,20 +20,12 @@ import {
   Package,
   FileText,
   HeartPulse,
-  Radiation,
-  Wind,
-  Flame,
-  ClipboardCheck,
   Wallet,
   TrendingDown,
   Receipt,
   Lock,
-  BarChart3,
-  Calendar,
   UserCog,
-  ArrowUpCircle,
   Database,
-  Box,
   Brain,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -64,20 +56,12 @@ const ICON_MAP: Record<string, typeof HardHat> = {
   Package,
   FileText,
   HeartPulse,
-  Radiation,
-  Wind,
-  Flame,
-  ClipboardCheck,
   Wallet,
   TrendingDown,
   Receipt,
   Lock,
-  BarChart3,
-  Calendar,
   UserCog,
-  ArrowUpCircle,
   Database,
-  Box,
   Brain,
 };
 
@@ -104,13 +88,13 @@ export function AppShell({
   const notifications = notifData?.data ?? [];
 
   // Clears the session cookie and redirects to the login page.
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-    } catch {
+  // Fire-and-forget the server call so the UI never hangs waiting for it.
+  const handleLogout = () => {
+    logoutUser().catch(() => {
       // server call may fail if session is already invalid — continue anyway
-    }
+    });
     logout();
+    queryClient.clear();
     window.location.href = "/login";
   };
 

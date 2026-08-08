@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRole } from "@/lib/role-context";
+import { authStore } from "@/lib/auth-store";
 import { loginUser, verifySession } from "@/lib/auth-server";
 import { HardHat, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +21,13 @@ export const Route = createFileRoute("/login")({
     ],
   }),
   beforeLoad: async () => {
+    // On the client, if authStore says not authenticated (e.g. user just
+    // logged out), skip the server-side session check to avoid a redirect
+    // loop between /login and the dashboard route guards.
+    if (typeof window !== "undefined") {
+      const state = authStore.getState();
+      if (!state.isAuthenticated) return;
+    }
     try {
       const session = await verifySession();
       if (session.authenticated && session.user) {
