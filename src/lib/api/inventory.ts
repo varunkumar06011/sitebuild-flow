@@ -207,6 +207,91 @@ export function fetchWarehouses(): Promise<{ data: any[] }> {
   return api.get("/api/inventory/warehouses");
 }
 
+// GET /api/inventory/portal/items
+export function fetchPortalItems(data?: {
+  warehouse_id?: string;
+  category_id?: string;
+  search?: string;
+  from_date?: string;
+  to_date?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<{
+  data: any[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}> {
+  return api.get("/api/inventory/portal/items", data);
+}
+
+// GET /api/inventory/portal/opening-balance
+export function fetchPortalOpeningBalance(data: {
+  item_id: string;
+  date: string;
+}): Promise<{ success: boolean; error?: string; opening_balance?: number }> {
+  return api.get("/api/inventory/portal/opening-balance", data);
+}
+
+// GET /api/inventory/portal/ledger
+export function fetchPortalLedger(data: {
+  item_id: string;
+  from_date?: string;
+  to_date?: string;
+}): Promise<{
+  item_id: string;
+  item_name: string;
+  unit_of_measure: string;
+  opening_stock: number;
+  current_balance: number;
+  total_purchased: number;
+  total_used: number;
+  rows: any[];
+}> {
+  return api.get("/api/inventory/portal/ledger", data);
+}
+
+// POST /api/inventory/portal/entry
+export function recordPortalEntry(data: {
+  item_id: string;
+  transaction_date: string;
+  opening_balance?: number;
+  purchase_qty?: number;
+  usage_qty?: number;
+  vendor_id?: string | null;
+  rate_per_unit?: number;
+  invoice_number?: string;
+  warehouse_id?: string | null;
+  flat_no?: string;
+  purpose?: string;
+  notes?: string;
+}): Promise<{ success: boolean; error?: string; ids?: string[] }> {
+  return api.post("/api/inventory/portal/entry", data);
+}
+
+// POST /api/inventory/portal/items/create
+export function createPortalItem(data: {
+  name: string;
+  unit: string;
+  reorder_level?: number;
+  category: string;
+  type?: string;
+  subcategory?: string;
+  subtype?: string;
+  warehouse_id?: string | null;
+}): Promise<{ success: boolean; error?: string; id?: string }> {
+  return api.post("/api/inventory/portal/items/create", data);
+}
+
+// POST /api/inventory/portal/vendors/create
+export function createPortalVendor(data: {
+  name: string;
+  phone?: string;
+}): Promise<{ success: boolean; error?: string; id?: string; name?: string }> {
+  return api.post("/api/inventory/portal/vendors/create", data);
+}
+
 // POST /api/inventory/warehouses/create
 export function createWarehouse(data: {
   name: string;

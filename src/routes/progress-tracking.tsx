@@ -34,6 +34,7 @@ import { getSignedUrl } from "@/lib/api/storage";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { TrendingUp, Camera, History } from "lucide-react";
+import { PROGRESS_STATUS_KEYS, statusLabel, statusClasses } from "@/lib/progress-status";
 
 export const Route = createFileRoute("/progress-tracking")({
   head: () => ({
@@ -44,20 +45,6 @@ export const Route = createFileRoute("/progress-tracking")({
   },
   component: ProgressTrackingPage,
 });
-
-const STATUS_COLORS: Record<string, string> = {
-  not_started: "bg-gray-100 text-gray-600",
-  in_progress: "bg-blue-100 text-blue-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  on_hold: "bg-amber-100 text-amber-700",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  not_started: "Not Started",
-  in_progress: "In Progress",
-  completed: "Completed",
-  on_hold: "On Hold",
-};
 
 // Main progress tracking page showing assigned cells with filter, edit and history actions.
 function ProgressTrackingPage() {
@@ -106,10 +93,9 @@ function ProgressTrackingPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="not_started">Not Started</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="on_hold">On Hold</SelectItem>
+              {PROGRESS_STATUS_KEYS.map((key) => (
+                <SelectItem key={key} value={key}>{statusLabel(key)}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <span className="text-sm text-muted-foreground ml-auto">{cells.length} cells</span>
@@ -133,10 +119,8 @@ function ProgressTrackingPage() {
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">{cell.category_name}</p>
                   </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[cell.status] ?? ""}`}
-                  >
-                    {STATUS_LABELS[cell.status] ?? cell.status}
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusClasses(cell.status)}`}>
+                    {statusLabel(cell.status)}
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -273,10 +257,9 @@ export function CellEditDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="not_started">Not Started</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="on_hold">On Hold</SelectItem>
+                {PROGRESS_STATUS_KEYS.map((key) => (
+                  <SelectItem key={key} value={key}>{statusLabel(key)}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -403,14 +386,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
                     </span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {h.previous_status && STATUS_LABELS[h.previous_status]
-                      ? STATUS_LABELS[h.previous_status]
-                      : h.previous_status}{" "}
-                    ({h.previous_pct}%) →{" "}
-                    {h.new_status && STATUS_LABELS[h.new_status]
-                      ? STATUS_LABELS[h.new_status]
-                      : h.new_status}{" "}
-                    ({h.new_pct}%)
+                    {statusLabel(h.previous_status)} ({h.previous_pct}%) → {statusLabel(h.new_status)} ({h.new_pct}%)
                   </div>
                   {h.remarks && <p className="mt-1 text-xs">{h.remarks}</p>}
                 </div>

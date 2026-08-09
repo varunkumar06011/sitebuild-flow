@@ -45,17 +45,25 @@ checkServerEnv();
 const app = express();
 const PORT = parseInt(process.env["PORT"] ?? "3001", 10);
 
-// Allowed origin for CORS — the frontend URL.
-// In production, this must be set to the exact Vercel URL (not "*").
-// In development, allow localhost on any port.
-const allowedOrigin =
-  process.env["CORS_ORIGIN"] ??
-  (process.env["NODE_ENV"] === "production" ? "" : "http://localhost:5173");
-
 // CORS configuration: credentials are required for cross-origin cookies.
 // The origin must be explicit (not "*") when credentials are true.
+// In production, set CORS_ORIGIN to the exact frontend URL.
+// In development, allow any localhost port.
 const corsOptions: cors.CorsOptions = {
-  origin: allowedOrigin || true,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    // In development, always allow localhost / 127.0.0.1 so Vite's default URLs work with credentials.
+    if (process.env["NODE_ENV"] !== "production" && /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+      return callback(null, true);
+    }
+    if (process.env["CORS_ORIGIN"]) {
+      return callback(null, origin === process.env["CORS_ORIGIN"]);
+    }
+    if (process.env["NODE_ENV"] === "production") {
+      return callback(null, false);
+    }
+    callback(null, false);
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -116,7 +124,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 app.listen(PORT, () => {
   console.log(`Meditrust ERP API server running on port ${PORT}`);
-  console.log(`CORS origin: ${allowedOrigin || "(any)"}`);
+  console.log(`CORS origin: ${process.env["NODE_ENV"] === "production" ? process.env["CORS_ORIGIN"] || "(not set)" : "localhost / 127.0.0.1 (dev)"}`);
 });
 
 export default app;

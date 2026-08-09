@@ -1,11 +1,12 @@
-// Progress dashboard page showing block-level roll-ups and a drill-down table of all tracked cells.
+// Progress dashboard page — redesigned around Venture → Block → Floor → Flat/Unit → Category → Work Description.
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -21,11 +22,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { requireAuth } from "@/lib/auth-guards";
-import { fetchProgressDashboard, fetchCellHistory, fetchHierarchy } from "@/lib/api/progress-tracking";
-import { CellEditDialog } from "@/routes/progress-tracking";
-import { supabase } from "@/lib/supabase";
+import {
+  fetchProgressDashboard,
+  fetchCellHistory,
+  fetchHierarchy,
+  updateCell,
+} from "@/lib/api/progress-tracking";
 import { getSignedUrl } from "@/lib/api/storage";
-import { TrendingUp, Camera, History } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useRole } from "@/lib/role-context";
+import { PROGRESS_STATUS_KEYS, getStatusInfo, statusLabel } from "@/lib/progress-status";
+import { toast } from "sonner";
+import { Camera, History, ChevronLeft, ChevronRight, ArrowLeft, X } from "lucide-react";
+import type { ProgressStatusKey } from "@/lib/progress-status";
 
 export const Route = createFileRoute("/progress-dashboard")({
   head: () => ({
@@ -37,384 +46,454 @@ export const Route = createFileRoute("/progress-dashboard")({
   component: ProgressDashboardPage,
 });
 
-const STATUS_COLORS: Record<string, string> = {
-  not_started: "bg-gray-100 text-gray-600",
-  in_progress: "bg-blue-100 text-blue-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  on_hold: "bg-amber-100 text-amber-700",
-};
+const STATUS_KEYS: ProgressStatusKey[] = PROGRESS_STATUS_KEYS;
 
-const STATUS_LABELS: Record<string, string> = {
-  not_started: "Not Started",
-  in_progress: "In Progress",
-  completed: "Completed",
-  on_hold: "On Hold",
-};
-
-const SCOPE_LABELS: Record<string, string> = {
-  flat: "Unit/Room",
-  floor: "Floor",
-  block: "Block",
-};
-
-// Main dashboard page with work view selector, block roll-ups, and a scope-aware matrix grid.
 function ProgressDashboardPage() {
+  const { role } = useRole();
+  const isAdmin = role === "Administrator" || role === "A1" || role === "A1+";
+
   const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: fetchHierarchy });
-  const workViews = hier?.workViews ?? [];
-  const [selectedWorkViewId, setSelectedWorkViewId] = useState("");
-
-  useEffect(() => {
-    if (workViews.length > 0 && !selectedWorkViewId) {
-      const general = workViews.find((wv: any) => wv.name === "General");
-      setSelectedWorkViewId(general?.id ?? workViews[0]?.id ?? "");
-    }
-  }, [workViews, selectedWorkViewId]);
-
-  const { data: dashData } = useQuery({
-    queryKey: ["progressDashboard", selectedWorkViewId],
-    queryFn: () => fetchProgressDashboard(selectedWorkViewId || undefined),
-    enabled: !!selectedWorkViewId,
-  });
-  const [blockFilter, setBlockFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [historyCell, setHistoryCell] = useState<any | null>(null);
-  const [editingCell, setEditingCell] = useState<any | null>(null);
   const queryClient = useQueryClient();
 
-  // Reset filters when Work View changes to prevent stale filter state
-  useEffect(() => {
-    setBlockFilter("all");
-    setStatusFilter("all");
-  }, [selectedWorkViewId]);
+  const workViews = hier?.workViews ?? [];
+  const blocks = hier?.blocks ?? [];
+  const floors = hier?.floors ?? [];
+  const categories = hier?.categories ?? [];
+  const workItems = hier?.workItems ?? [];
 
-  // Realtime: invalidate dashboard query when any cell changes.
+  const [selectedVentureId, setSelectedVentureId] = useState("");
+  const [selectedBlockId, setSelectedBlockId] = useState("");
+  const [selectedFloorId, setSelectedFloorId] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState<ProgressStatusKey>("not_started");
+  const [selectedCellIds, setSelectedCellIds] = useState<Set<string>>(new Set());
+  const [historyCell, setHistoryCell] = useState<any | null>(null);
+  const [editCell, setEditCell] = useState<any | null>(null);
+  const [mobileUnitIndex, setMobileUnitIndex] = useState(0);
+
+  // Default to first venture.
+  useEffect(() => {
+    if (workViews.length > 0 && !selectedVentureId) {
+      setSelectedVentureId(workViews[0].id);
+    }
+  }, [workViews, selectedVentureId]);
+
+  // When venture changes, reset dependent selections.
+  useEffect(() => {
+    setSelectedBlockId("");
+    setSelectedFloorId("");
+    setSelectedCategoryId("all");
+    setMobileUnitIndex(0);
+  }, [selectedVentureId]);
+
+  // When block changes, reset floor.
+  useEffect(() => {
+    setSelectedFloorId("");
+    setMobileUnitIndex(0);
+  }, [selectedBlockId]);
+
+  // When floor changes, reset unit index.
+  useEffect(() => {
+    setMobileUnitIndex(0);
+  }, [selectedFloorId]);
+
+  // Reset bulk mode when filters change.
+  useEffect(() => {
+    setBulkMode(false);
+    setSelectedCellIds(new Set());
+  }, [selectedVentureId, selectedBlockId, selectedFloorId, selectedCategoryId]);
+
+  // Fetch dashboard cells for the selected venture.
+  const { data: dashData } = useQuery({
+    queryKey: ["progressDashboard", selectedVentureId],
+    queryFn: () => fetchProgressDashboard(selectedVentureId || undefined),
+    enabled: !!selectedVentureId,
+  });
+  const allCells = dashData?.cells ?? [];
+
+  // Realtime updates.
   useEffect(() => {
     const channel = supabase
       .channel("progress-dashboard-cells")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "progress_cells" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["progressDashboard"] });
-        },
+        () => queryClient.invalidateQueries({ queryKey: ["progressDashboard"] }),
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  const blocks = dashData?.blocks ?? [];
-  const allCells = dashData?.cells ?? [];
-  const scope = workViews.find((wv: any) => wv.id === selectedWorkViewId)?.scope ?? "flat";
+  // Filter cells for the selected block + floor.
+  const floorCells = useMemo(() => {
+    return allCells.filter((c: any) => {
+      if (selectedBlockId && c.block_id !== selectedBlockId) return false;
+      if (selectedFloorId && c.floor_id !== selectedFloorId) return false;
+      return true;
+    });
+  }, [allCells, selectedBlockId, selectedFloorId]);
 
-  // Build column structure: categories → work items scoped to the selected work view
-  const categories = (hier?.categories ?? [])
-    .filter((c: any) => c.work_view_id === selectedWorkViewId)
-    .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  const workItems = (hier?.workItems ?? [])
-    .filter((wi: any) => categories.some((c: any) => c.id === wi.category_id))
-    .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  // Available blocks for this venture (those that have cells in this venture).
+  const availableBlocks = useMemo(() => {
+    const blockIds = new Set(allCells.map((c: any) => c.block_id));
+    return blocks.filter((b: any) => blockIds.has(b.id)).sort((a: any, b: any) => a.sort_order - b.sort_order);
+  }, [allCells, blocks]);
 
-  const columnGroups = categories
-    .map((cat: any) => ({
-      category: cat,
-      items: workItems.filter((wi: any) => wi.category_id === cat.id),
-    }))
-    .filter((cg: any) => cg.items.length > 0);
+  // Available floors for selected block.
+  const availableFloors = useMemo(() => {
+    if (!selectedBlockId) return [];
+    const floorIds = new Set(allCells.filter((c: any) => c.block_id === selectedBlockId).map((c: any) => c.floor_id));
+    return floors.filter((f: any) => f.block_id === selectedBlockId && floorIds.has(f.id)).sort((a: any, b: any) => a.sort_order - b.sort_order);
+  }, [allCells, floors, selectedBlockId]);
 
-  // Filter cells by block/status filters
-  const filteredCells = allCells.filter((c: any) => {
-    if (blockFilter !== "all" && c.block_name !== blockFilter) return false;
-    if (statusFilter !== "all" && c.status !== statusFilter) return false;
-    return true;
-  });
+  // Units for the selected floor.
+  const units = useMemo(() => {
+    const unitMap = new Map<string, { id: string; label: string; cellId: string; blockId: string; floorId: string }>();
+    for (const c of floorCells) {
+      const label = c.unit_number ?? `Unit ${c.cell_number}`;
+      if (!unitMap.has(label)) {
+        unitMap.set(label, { id: label, label, cellId: c.id, blockId: c.block_id, floorId: c.floor_id });
+      }
+    }
+    return Array.from(unitMap.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+  }, [floorCells]);
 
-  // Build cell lookup: rowKey/work_item_id → cell
-  const cellMap = new Map<string, any>();
-  for (const c of filteredCells) {
-    let rowKey: string;
-    if (scope === "flat") {
+  // Categories for selected venture.
+  const ventureCategories = useMemo(
+    () => categories.filter((c: any) => c.work_view_id === selectedVentureId).sort((a: any, b: any) => a.sort_order - b.sort_order),
+    [categories, selectedVentureId],
+  );
+
+  // Work items for the selected venture + optional category.
+  const visibleWorkItems = useMemo(() => {
+    const catIds = new Set(ventureCategories.map((c: any) => c.id));
+    return workItems
+      .filter((w: any) => catIds.has(w.category_id))
+      .filter((w: any) => selectedCategoryId === "all" || w.category_id === selectedCategoryId)
+      .sort((a: any, b: any) => a.sort_order - b.sort_order);
+  }, [workItems, ventureCategories, selectedCategoryId]);
+
+  // Build matrix: for each work item, map unit label → cell.
+  const matrix = useMemo(() => {
+    const cellByWorkItemAndUnit = new Map<string, any>();
+    for (const c of floorCells) {
       const unitLabel = c.unit_number ?? `Unit ${c.cell_number}`;
-      rowKey = `${c.block_id}/${c.floor_id}/${unitLabel}`;
-    } else if (scope === "floor") {
-      rowKey = `${c.block_id}/${c.floor_id}`;
-    } else {
-      rowKey = `${c.block_id}`;
+      const key = `${c.work_item_id}|${unitLabel}`;
+      cellByWorkItemAndUnit.set(key, c);
     }
-    const key = `${rowKey}/${c.work_item_id}`;
-    const existing = cellMap.get(key);
-    if (scope === "block" && existing && existing.completion_pct <= c.completion_pct) continue;
-    cellMap.set(key, c);
+    return visibleWorkItems.map((wi: any) => {
+      const cat = ventureCategories.find((c: any) => c.id === wi.category_id);
+      return {
+        workItem: wi,
+        category: cat,
+        cells: units.map((u) => cellByWorkItemAndUnit.get(`${wi.id}|${u.label}`) ?? null),
+      };
+    });
+  }, [floorCells, visibleWorkItems, units, ventureCategories]);
+
+  // Category progress percentages.
+  const categoryProgress = useMemo(() => {
+    const result = new Map<string, { total: number; completed: number }>();
+    for (const row of matrix) {
+      const catId = row.category?.id ?? "none";
+      if (!result.has(catId)) result.set(catId, { total: 0, completed: 0 });
+      const agg = result.get(catId)!;
+      for (const cell of row.cells) {
+        if (cell) {
+          agg.total++;
+          if (cell.status === "completed") agg.completed++;
+        }
+      }
+    }
+    return result;
+  }, [matrix]);
+
+  function getCategoryProgressPct(catId: string) {
+    const agg = categoryProgress.get(catId);
+    if (!agg || agg.total === 0) return 0;
+    return Math.round((agg.completed / agg.total) * 100);
   }
 
-  // Build unique rows from cells
-  const rowMap = new Map<string, any>();
-  for (const c of filteredCells) {
-    let rowKey: string;
-    let rowData: any;
-    if (scope === "flat") {
-      const unitLabel = c.unit_number ?? `Unit ${c.cell_number}`;
-      rowKey = `${c.block_id}/${c.floor_id}/${unitLabel}`;
-      rowData = {
-        rowKey,
-        blockId: c.block_id,
-        blockName: c.block_name,
-        floorId: c.floor_id,
-        floorName: c.floor_name,
-        unitLabel,
-        locationLabel: `${c.block_name} · ${c.floor_name} · ${unitLabel}`,
-      };
-    } else if (scope === "floor") {
-      rowKey = `${c.block_id}/${c.floor_id}`;
-      rowData = {
-        rowKey,
-        blockId: c.block_id,
-        blockName: c.block_name,
-        floorId: c.floor_id,
-        floorName: c.floor_name,
-        locationLabel: `${c.block_name} · ${c.floor_name}`,
-      };
-    } else {
-      rowKey = `${c.block_id}`;
-      rowData = {
-        rowKey,
-        blockId: c.block_id,
-        blockName: c.block_name,
-        locationLabel: c.block_name,
-      };
+  // Overall block/floor progress.
+  const overallProgress = useMemo(() => {
+    const total = floorCells.length;
+    const completed = floorCells.filter((c: any) => c.status === "completed").length;
+    return total === 0 ? 0 : Math.round((completed / total) * 100);
+  }, [floorCells]);
+
+  // Bulk save.
+  async function handleBulkSave() {
+    if (selectedCellIds.size === 0) {
+      toast.error("Select at least one cell");
+      return;
     }
-    if (!rowMap.has(rowKey)) rowMap.set(rowKey, rowData);
-  }
-
-  const rows = Array.from(rowMap.values()).sort((a, b) => {
-    if (a.blockName !== b.blockName) return a.blockName.localeCompare(b.blockName);
-    if (a.floorName && b.floorName && a.floorName !== b.floorName)
-      return a.floorName.localeCompare(b.floorName);
-    if (a.unitLabel && b.unitLabel) return a.unitLabel.localeCompare(b.unitLabel);
-    return 0;
-  });
-
-  // Group consecutive rows by block for visual grouping
-  const rowGroups: { blockName: string; rows: any[] }[] = [];
-  for (const row of rows) {
-    const last = rowGroups[rowGroups.length - 1];
-    if (last && last.blockName === row.blockName) {
-      last.rows.push(row);
-    } else {
-      rowGroups.push({ blockName: row.blockName, rows: [row] });
+    const pct = bulkStatus === "completed" ? 100 : bulkStatus === "not_started" ? 0 : 50;
+    try {
+      await Promise.all(
+        Array.from(selectedCellIds).map((cellId) =>
+          updateCell({ cell_id: cellId, status: bulkStatus, completion_pct: pct, remarks: null }),
+        ),
+      );
+      toast.success(`Updated ${selectedCellIds.size} cells`);
+      queryClient.invalidateQueries({ queryKey: ["progressDashboard"] });
+      setSelectedCellIds(new Set());
+      setBulkMode(false);
+    } catch (err) {
+      toast.error("Bulk update failed");
     }
   }
+
+  function toggleCellSelection(cellId: string) {
+    const next = new Set(selectedCellIds);
+    if (next.has(cellId)) next.delete(cellId);
+    else next.add(cellId);
+    setSelectedCellIds(next);
+  }
+
+  const selectedUnit = units[mobileUnitIndex];
 
   return (
-    <AppShell
-      title="Progress Dashboard"
-      subtitle="Live roll-up of construction progress across all blocks"
-    >
+    <AppShell title="Progress Dashboard" subtitle="Track construction progress by venture, block, floor and unit">
       <div className="space-y-4">
-        {/* Work View selector */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-muted-foreground">Work View:</span>
-          <Select value={selectedWorkViewId} onValueChange={setSelectedWorkViewId}>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Select work view" />
+        {/* Hierarchy selectors */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={selectedVentureId} onValueChange={setSelectedVentureId}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Select Venture" />
             </SelectTrigger>
             <SelectContent>
               {workViews.map((wv: any) => (
                 <SelectItem key={wv.id} value={wv.id}>
-                  {wv.name} ({SCOPE_LABELS[wv.scope] ?? wv.scope})
+                  {wv.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground">
-            Scope: {SCOPE_LABELS[scope] ?? scope}
-          </span>
-        </div>
 
-        {/* Block roll-up cards */}
-        {blocks.length > 0 && (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {blocks.map((b: any) => (
-              <Card key={b.name} className="p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="font-bold">{b.name}</p>
-                  <span className="text-2xl font-bold text-primary">{b.avgPct}%</span>
-                </div>
-                <Progress value={b.avgPct} className="h-2" />
-                <div className="flex gap-3 text-xs text-muted-foreground">
-                  <span className="text-emerald-600">{b.completed} done</span>
-                  <span className="text-blue-600">{b.inProgress} active</span>
-                  <span className="text-amber-600">{b.onHold} hold</span>
-                  <span>{b.notStarted} pending</span>
-                </div>
-                <p className="text-xs text-muted-foreground">{b.total} cells total</p>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-muted-foreground">Filter:</span>
-          <Select value={blockFilter} onValueChange={setBlockFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-              <span className="ml-1">Block</span>
+          <Select value={selectedBlockId} onValueChange={setSelectedBlockId}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Select Block" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Blocks</SelectItem>
-              {blocks.map((b: any) => (
-                <SelectItem key={b.name} value={b.name}>
+              <SelectItem value="">All Blocks</SelectItem>
+              {availableBlocks.map((b: any) => (
+                <SelectItem key={b.id} value={b.id}>
                   {b.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-              <span className="ml-1">Status</span>
+
+          <Select value={selectedFloorId} onValueChange={setSelectedFloorId}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Select Floor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="not_started">Not Started</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="on_hold">On Hold</SelectItem>
+              <SelectItem value="">All Floors</SelectItem>
+              {availableFloors.map((f: any) => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <span className="text-sm text-muted-foreground ml-auto">
-            {filteredCells.length} cells
-          </span>
+
+          <div className="ml-auto flex items-center gap-2">
+            {bulkMode ? (
+              <>
+                <Select value={bulkStatus} onValueChange={(v) => setBulkStatus(v as ProgressStatusKey)}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_KEYS.map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {statusLabel(k)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" onClick={handleBulkSave}>
+                  Save ({selectedCellIds.size})
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setBulkMode(false); setSelectedCellIds(new Set()); }}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setBulkMode(true)}>
+                Bulk Select
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* Matrix grid */}
-        {columnGroups.length === 0 ? (
-          <Card className="p-8 text-center text-muted-foreground">
-            <TrendingUp className="mx-auto mb-3 size-10 opacity-30" />
-            <p>No categories or work items configured for this work view yet.</p>
+        {/* Overall progress */}
+        {selectedBlockId && selectedFloorId && (
+          <Card className="p-3 flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex justify-between text-sm mb-1">
+                <span className="font-medium">Overall Progress</span>
+                <span>{overallProgress}%</span>
+              </div>
+              <Progress value={overallProgress} className="h-2" />
+            </div>
           </Card>
-        ) : rows.length === 0 ? (
+        )}
+
+        {/* Category tabs */}
+        {ventureCategories.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedCategoryId("all")}
+              className={`px-3 py-1.5 text-sm rounded-full font-medium ${selectedCategoryId === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            >
+              All
+            </button>
+            {ventureCategories.map((cat: any) => {
+              const pct = getCategoryProgressPct(cat.id);
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategoryId(cat.id)}
+                  className={`px-3 py-1.5 text-sm rounded-full font-medium ${selectedCategoryId === cat.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                >
+                  {cat.name} {pct > 0 && <span className="ml-1 opacity-80">{pct}%</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Empty states */}
+        {ventureCategories.length === 0 && (
           <Card className="p-8 text-center text-muted-foreground">
-            <TrendingUp className="mx-auto mb-3 size-10 opacity-30" />
-            <p>No cells found. Create cell groups in Progress Config first.</p>
+            <p>No categories configured for this venture yet.</p>
           </Card>
-        ) : (
+        )}
+
+        {visibleWorkItems.length === 0 && ventureCategories.length > 0 && (
+          <Card className="p-8 text-center text-muted-foreground">
+            <p>No work descriptions configured for this category yet.</p>
+          </Card>
+        )}
+
+        {visibleWorkItems.length > 0 && units.length === 0 && (
+          <Card className="p-8 text-center text-muted-foreground">
+            <p>No units found for the selected block/floor. Configure them in Progress Configuration.</p>
+          </Card>
+        )}
+
+        {visibleWorkItems.length > 0 && units.length > 0 && (
           <>
-            {/* Mobile: card-per-item layout (reuses progress-tracking.tsx pattern) */}
-            <div className="grid gap-3 sm:grid-cols-2 md:hidden">
-              {filteredCells.map((cell: any) => (
-                <Card key={cell.id} className="p-4 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold truncate">{cell.work_item_name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {cell.block_name} · {cell.floor_name} ·{" "}
-                        {cell.work_view_scope === "flat"
-                          ? (cell.unit_number ?? `Unit ${cell.cell_number}`)
-                          : cell.work_view_scope === "floor"
-                            ? "Floor"
-                            : "Block"}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{cell.category_name}</p>
+            {/* Mobile layout: flat selector + work item cards */}
+            <div className="md:hidden space-y-3">
+              <div className="flex items-center gap-2">
+                <Button size="icon" variant="outline" disabled={mobileUnitIndex <= 0} onClick={() => setMobileUnitIndex((i) => Math.max(0, i - 1))}>
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <div className="flex-1 text-center font-medium text-sm">
+                  {selectedUnit?.label}
+                  <span className="text-muted-foreground ml-1">({mobileUnitIndex + 1}/{units.length})</span>
+                </div>
+                <Button size="icon" variant="outline" disabled={mobileUnitIndex >= units.length - 1} onClick={() => setMobileUnitIndex((i) => Math.min(units.length - 1, i + 1))}>
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+
+              {matrix.map((row, idx) => {
+                const cell = row.cells[mobileUnitIndex];
+                if (!cell) return null;
+                const info = getStatusInfo(cell.status);
+                return (
+                  <Card key={row.workItem.id} className="p-3 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-sm">{idx + 1}. {row.workItem.name}</p>
+                        <p className="text-xs text-muted-foreground">{row.category?.name}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (bulkMode) toggleCellSelection(cell.id);
+                          else if (cell.is_editable) setEditCell(cell);
+                          else setHistoryCell(cell);
+                        }}
+                        className={`rounded px-2 py-1 text-xs font-medium ${info.bg} ${info.text} ${bulkMode ? "ring-2 ring-offset-1 ring-primary" : ""}`}
+                      >
+                        {info.label}
+                      </button>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[cell.status] ?? ""}`}
-                    >
-                      {STATUS_LABELS[cell.status] ?? cell.status}
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Completion</span>
-                      <span className="font-medium">{cell.completion_pct}%</span>
-                    </div>
-                    <Progress value={cell.completion_pct} className="h-2" />
-                  </div>
-                  {cell.remarks && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">{cell.remarks}</p>
-                  )}
-                  <div className="flex gap-2">
-                    {cell.is_editable && (
-                      <Button size="sm" variant="default" onClick={() => setEditingCell(cell)}>
-                        Update
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => setHistoryCell(cell)}>
+                        <History className="mr-1 size-3.5" /> History
                       </Button>
-                    )}
-                    <Button size="sm" variant="outline" onClick={() => setHistoryCell(cell)}>
-                      <History className="mr-1 size-3.5" /> History
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                      {cell.is_editable && !bulkMode && (
+                        <Button size="sm" className="flex-1" onClick={() => setEditCell(cell)}>
+                          Update
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
 
-            {/* Desktop: sticky-header + sticky-column matrix table */}
+            {/* Desktop layout: sticky-header matrix table */}
             <Card className="hidden md:block overflow-hidden">
               <div className="overflow-auto max-h-[70vh] relative">
                 <table className="w-full text-sm border-collapse">
                   <thead className="text-xs uppercase text-muted-foreground">
-                    {/* Category header row */}
                     <tr>
-                      <th className="sticky top-0 left-0 z-30 bg-muted px-3 py-2 text-left whitespace-nowrap min-w-[12rem]">
-                        Location
+                      <th className="sticky top-0 left-0 z-30 bg-muted px-3 py-2 text-left whitespace-nowrap min-w-[12rem] border-r">
+                        S.No / Work Description
                       </th>
-                      {columnGroups.map((cg: any) => (
-                        <th
-                          key={cg.category.id}
-                          colSpan={cg.items.length}
-                          className="sticky top-0 z-20 bg-muted px-3 py-2 text-center border-l whitespace-nowrap"
-                        >
-                          {cg.category.name}
+                      {units.map((u) => (
+                        <th key={u.id} className="sticky top-0 z-20 bg-muted px-2 py-2 text-center border-l whitespace-nowrap min-w-[72px]">
+                          {u.label}
                         </th>
                       ))}
-                    </tr>
-                    {/* Work item header row */}
-                    <tr>
-                      <th className="sticky top-[1.75rem] left-0 z-30 bg-muted px-3 py-2 text-left whitespace-nowrap min-w-[12rem] border-t">
-                        {SCOPE_LABELS[scope] ?? scope}
-                      </th>
-                      {columnGroups.flatMap((cg: any) =>
-                        cg.items.map((wi: any) => (
-                          <th
-                            key={wi.id}
-                            className="sticky top-[1.75rem] z-20 bg-muted px-2 py-2 text-center border-l border-t whitespace-nowrap min-w-[80px]"
-                          >
-                            {wi.name}
-                          </th>
-                        )),
-                      )}
+                      {selectedCategoryId === "all" && <th className="sticky top-0 z-20 bg-muted px-3 py-2 text-center border-l">Category</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {rowGroups.map((group: any) =>
-                      group.rows.map((row: any) => (
-                        <tr key={row.rowKey} className="border-b hover:bg-muted/30">
-                          <td className="sticky left-0 z-10 bg-card px-3 py-2 font-medium whitespace-nowrap min-w-[12rem] border-r">
-                            {row.locationLabel}
+                    {matrix.map((row, idx) => {
+                      const catProgress = getCategoryProgressPct(row.category?.id ?? "none");
+                      return (
+                        <tr key={row.workItem.id} className="border-b hover:bg-muted/30">
+                          <td className="sticky left-0 z-10 bg-card px-3 py-2 border-r">
+                            <div className="font-medium whitespace-nowrap">{idx + 1}. {row.workItem.name}</div>
+                            <div className="text-xs text-muted-foreground">{row.category?.name} {catProgress > 0 && `(${catProgress}%)`}</div>
                           </td>
-                          {columnGroups.flatMap((cg: any) =>
-                            cg.items.map((wi: any) => {
-                              const cell = cellMap.get(`${row.rowKey}/${wi.id}`);
-                              return (
-                                <td key={wi.id} className="px-2 py-2 border-l text-center">
-                                  {cell ? (
-                                    <StatusCell
-                                      cell={cell}
-                                      onEdit={() => setEditingCell(cell)}
-                                      onHistory={() => setHistoryCell(cell)}
-                                    />
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </td>
-                              );
-                            }),
+                          {row.cells.map((cell, cellIdx) => {
+                            if (!cell) return <td key={cellIdx} className="px-2 py-2 border-l text-center text-muted-foreground">—</td>;
+                            const info = getStatusInfo(cell.status);
+                            const isSelected = selectedCellIds.has(cell.id);
+                            return (
+                              <td key={cellIdx} className="px-2 py-2 border-l text-center">
+                                <button
+                                  onClick={() => {
+                                    if (bulkMode) toggleCellSelection(cell.id);
+                                    else if (cell.is_editable) setEditCell(cell);
+                                    else setHistoryCell(cell);
+                                  }}
+                                  className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium ${info.bg} ${info.text} ${bulkMode && isSelected ? "ring-2 ring-offset-2 ring-primary" : ""} ${!bulkMode && cell.is_editable ? "hover:opacity-90 cursor-pointer" : ""}`}
+                                  title={cell.remarks ?? `${statusLabel(cell.status)} — ${cell.completion_pct}%`}
+                                >
+                                  {info.label}
+                                  {cell.remarks && <span className="ml-0.5">•</span>}
+                                </button>
+                              </td>
+                            );
+                          })}
+                          {selectedCategoryId === "all" && (
+                            <td className="px-3 py-2 border-l text-xs text-muted-foreground text-center">
+                              {row.category?.name}
+                            </td>
                           )}
                         </tr>
-                      )),
-                    )}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -423,13 +502,13 @@ function ProgressDashboardPage() {
         )}
       </div>
 
-      {editingCell && (
+      {editCell && (
         <CellEditDialog
-          cell={editingCell}
-          onClose={() => setEditingCell(null)}
+          cell={editCell}
+          onClose={() => setEditCell(null)}
           onSaved={() => {
             queryClient.invalidateQueries({ queryKey: ["progressDashboard"] });
-            setEditingCell(null);
+            setEditCell(null);
           }}
         />
       )}
@@ -439,26 +518,82 @@ function ProgressDashboardPage() {
   );
 }
 
-// Compact status badge for a matrix cell — renders the 4-color status with edit/history actions.
-function StatusCell({ cell, onEdit, onHistory }: { cell: any; onEdit: () => void; onHistory: () => void }) {
+// Status update dialog with the 4-color scheme.
+function CellEditDialog({ cell, onClose, onSaved }: { cell: any; onClose: () => void; onSaved: () => void }) {
+  const [status, setStatus] = useState<ProgressStatusKey>(cell.status);
+  const [pct, setPct] = useState<number>(cell.completion_pct);
+  const [remarks, setRemarks] = useState<string>(cell.remarks ?? "");
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  async function save() {
+    setSaving(true);
+    try {
+      await updateCell({ cell_id: cell.id, status, completion_pct: pct, remarks: remarks || null });
+      toast.success("Status updated");
+      queryClient.invalidateQueries({ queryKey: ["progressDashboard"] });
+      onSaved();
+    } catch (err) {
+      toast.error("Failed to update status");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <div className="flex items-center justify-center gap-1">
-      <button
-        onClick={onEdit}
-        disabled={!cell.is_editable}
-        className={`rounded px-1.5 py-0.5 text-xs font-medium ${STATUS_COLORS[cell.status] ?? ""} ${cell.is_editable ? "hover:ring-2 hover:ring-primary/30 cursor-pointer" : "cursor-default"}`}
-        title={`${STATUS_LABELS[cell.status] ?? cell.status} — ${cell.completion_pct}%`}
-      >
-        {cell.completion_pct}%
-      </button>
-      <button onClick={onHistory} className="text-muted-foreground hover:text-primary" title="History">
-        <History className="size-3" />
-      </button>
-    </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{cell.unit_number ?? `Unit ${cell.cell_number}`} — {cell.work_item_name}</DialogTitle>
+          <DialogDescription>Current status: {statusLabel(cell.status)}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            {STATUS_KEYS.map((k) => {
+              const info = getStatusInfo(k);
+              return (
+                <button
+                  key={k}
+                  onClick={() => {
+                    setStatus(k);
+                    setPct(k === "completed" ? 100 : k === "not_started" ? 0 : pct);
+                  }}
+                  className={`rounded-md px-3 py-2 text-sm font-medium ${info.bg} ${info.text} ${status === k ? "ring-2 ring-offset-2 ring-primary" : ""}`}
+                >
+                  {info.label}
+                </button>
+              );
+            })}
+          </div>
+          <div>
+            <label className="text-sm font-medium">Completion %</label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={pct}
+              onChange={(e) => setPct(Math.min(100, Math.max(0, Number(e.target.value))))}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Remarks</label>
+            <Input value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Optional note" />
+          </div>
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={save} disabled={saving}>
+              Save
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-// Dialog showing the change history and uploaded photos for a single cell.
+// History dialog (reused from original, adapted to new status labels).
 function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }) {
   const queryClient = useQueryClient();
   const { data: histData } = useQuery({
@@ -472,42 +607,26 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "progress_cell_history", filter: `cell_id=eq.${cell.id}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["cellHistory", cell.id] });
-        },
+        () => queryClient.invalidateQueries({ queryKey: ["cellHistory", cell.id] }),
       )
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "progress_cell_photos", filter: `cell_id=eq.${cell.id}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["cellHistory", cell.id] });
-        },
+        () => queryClient.invalidateQueries({ queryKey: ["cellHistory", cell.id] }),
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [cell.id, queryClient]);
 
   const history = histData?.history ?? [];
   const photos = histData?.photos ?? [];
 
   return (
-    <Dialog
-      open
-      onOpenChange={(o) => {
-        if (!o) onClose();
-      }}
-    >
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {cell.work_view_scope === "flat"
-              ? `${cell.unit_number ?? `Unit ${cell.cell_number}`} — History`
-              : cell.work_view_scope === "floor"
-                ? "Floor — History"
-                : "Block — History"}
+            {cell.unit_number ?? `Unit ${cell.cell_number}`} — History
           </DialogTitle>
           <DialogDescription>
             {cell.block_name} · {cell.floor_name} · {cell.work_item_name}
@@ -523,19 +642,10 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
                 <div key={h.id} className="rounded-lg border p-3 text-sm">
                   <div className="flex justify-between">
                     <span className="font-medium">{h.changed_by_name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(h.created_at).toLocaleString()}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{new Date(h.created_at).toLocaleString()}</span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {h.previous_status && STATUS_LABELS[h.previous_status]
-                      ? STATUS_LABELS[h.previous_status]
-                      : h.previous_status}{" "}
-                    ({h.previous_pct}%) →{" "}
-                    {h.new_status && STATUS_LABELS[h.new_status]
-                      ? STATUS_LABELS[h.new_status]
-                      : h.new_status}{" "}
-                    ({h.new_pct}%)
+                    {statusLabel(h.previous_status)} ({h.previous_pct}%) → {statusLabel(h.new_status)} ({h.new_pct}%)
                   </div>
                   {h.remarks && <p className="mt-1 text-xs">{h.remarks}</p>}
                 </div>
@@ -547,9 +657,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
             <div>
               <p className="text-sm font-medium mb-2">Photos</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {photos.map((p: any) => (
-                  <SignedPhoto key={p.id} path={p.storage_path} caption={p.caption} />
-                ))}
+                {photos.map((p: any) => <SignedPhoto key={p.id} path={p.storage_path} caption={p.caption} />)}
               </div>
             </div>
           )}
@@ -559,7 +667,6 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
   );
 }
 
-// Renders a single cell photo by fetching its signed URL from storage.
 function SignedPhoto({ path, caption }: { path: string; caption?: string | null }) {
   const { data } = useQuery({
     queryKey: ["signedUrl", path],

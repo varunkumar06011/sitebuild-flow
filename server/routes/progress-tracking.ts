@@ -201,6 +201,7 @@ const createBlockSchema = z.object({
   name: z.string().min(1),
   sort_order: z.number().optional(),
   work_category: z.string().optional(),
+  work_view_id: z.string().uuid().optional(),
 });
 
 progressTrackingRouter.post("/blocks/create", async (req: Request, res: Response) => {
@@ -218,9 +219,10 @@ progressTrackingRouter.post("/blocks/create", async (req: Request, res: Response
         name: data?.name,
         sort_order: sortOrder,
         work_category: data?.work_category ?? "uncategorized",
+        work_view_id: data?.work_view_id ?? null,
         created_by: user.id,
       })
-      .select("id, name, sort_order, work_category")
+      .select("id, name, sort_order, work_category, work_view_id")
       .single();
 
     if (error || !block) {
@@ -234,11 +236,58 @@ progressTrackingRouter.post("/blocks/create", async (req: Request, res: Response
   }
 });
 
+// POST /api/progress-tracking/blocks/update
+const updateBlockSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).optional(),
+  sort_order: z.number().int().optional(),
+  work_category: z.string().optional(),
+  work_view_id: z.string().uuid().optional().nullable(),
+});
+
+progressTrackingRouter.post("/blocks/update", async (req: Request, res: Response) => {
+  try {
+    const user = await requireSessionUser(req);
+    if (!isAdmin(user.role)) {
+      res.json({ success: false, error: "Admin only" });
+      return;
+    }
+    const data = updateBlockSchema.parse(req.body);
+    const updates: Record<string, unknown> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.sort_order !== undefined) updates.sort_order = data.sort_order;
+    if (data.work_category !== undefined) updates.work_category = data.work_category;
+    if (data.work_view_id !== undefined) updates.work_view_id = data.work_view_id;
+
+    if (Object.keys(updates).length === 0) {
+      res.json({ success: false, error: "No fields to update" });
+      return;
+    }
+
+    const { data: block, error } = await supabaseServer
+      .from("progress_blocks")
+      .update(updates)
+      .eq("id", data.id)
+      .select("id, name, sort_order, work_category")
+      .single();
+
+    if (error || !block) {
+      res.json({ success: false, error: error?.message || "Failed to update block" });
+      return;
+    }
+    await logAction(user, "update_block", "progress_block", block.id, updates);
+    res.json({ success: true, data: block });
+  } catch (err) {
+    handleErr(res, err, "updateBlock");
+  }
+});
+
 // POST /api/progress-tracking/floors/create
 const createFloorSchema = z.object({
   block_id: z.string().uuid(),
   name: z.string().min(1),
   sort_order: z.number().int().default(0),
+  default_cell_count: z.number().int().min(1).max(500).default(1),
 });
 
 progressTrackingRouter.post("/floors/create", async (req: Request, res: Response) => {
@@ -255,9 +304,10 @@ progressTrackingRouter.post("/floors/create", async (req: Request, res: Response
         block_id: data.block_id,
         name: data.name,
         sort_order: data.sort_order,
+        default_cell_count: data.default_cell_count,
         created_by: user.id,
       })
-      .select("id, block_id, name, sort_order")
+      .select("id, block_id, name, sort_order, default_cell_count")
       .single();
 
     if (error || !floor) {
@@ -267,10 +317,55 @@ progressTrackingRouter.post("/floors/create", async (req: Request, res: Response
     await logAction(user, "create_floor", "progress_floor", floor.id, {
       name: data.name,
       block_id: data.block_id,
+      default_cell_count: data.default_cell_count,
     });
     res.json({ success: true, data: floor });
   } catch (err) {
     handleErr(res, err, "createFloor");
+  }
+});
+
+// POST /api/progress-tracking/floors/update
+const updateFloorSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).optional(),
+  sort_order: z.number().int().optional(),
+  default_cell_count: z.number().int().min(1).max(500).optional(),
+});
+
+progressTrackingRouter.post("/floors/update", async (req: Request, res: Response) => {
+  try {
+    const user = await requireSessionUser(req);
+    if (!isAdmin(user.role)) {
+      res.json({ success: false, error: "Admin only" });
+      return;
+    }
+    const data = updateFloorSchema.parse(req.body);
+    const updates: Record<string, unknown> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.sort_order !== undefined) updates.sort_order = data.sort_order;
+    if (data.default_cell_count !== undefined) updates.default_cell_count = data.default_cell_count;
+
+    if (Object.keys(updates).length === 0) {
+      res.json({ success: false, error: "No fields to update" });
+      return;
+    }
+
+    const { data: floor, error } = await supabaseServer
+      .from("progress_floors")
+      .update(updates)
+      .eq("id", data.id)
+      .select("id, block_id, name, sort_order, default_cell_count")
+      .single();
+
+    if (error || !floor) {
+      res.json({ success: false, error: error?.message || "Failed to update floor" });
+      return;
+    }
+    await logAction(user, "update_floor", "progress_floor", floor.id, updates);
+    res.json({ success: true, data: floor });
+  } catch (err) {
+    handleErr(res, err, "updateFloor");
   }
 });
 
@@ -308,6 +403,48 @@ progressTrackingRouter.post("/categories/create", async (req: Request, res: Resp
     res.json({ success: true, data: cat });
   } catch (err) {
     handleErr(res, err, "createCategory");
+  }
+});
+
+// POST /api/progress-tracking/categories/update
+const updateCategorySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).optional(),
+  sort_order: z.number().int().optional(),
+});
+
+progressTrackingRouter.post("/categories/update", async (req: Request, res: Response) => {
+  try {
+    const user = await requireSessionUser(req);
+    if (!isAdmin(user.role)) {
+      res.json({ success: false, error: "Admin only" });
+      return;
+    }
+    const data = updateCategorySchema.parse(req.body);
+    const updates: Record<string, unknown> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.sort_order !== undefined) updates.sort_order = data.sort_order;
+
+    if (Object.keys(updates).length === 0) {
+      res.json({ success: false, error: "No fields to update" });
+      return;
+    }
+
+    const { data: cat, error } = await supabaseServer
+      .from("progress_categories")
+      .update(updates)
+      .eq("id", data.id)
+      .select("id, name, work_view_id, sort_order")
+      .single();
+
+    if (error || !cat) {
+      res.json({ success: false, error: error?.message || "Failed to update category" });
+      return;
+    }
+    await logAction(user, "update_category", "progress_category", cat.id, updates);
+    res.json({ success: true, data: cat });
+  } catch (err) {
+    handleErr(res, err, "updateCategory");
   }
 });
 
@@ -351,6 +488,48 @@ progressTrackingRouter.post("/work-items/create", async (req: Request, res: Resp
   }
 });
 
+// POST /api/progress-tracking/work-items/update
+const updateWorkItemSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).optional(),
+  sort_order: z.number().int().optional(),
+});
+
+progressTrackingRouter.post("/work-items/update", async (req: Request, res: Response) => {
+  try {
+    const user = await requireSessionUser(req);
+    if (!isAdmin(user.role)) {
+      res.json({ success: false, error: "Admin only" });
+      return;
+    }
+    const data = updateWorkItemSchema.parse(req.body);
+    const updates: Record<string, unknown> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.sort_order !== undefined) updates.sort_order = data.sort_order;
+
+    if (Object.keys(updates).length === 0) {
+      res.json({ success: false, error: "No fields to update" });
+      return;
+    }
+
+    const { data: item, error } = await supabaseServer
+      .from("progress_work_items")
+      .update(updates)
+      .eq("id", data.id)
+      .select("id, category_id, name, sort_order")
+      .single();
+
+    if (error || !item) {
+      res.json({ success: false, error: error?.message || "Failed to update work item" });
+      return;
+    }
+    await logAction(user, "update_work_item", "progress_work_item", item.id, updates);
+    res.json({ success: true, data: item });
+  } catch (err) {
+    handleErr(res, err, "updateWorkItem");
+  }
+});
+
 // POST /api/progress-tracking/cell-groups/create
 const createCellGroupSchema = z.object({
   block_id: z.string().uuid(),
@@ -368,6 +547,19 @@ progressTrackingRouter.post("/cell-groups/create", async (req: Request, res: Res
       return;
     }
     const data = createCellGroupSchema.parse(req.body);
+
+    const { data: existing } = await supabaseServer
+      .from("progress_cell_groups")
+      .select("id")
+      .eq("block_id", data.block_id)
+      .eq("floor_id", data.floor_id)
+      .eq("work_item_id", data.work_item_id)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      res.json({ success: false, error: "Cell group already exists for this block/floor/work item" });
+      return;
+    }
+
     const { data: group, error } = await supabaseServer
       .from("progress_cell_groups")
       .insert({
@@ -468,11 +660,11 @@ progressTrackingRouter.get("/hierarchy", async (req: Request, res: Response) => 
     const [blocks, floors, workViews, categories, workItems] = await Promise.all([
       supabaseServer
         .from("progress_blocks")
-        .select("id, name, sort_order, work_category")
+        .select("id, name, sort_order, work_category, work_view_id")
         .order("sort_order"),
       supabaseServer
         .from("progress_floors")
-        .select("id, block_id, name, sort_order")
+        .select("id, block_id, name, sort_order, default_cell_count")
         .order("sort_order"),
       supabaseServer
         .from("progress_work_views")
@@ -858,7 +1050,7 @@ progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => 
           floor_id,
           work_item_id,
           cell_count,
-          progress_blocks!inner(name),
+          progress_blocks!inner(name, work_view_id),
           progress_floors!inner(name),
           progress_work_items!inner(name, category_id, progress_categories!inner(name, work_view_id, progress_work_views!inner(scope)))
         `,
@@ -868,7 +1060,9 @@ progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => 
     let filteredGroups = groups ?? [];
     if (workViewId) {
       filteredGroups = filteredGroups.filter(
-        (g: any) => g.progress_work_items?.progress_categories?.work_view_id === workViewId,
+        (g: any) =>
+          g.progress_blocks?.work_view_id === workViewId &&
+          g.progress_work_items?.progress_categories?.work_view_id === workViewId,
       );
     }
 
