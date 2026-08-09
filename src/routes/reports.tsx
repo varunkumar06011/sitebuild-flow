@@ -253,19 +253,6 @@ function ProjectStatusReport() {
           </div>
         </Card>
 
-        <Card className="p-4">
-          <p className="font-semibold">Compliance</p>
-          <div className="mt-2 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">NABH Completion</span>
-              <span className="font-semibold text-success">{comp.nabh_pct}%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Equipment Commissioned</span>
-              <span>{comp.equipment_commissioned}/{comp.equipment_total}</span>
-            </div>
-          </div>
-        </Card>
       </div>
     </div>
   );
@@ -583,13 +570,7 @@ function ComplianceReport() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="NABH Completion"
-          value={`${d.nabh.overall_pct}%`}
-          icon={d.nabh.overall_pct >= 75 ? CheckCircle2 : AlertTriangle}
-          tone={d.nabh.overall_pct >= 75 ? "success" : "warning"}
-        />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="QC Pass Rate"
           value={`${d.quality.pass_rate}%`}
@@ -602,106 +583,6 @@ function ComplianceReport() {
           icon={d.traceability.verification_pct >= 75 ? CheckCircle2 : AlertTriangle}
           tone={d.traceability.verification_pct >= 75 ? "success" : "warning"}
         />
-        <StatCard
-          label="Equipment Commissioned"
-          value={`${d.medical_equipment.commissioned}/${d.medical_equipment.total}`}
-          icon={ShieldCheck}
-          tone="info"
-        />
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Card className="p-4">
-          <p className="font-semibold">NABH by Category</p>
-          <div className="mt-2 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Category</th>
-                  <th className="px-3 py-2 font-medium">Total</th>
-                  <th className="px-3 py-2 font-medium">Completed</th>
-                  <th className="px-3 py-2 font-medium">In Progress</th>
-                  <th className="px-3 py-2 font-medium">%</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {d.nabh.by_category.map((c: any) => (
-                  <tr key={c.category} className="hover:bg-surface/50">
-                    <td className="px-3 py-2 font-medium">{c.category}</td>
-                    <td className="px-3 py-2 text-xs">{c.total}</td>
-                    <td className="px-3 py-2 text-xs text-success">{c.completed}</td>
-                    <td className="px-3 py-2 text-xs text-warning-foreground">{c.in_progress}</td>
-                    <td className="px-3 py-2">
-                      <span className={c.completion_pct >= 75 ? "text-success" : "text-warning-foreground"}>
-                        {c.completion_pct}%
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <p className="font-semibold">AERB Compliance</p>
-          <div className="mt-2 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Pass</span>
-              <span className="text-success">{d.aerb.pass}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Fail</span>
-              <span className="text-destructive">{d.aerb.fail}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Re-test</span>
-              <span className="text-warning-foreground">{d.aerb.re_test}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Licenses Expiring (90 days)</span>
-              <StatusPill tone={d.aerb.licenses_expiring > 0 ? "warning" : "success"}>
-                {d.aerb.licenses_expiring}
-              </StatusPill>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <p className="font-semibold">Cleanroom Validation</p>
-          <div className="mt-2 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Pass Rate</span>
-              <span className="font-semibold text-success">{d.cleanroom.pass_rate}%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Pass / Fail / Re-test</span>
-              <span>
-                <span className="text-success">{d.cleanroom.pass}</span> /{" "}
-                <span className="text-destructive">{d.cleanroom.fail}</span> /{" "}
-                <span className="text-warning-foreground">{d.cleanroom.re_test}</span>
-              </span>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <p className="font-semibold">Medical Gas Pipeline</p>
-          <div className="mt-2 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">All Clear</span>
-              <span className="text-success">{d.medical_gas.all_clear}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Pending Tests</span>
-              <span className="text-warning-foreground">{d.medical_gas.pending_tests}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total</span>
-              <span>{d.medical_gas.total}</span>
-            </div>
-          </div>
-        </Card>
       </div>
     </div>
   );

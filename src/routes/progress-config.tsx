@@ -31,10 +31,13 @@ import {
   createWorkItem,
   createCellGroup,
   assignSupervisor,
+  createWorkView,
+  deleteWorkView,
 } from "@/lib/api/progress-tracking";
 import { toast } from "sonner";
-import { Settings2, Plus, Layers, Building2, Tag, Wrench, Grid3x3, UserCheck } from "lucide-react";
+import { Settings2, Plus, Layers, Building2, Tag, Wrench, Grid3x3, UserCheck, Eye } from "lucide-react";
 import { WorkCategorySelect, WorkCategoryBadge } from "@/components/WorkCategory";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/progress-config")({
   head: () => ({
@@ -46,9 +49,10 @@ export const Route = createFileRoute("/progress-config")({
   component: ProgressConfigPage,
 });
 
-type Tab = "blocks" | "floors" | "categories" | "workItems" | "cellGroups" | "assignments";
+type Tab = "workViews" | "blocks" | "floors" | "categories" | "workItems" | "cellGroups" | "assignments";
 
 const TABS: { id: Tab; label: string; icon: typeof Building2 }[] = [
+  { id: "workViews", label: "Work Views", icon: Eye },
   { id: "blocks", label: "Blocks", icon: Building2 },
   { id: "floors", label: "Floors", icon: Layers },
   { id: "categories", label: "Categories", icon: Tag },
@@ -88,6 +92,7 @@ function ProgressConfigPage() {
           })}
         </div>
 
+        {tab === "workViews" && <WorkViewsTab />}
         {tab === "blocks" && <BlocksTab />}
         {tab === "floors" && <FloorsTab />}
         {tab === "categories" && <CategoriesTab />}
@@ -313,22 +318,166 @@ function FloorsTab() {
   );
 }
 
+// Tab component for creating and listing work views (top-level grouping for categories).
+function WorkViewsTab() {
+  const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [scope, setScope] = useState<"flat" | "floor" | "block">("flat");
+  const [sortOrder, setSortOrder] = useState("0");
+  const qc = useQueryClient();
+
+  const workViews = hier?.workViews ?? [];
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    try {
+      const result = await createWorkView({
+        name: name.trim(),
+        scope,
+        sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)),
+      });
+      if (result.success) {
+        toast.success("Work view created");
+        qc.invalidateQueries({ queryKey: ["hierarchy"] });
+        setOpen(false);
+        setName("");
+        setScope("flat");
+        setSortOrder("0");
+      } else {
+        toast.error(result.error || "Failed");
+      }
+    } catch (err) {
+      toast.error("Failed to create work view");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const result = await deleteWorkView({ id });
+      if (result.success) {
+        toast.success("Work view deleted");
+        qc.invalidateQueries({ queryKey: ["hierarchy"] });
+      } else {
+        toast.error(result.error || "Failed");
+      }
+    } catch (err) {
+      toast.error("Failed to delete work view");
+    }
+  };
+
+  const scopeLabels: Record<string, string> = {
+    flat: "Unit/Room",
+    floor: "Floor",
+    block: "Block",
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button onClick={() => setOpen(true)}>
+          <Plus className="mr-1 size-4" /> Add Work View
+        </Button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {workViews.map((wv: any) => (
+          <Card key={wv.id} className="p-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-medium">{wv.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  Scope: {scopeLabels[wv.scope] ?? wv.scope} · Sort: {wv.sort_order}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => handleDelete(wv.id)}
+              >
+                Delete
+              </Button>
+            </div>
+          </Card>
+        ))}
+        {workViews.length === 0 && (
+          <p className="text-sm text-muted-foreground">No work views yet.</p>
+        )}
+      </div>
+
+      {open && (
+        <Dialog open onOpenChange={setOpen}>
+          <DialogContent className="max-w-sm" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle>New Work View</DialogTitle>
+              <DialogDescription>Top-level grouping for categories</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Name</Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="General"
+                />
+              </div>
+              <div>
+                <Label>Scope</Label>
+                <Select value={scope} onValueChange={(v) => setScope(v as "flat" | "floor" | "block")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select scope" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="flat">Unit/Room</SelectItem>
+                    <SelectItem value="floor">Floor</SelectItem>
+                    <SelectItem value="block">Block</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Sort Order</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                />
+              </div>
+              <Button onClick={handleCreate} disabled={!name.trim()} className="w-full">
+                Create
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
 // Tab component for creating and listing work categories (e.g. Civil, MEP).
 function CategoriesTab() {
   const { data: hier } = useQuery({ queryKey: ["hierarchy"], queryFn: () => fetchHierarchy() });
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [sortOrder, setSortOrder] = useState("0");
+  const [selectedWorkViewId, setSelectedWorkViewId] = useState("");
   const qc = useQueryClient();
 
-  const categories = hier?.categories ?? [];
+  const workViews = hier?.workViews ?? [];
+  const categories = (hier?.categories ?? []).filter(
+    (c: any) => c.work_view_id === selectedWorkViewId,
+  );
 
-  // Creates a new category via the API and refreshes the hierarchy query.
   const handleCreate = async () => {
+    if (!selectedWorkViewId) {
+      toast.error("Select a work view");
+      return;
+    }
     if (!name.trim()) return;
     try {
       const result = await createCategory({
         name: name.trim(),
+        work_view_id: selectedWorkViewId,
         sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)),
       });
       if (result.success) {
@@ -347,22 +496,51 @@ function CategoriesTab() {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button onClick={() => setOpen(true)}>
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <Label>Work View</Label>
+          <Select
+            value={selectedWorkViewId}
+            onValueChange={setSelectedWorkViewId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select work view" />
+            </SelectTrigger>
+            <SelectContent>
+              {workViews.map((wv: any) => (
+                <SelectItem key={wv.id} value={wv.id}>
+                  {wv.name} ({wv.scope})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          onClick={() => setOpen(true)}
+          disabled={!selectedWorkViewId}
+          className="mt-6"
+        >
           <Plus className="mr-1 size-4" /> Add Category
         </Button>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {categories.map((c: any) => (
-          <Card key={c.id} className="p-3">
-            <p className="font-medium">{c.name}</p>
-            <p className="text-xs text-muted-foreground">Sort: {c.sort_order}</p>
-          </Card>
-        ))}
-        {categories.length === 0 && (
-          <p className="text-sm text-muted-foreground">No categories yet.</p>
-        )}
-      </div>
+      {workViews.length === 0 && (
+        <Card className="p-4 text-sm text-muted-foreground">
+          Create a Work View first before adding categories.
+        </Card>
+      )}
+      {selectedWorkViewId && (
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {categories.map((c: any) => (
+            <Card key={c.id} className="p-3">
+              <p className="font-medium">{c.name}</p>
+              <p className="text-xs text-muted-foreground">Sort: {c.sort_order}</p>
+            </Card>
+          ))}
+          {categories.length === 0 && (
+            <p className="text-sm text-muted-foreground">No categories yet in this work view.</p>
+          )}
+        </div>
+      )}
 
       {open && (
         <Dialog open onOpenChange={setOpen}>
@@ -520,14 +698,23 @@ function CellGroupsTab() {
   const [floorId, setFloorId] = useState("");
   const [workItemId, setWorkItemId] = useState("");
   const [cellCount, setCellCount] = useState(12);
+  const [unitNumbersText, setUnitNumbersText] = useState("");
   const qc = useQueryClient();
 
   const blocks = hier?.blocks ?? [];
   const floors = (hier?.floors ?? []).filter((f: any) => f.block_id === blockId);
   const categories = hier?.categories ?? [];
+  const workViews = hier?.workViews ?? [];
   const workItems = (hier?.workItems ?? []).filter((w: any) =>
     categories.some((c: any) => c.id === w.category_id),
   );
+
+  const catMap = new Map(categories.map((c: any) => [c.id, c]));
+  const workViewMap = new Map(workViews.map((wv: any) => [wv.id, wv]));
+  const selectedWorkItem = workItems.find((w: any) => w.id === workItemId);
+  const selectedCat = selectedWorkItem ? catMap.get(selectedWorkItem.category_id) : null;
+  const selectedWorkView = selectedCat ? workViewMap.get(selectedCat.work_view_id) : null;
+  const isFlatScope = selectedWorkView?.scope === "flat";
 
   // Creates a new cell group with the specified cell count via the API.
   const handleCreate = async () => {
@@ -535,20 +722,34 @@ function CellGroupsTab() {
       toast.error("Select all fields");
       return;
     }
+    const count = Math.max(1, Math.floor(cellCount));
+    let unit_numbers: string[] | undefined;
+    if (isFlatScope && unitNumbersText.trim()) {
+      unit_numbers = unitNumbersText
+        .split(/[\n,]/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      if (unit_numbers.length !== count) {
+        toast.error(`Expected ${count} unit numbers, got ${unit_numbers.length}`);
+        return;
+      }
+    }
     try {
       const result = await createCellGroup({
         block_id: blockId,
         floor_id: floorId,
         work_item_id: workItemId,
-        cell_count: Math.max(1, Math.floor(cellCount)),
+        cell_count: count,
+        unit_numbers,
       });
       if (result.success) {
-        toast.success(`Cell group created with ${cellCount} cells`);
+        toast.success(`Cell group created with ${count} cells`);
         setOpen(false);
         setBlockId("");
         setFloorId("");
         setWorkItemId("");
         setCellCount(12);
+        setUnitNumbersText("");
       } else {
         toast.error(result.error || "Failed");
       }
@@ -639,6 +840,20 @@ function CellGroupsTab() {
                   onChange={(e) => setCellCount(Number(e.target.value))}
                 />
               </div>
+              {isFlatScope && (
+                <div>
+                  <Label>Unit/Room Numbers (optional)</Label>
+                  <Textarea
+                    value={unitNumbersText}
+                    onChange={(e) => setUnitNumbersText(e.target.value)}
+                    placeholder="One per line or comma-separated, e.g.&#10;Unit 101&#10;Unit 102&#10;Unit 103"
+                    rows={4}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave blank to auto-number as Unit 1, Unit 2, …
+                  </p>
+                </div>
+              )}
               <Button onClick={handleCreate} className="w-full">
                 Create Cell Group
               </Button>

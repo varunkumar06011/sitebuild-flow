@@ -52,16 +52,6 @@ reportsRouter.get("/project-status", async (req: Request, res: Response) => {
     const { data: budgets } = await supabaseServer.from("budgets").select("budgeted_amount");
     const totalBudget = (budgets ?? []).reduce((s, b: any) => s + (b.budgeted_amount ?? 0), 0);
 
-    const { data: nabhItems } = await supabaseServer.from("nabh_checklist").select("id, status");
-    const nabhCompleted = (nabhItems ?? []).filter((n: any) => n.status === "Completed").length;
-    const nabhTotal = (nabhItems ?? []).length;
-
-    const { data: equipment } = await supabaseServer.from("medical_equipment").select("id, status");
-    const eqCommissioned = (equipment ?? []).filter(
-      (e: any) => e.status === "Commissioned" || e.status === "Handed Over",
-    ).length;
-    const eqTotal = (equipment ?? []).length;
-
     res.json({
       procurement: {
         by_stage: reqByStage,
@@ -93,13 +83,6 @@ reportsRouter.get("/project-status", async (req: Request, res: Response) => {
         pending_mtc: batchPending,
         under_test: batchTesting,
         total: batches?.length ?? 0,
-      },
-      compliance: {
-        nabh_completed: nabhCompleted,
-        nabh_total: nabhTotal,
-        nabh_pct: nabhTotal > 0 ? Math.round((nabhCompleted / nabhTotal) * 100) : 0,
-        equipment_commissioned: eqCommissioned,
-        equipment_total: eqTotal,
       },
     });
   } catch (err) {
@@ -393,65 +376,6 @@ reportsRouter.get("/compliance", async (req: Request, res: Response) => {
   try {
     await requireSessionUser(req);
 
-    const { data: nabhItems } = await supabaseServer
-      .from("nabh_checklist")
-      .select("category, status");
-    const nabhByCategory: Record<
-      string,
-      { total: number; completed: number; in_progress: number; pending: number }
-    > = {};
-    (nabhItems ?? []).forEach((n: any) => {
-      const cat = n.category ?? "Uncategorised";
-      if (!nabhByCategory[cat])
-        nabhByCategory[cat] = { total: 0, completed: 0, in_progress: 0, pending: 0 };
-      nabhByCategory[cat].total++;
-      if (n.status === "Completed") nabhByCategory[cat].completed++;
-      else if (n.status === "In Progress") nabhByCategory[cat].in_progress++;
-      else if (n.status === "Pending") nabhByCategory[cat].pending++;
-    });
-
-    const { data: aerb } = await supabaseServer
-      .from("aerb_compliance")
-      .select("result, license_expiry");
-    const aerbPass = (aerb ?? []).filter((a: any) => a.result === "Pass").length;
-    const aerbFail = (aerb ?? []).filter((a: any) => a.result === "Fail").length;
-    const aerbRetest = (aerb ?? []).filter((a: any) => a.result === "Re-test").length;
-    const now = new Date();
-    const aerbExpiring = (aerb ?? []).filter((a: any) => {
-      if (!a.license_expiry) return false;
-      const expiry = new Date(a.license_expiry);
-      const days = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      return days <= 90 && days >= 0;
-    }).length;
-
-    const { data: cleanroom } = await supabaseServer.from("cleanroom_validation").select("result");
-    const crPass = (cleanroom ?? []).filter((c: any) => c.result === "Pass").length;
-    const crFail = (cleanroom ?? []).filter((c: any) => c.result === "Fail").length;
-    const crRetest = (cleanroom ?? []).filter((c: any) => c.result === "Re-test").length;
-
-    const { data: gas } = await supabaseServer
-      .from("medical_gas_pipeline")
-      .select(
-        "pressure_test_result, leak_test_result, manifold_installed, cross_connection_verified",
-      );
-    const gasAllClear = (gas ?? []).filter(
-      (g: any) =>
-        g.pressure_test_result === "Pass" &&
-        g.leak_test_result === "Pass" &&
-        g.manifold_installed &&
-        g.cross_connection_verified,
-    ).length;
-    const gasPending = (gas ?? []).filter(
-      (g: any) => g.pressure_test_result === "Pending" || g.leak_test_result === "Pending",
-    ).length;
-
-    const { data: equipment } = await supabaseServer.from("medical_equipment").select("status");
-    const eqByStatus: Record<string, number> = {};
-    (equipment ?? []).forEach((e: any) => {
-      const s = e.status ?? "Unknown";
-      eqByStatus[s] = (eqByStatus[s] ?? 0) + 1;
-    });
-
     const { data: inspections } = await supabaseServer.from("inspections").select("result");
     const qcPass = (inspections ?? []).filter((i: any) => i.result === "Pass").length;
     const qcFail = (inspections ?? []).filter((i: any) => i.result === "Fail").length;
@@ -462,53 +386,6 @@ reportsRouter.get("/compliance", async (req: Request, res: Response) => {
     const batchTotal = batches?.length ?? 0;
 
     res.json({
-      nabh: {
-        by_category: Object.entries(nabhByCategory).map(([category, info]) => ({
-          category,
-          total: info.total,
-          completed: info.completed,
-          in_progress: info.in_progress,
-          pending: info.pending,
-          completion_pct: info.total > 0 ? Math.round((info.completed / info.total) * 100) : 0,
-        })),
-        total: nabhItems?.length ?? 0,
-        completed: (nabhItems ?? []).filter((n: any) => n.status === "Completed").length,
-        overall_pct:
-          (nabhItems?.length ?? 0) > 0
-            ? Math.round(
-                ((nabhItems ?? []).filter((n: any) => n.status === "Completed").length /
-                  (nabhItems?.length ?? 1)) *
-                  100,
-              )
-            : 0,
-      },
-      aerb: {
-        pass: aerbPass,
-        fail: aerbFail,
-        re_test: aerbRetest,
-        total: aerb?.length ?? 0,
-        licenses_expiring: aerbExpiring,
-      },
-      cleanroom: {
-        pass: crPass,
-        fail: crFail,
-        re_test: crRetest,
-        total: cleanroom?.length ?? 0,
-        pass_rate:
-          (cleanroom?.length ?? 0) > 0 ? Math.round((crPass / (cleanroom?.length ?? 1)) * 100) : 0,
-      },
-      medical_gas: {
-        all_clear: gasAllClear,
-        pending_tests: gasPending,
-        total: gas?.length ?? 0,
-      },
-      medical_equipment: {
-        by_status: eqByStatus,
-        total: equipment?.length ?? 0,
-        commissioned: (equipment ?? []).filter(
-          (e: any) => e.status === "Commissioned" || e.status === "Handed Over",
-        ).length,
-      },
       quality: {
         pass: qcPass,
         fail: qcFail,

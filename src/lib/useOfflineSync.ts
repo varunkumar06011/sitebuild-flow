@@ -1,113 +1,32 @@
-import { useCallback, useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { enqueueOfflineWrite, processSyncQueue, getPendingSyncCount } from "@/lib/api/offline-sync-client";
-import { toast } from "sonner";
+import { useCallback, useState } from "react";
 
-// Wraps a server function call so that if it fails (offline/network error),
-// the payload is queued via enqueueOfflineWrite() instead of showing a hard error.
-// entityType must match one of the VALID_ENTITY_TYPES in offline-sync.ts.
+// Offline sync has been removed — this is a no-op stub to avoid breaking
+// AppShell and labour.tsx which still import useOfflineSync.
 export function useOfflineSync() {
-  const queryClient = useQueryClient();
-  const [isOnline, setIsOnline] = useState(
+  const [isOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
 
-  const { data: pendingData, refetch } = useQuery({
-    queryKey: ["pendingSyncCount"],
-    queryFn: () => getPendingSyncCount(),
-    refetchInterval: (q) => (q.state.error ? false : 30000),
-  });
-  const pendingCount = pendingData?.pending_count ?? 0;
-
-  // Listen to browser online/offline events
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      toast.success("Back online — syncing queued items...");
-      processSyncQueue({})
-        .then((result) => {
-          if (result.success && result.processed > 0) {
-            toast.success(
-              `Synced ${result.succeeded} of ${result.processed} queued item${result.processed > 1 ? "s" : ""}`,
-            );
-            queryClient.invalidateQueries({ queryKey: ["pendingSyncCount"] });
-            refetch();
-          }
-        })
-        .catch(() => {
-          // silent — will retry on next online event
-        });
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast.warning("You are offline — changes will be synced when connection returns");
-    };
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, [queryClient, refetch]);
-
-  // Wraps a create/mutation call with offline fallback.
-  // If the serverFn call throws (network error), enqueues the payload for later sync.
   const withOfflineQueue = useCallback(
     async <T>(
-      entityType: string,
-      payload: Record<string, unknown>,
+      _entityType: string,
+      _payload: Record<string, unknown>,
       serverFn: () => Promise<T>,
-    ): Promise<T | { queued: true }> => {
-      try {
-        const result = await serverFn();
-        return result;
-      } catch (err) {
-        // Network failure — queue for offline sync
-        try {
-          await enqueueOfflineWrite({
-            entity_type: entityType as any,
-            payload,
-            ...(typeof navigator !== "undefined" && {
-              device_id: navigator.userAgent.slice(0, 50),
-            }),
-          });
-          refetch();
-          toast.info("Saved offline — will sync when connection returns");
-          return { queued: true };
-        } catch {
-          // If even enqueue fails, rethrow the original error
-          throw err;
-        }
-      }
+    ): Promise<T> => {
+      return serverFn();
     },
-    [refetch],
+    [],
   );
 
-  // Manually trigger sync (e.g. from the AppShell badge button)
   const triggerSync = useCallback(async () => {
-    const result = await processSyncQueue({});
-    if (result.success) {
-      if (result.processed > 0) {
-        toast.success(
-          `Synced ${result.succeeded} of ${result.processed} queued item${result.processed > 1 ? "s" : ""}`,
-        );
-        queryClient.invalidateQueries({ queryKey: ["pendingSyncCount"] });
-      } else {
-        toast.info("No pending items to sync");
-      }
-      refetch();
-    } else {
-      toast.error("Sync failed");
-    }
-    return result;
-  }, [queryClient, refetch]);
+    return { success: true, processed: 0, succeeded: 0 };
+  }, []);
 
   return {
     isOnline,
-    pendingCount,
+    pendingCount: 0,
     withOfflineQueue,
     triggerSync,
-    refetchPending: refetch,
+    refetchPending: () => {},
   };
 }

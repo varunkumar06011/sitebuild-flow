@@ -71,31 +71,9 @@ vendorScorecardRouter.get("/:vendorId", async (req: Request, res: Response) => {
     const outstanding = Number((vendor as any).outstanding_amount ?? 0);
     const financialScore = totalAmount > 0 ? Math.round((amountPaid / totalAmount) * 20) : 20;
 
-    // 4. Safety
-    const { data: safetyIncidents } = await supabaseServer
-      .from("safety_incidents")
-      .select("id, severity, type")
-      .ilike("contractor_name", `%${(vendor as any).name}%`);
-
-    const safetyRows = (safetyIncidents ?? []) as any[];
-    const safetyPenalty = safetyRows.reduce((sum, r) => {
-      const weightMap: Record<string, number> = { Low: 2, Medium: 5, High: 10, Critical: 15 };
-      return sum + (weightMap[r.severity] ?? 5);
-    }, 0);
-    const safetyScore = Math.max(0, 15 - safetyPenalty);
-
-    // 5. Punch items
-    const { data: punchItems } = await supabaseServer
-      .from("punch_items")
-      .select("id, status")
-      .eq("assigned_vendor_id", vendorId);
-
-    const punchRows = (punchItems ?? []) as any[];
-    const punchTotal = punchRows.length;
-    const punchResolved = punchRows.filter(
-      (p) => p.status === "Resolved" || p.status === "Verified",
-    ).length;
-    const punchScore = punchTotal > 0 ? Math.round((punchResolved / punchTotal) * 15) : 15;
+    // 4. Safety & 5. Punch items — modules removed, return default full scores
+    const safetyScore = 15;
+    const punchScore = 15;
 
     const totalScore = qualityScore + logisticsScore + financialScore + safetyScore + punchScore;
 
@@ -114,11 +92,11 @@ vendorScorecardRouter.get("/:vendorId", async (req: Request, res: Response) => {
       },
       safety: {
         score: safetyScore, max: 15, label: "Safety record",
-        detail: { total_incidents: safetyRows.length, incidents: safetyRows.filter((r) => r.type === "Incident").length, near_miss: safetyRows.filter((r) => r.type === "Near-miss").length },
+        detail: { total_incidents: 0, incidents: 0, near_miss: 0 },
       },
       punch: {
         score: punchScore, max: 15, label: "Punch item resolution",
-        detail: { total_items: punchTotal, resolved: punchResolved, resolution_rate: punchTotal > 0 ? Math.round((punchResolved / punchTotal) * 100) : 100 },
+        detail: { total_items: 0, resolved: 0, resolution_rate: 100 },
       },
     };
 

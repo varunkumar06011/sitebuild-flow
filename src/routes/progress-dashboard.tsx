@@ -1,7 +1,7 @@
 // Progress dashboard page showing block-level roll-ups and a drill-down table of all tracked cells.
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { requireAuth } from "@/lib/auth-guards";
 import { fetchProgressDashboard, fetchCellHistory } from "@/lib/api/progress-tracking";
+import { CellEditDialog } from "@/routes/progress-tracking";
 import { getSignedUrl } from "@/lib/api/storage";
 import { toast } from "sonner";
 import { TrendingUp, Camera, History, ChevronRight } from "lucide-react";
@@ -59,6 +60,8 @@ function ProgressDashboardPage() {
   const [blockFilter, setBlockFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [historyCell, setHistoryCell] = useState<any | null>(null);
+  const [editingCell, setEditingCell] = useState<any | null>(null);
+  const queryClient = useQueryClient();
 
   const blocks = dashData?.blocks ?? [];
   const allCells = dashData?.cells ?? [];
@@ -148,7 +151,7 @@ function ProgressDashboardPage() {
                     <th className="px-3 py-2">Floor</th>
                     <th className="px-3 py-2">Category</th>
                     <th className="px-3 py-2">Work Item</th>
-                    <th className="px-3 py-2">Cell #</th>
+                    <th className="px-3 py-2">Unit/Room</th>
                     <th className="px-3 py-2">Status</th>
                     <th className="px-3 py-2">Completion</th>
                     <th className="px-3 py-2">Updated</th>
@@ -162,7 +165,13 @@ function ProgressDashboardPage() {
                       <td className="px-3 py-2">{c.floor_name}</td>
                       <td className="px-3 py-2 text-muted-foreground">{c.category_name}</td>
                       <td className="px-3 py-2">{c.work_item_name}</td>
-                      <td className="px-3 py-2">#{c.cell_number}</td>
+                      <td className="px-3 py-2">
+                        {c.work_view_scope === "flat"
+                          ? (c.unit_number ?? `Unit ${c.cell_number}`)
+                          : c.work_view_scope === "floor"
+                            ? "Floor"
+                            : "Block"}
+                      </td>
                       <td className="px-3 py-2">
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[c.status] ?? ""}`}
@@ -180,9 +189,16 @@ function ProgressDashboardPage() {
                         {c.updated_at ? new Date(c.updated_at).toLocaleDateString() : "—"}
                       </td>
                       <td className="px-3 py-2">
-                        <Button size="sm" variant="ghost" onClick={() => setHistoryCell(c)}>
-                          <History className="size-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {c.is_editable && (
+                            <Button size="sm" variant="default" onClick={() => setEditingCell(c)}>
+                              Update
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => setHistoryCell(c)}>
+                            <History className="size-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -192,6 +208,17 @@ function ProgressDashboardPage() {
           </Card>
         )}
       </div>
+
+      {editingCell && (
+        <CellEditDialog
+          cell={editingCell}
+          onClose={() => setEditingCell(null)}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ["progressDashboard"] });
+            setEditingCell(null);
+          }}
+        />
+      )}
 
       {historyCell && <CellHistoryDialog cell={historyCell} onClose={() => setHistoryCell(null)} />}
     </AppShell>
@@ -217,7 +244,13 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
     >
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Cell #{cell.cell_number} — History</DialogTitle>
+          <DialogTitle>
+            {cell.work_view_scope === "flat"
+              ? `${cell.unit_number ?? `Unit ${cell.cell_number}`} — History`
+              : cell.work_view_scope === "floor"
+                ? "Floor — History"
+                : "Block — History"}
+          </DialogTitle>
           <DialogDescription>
             {cell.block_name} · {cell.floor_name} · {cell.work_item_name}
           </DialogDescription>

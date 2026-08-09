@@ -110,7 +110,7 @@ function ProgressTrackingPage() {
                   <div>
                     <p className="text-sm font-bold">{cell.work_item_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {cell.block_name} · {cell.floor_name} · Cell #{cell.cell_number}
+                      {cell.block_name} · {cell.floor_name} · {cell.work_view_scope === "flat" ? (cell.unit_number ?? `Unit ${cell.cell_number}`) : cell.work_view_scope === "floor" ? "Floor" : "Block"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">{cell.category_name}</p>
                   </div>
@@ -163,7 +163,7 @@ function ProgressTrackingPage() {
 }
 
 // Dialog for editing a cell's status, completion percentage, remarks and photo upload.
-function CellEditDialog({
+export function CellEditDialog({
   cell,
   onClose,
   onSaved,
@@ -240,7 +240,7 @@ function CellEditDialog({
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Update Cell #{cell.cell_number}</DialogTitle>
+          <DialogTitle>Update {cell.work_view_scope === "flat" ? (cell.unit_number ?? `Unit ${cell.cell_number}`) : cell.work_view_scope === "floor" ? "Floor" : "Block"}</DialogTitle>
           <DialogDescription>
             {cell.block_name} · {cell.floor_name} · {cell.work_item_name}
           </DialogDescription>
@@ -338,7 +338,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
     >
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Cell #{cell.cell_number} History</DialogTitle>
+          <DialogTitle>{cell.work_view_scope === "flat" ? `${cell.unit_number ?? `Unit ${cell.cell_number}`} History` : cell.work_view_scope === "floor" ? "Floor History" : "Block History"}</DialogTitle>
           <DialogDescription>
             {cell.block_name} · {cell.floor_name} · {cell.work_item_name}
           </DialogDescription>

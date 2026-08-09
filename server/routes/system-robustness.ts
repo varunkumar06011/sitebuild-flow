@@ -447,8 +447,7 @@ systemRobustnessRouter.get("/backup-overview", async (req: Request, res: Respons
       "visitors", "vehicles", "labour", "progress", "notifications", "audit_log",
       "inventory_items", "inventory_transactions", "material_categories",
       "vendor_payments", "budgets", "tds_gst_records", "retention_records",
-      "medical_equipment", "aerb_compliance", "cleanroom_validation",
-      "medical_gas_pipeline", "nabh_checklist", "approval_delegations",
+      "approval_delegations",
       "escalation_log", "document_versions",
     ];
 
@@ -489,8 +488,6 @@ systemRobustnessRouter.get("/export-table", async (req: Request, res: Response) 
       inventory_items: null, inventory_transactions: "created_at",
       material_categories: null, vendor_payments: "payment_date", budgets: null,
       tds_gst_records: "created_at", retention_records: "created_at",
-      medical_equipment: null, aerb_compliance: null, cleanroom_validation: null,
-      medical_gas_pipeline: null, nabh_checklist: null,
       approval_delegations: "start_date", escalation_log: "created_at",
       document_versions: "created_at",
     };

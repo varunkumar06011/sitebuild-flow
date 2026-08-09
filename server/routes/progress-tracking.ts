@@ -63,6 +63,136 @@ async function canSupervisorEditCell(user: SessionUser, cellId: string): Promise
 }
 
 // ---------------------------------------------------------------------------
+// Work Views CRUD — Admin only
+// ---------------------------------------------------------------------------
+
+// POST /api/progress-tracking/work-views/create
+const createWorkViewSchema = z.object({
+  name: z.string().min(1),
+  scope: z.enum(["flat", "floor", "block"]),
+  sort_order: z.number().int().default(0),
+});
+
+progressTrackingRouter.post("/work-views/create", async (req: Request, res: Response) => {
+  try {
+    const user = await requireSessionUser(req);
+    if (!isAdmin(user.role)) {
+      res.json({ success: false, error: "Admin only" });
+      return;
+    }
+    const data = createWorkViewSchema.parse(req.body);
+    const { data: wv, error } = await supabaseServer
+      .from("progress_work_views")
+      .insert({
+        name: data.name,
+        scope: data.scope,
+        sort_order: data.sort_order,
+        created_by: user.id,
+      })
+      .select("id, name, scope, sort_order")
+      .single();
+
+    if (error || !wv) {
+      res.json({ success: false, error: error?.message || "Failed to create work view" });
+      return;
+    }
+    await logAction(user, "create_work_view", "progress_work_view", wv.id, { name: data.name, scope: data.scope });
+    res.json({ success: true, data: wv });
+  } catch (err) {
+    handleErr(res, err, "createWorkView");
+  }
+});
+
+// GET /api/progress-tracking/work-views
+progressTrackingRouter.get("/work-views", async (req: Request, res: Response) => {
+  try {
+    await requireSessionUser(req);
+    const { data: workViews, error } = await supabaseServer
+      .from("progress_work_views")
+      .select("id, name, scope, sort_order")
+      .order("sort_order");
+
+    if (error) {
+      res.json({ success: false, error: error.message });
+      return;
+    }
+    res.json({ data: workViews ?? [] });
+  } catch (err) {
+    handleErr(res, err, "fetchWorkViews");
+  }
+});
+
+// POST /api/progress-tracking/work-views/update
+const updateWorkViewSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).optional(),
+  scope: z.enum(["flat", "floor", "block"]).optional(),
+  sort_order: z.number().int().optional(),
+});
+
+progressTrackingRouter.post("/work-views/update", async (req: Request, res: Response) => {
+  try {
+    const user = await requireSessionUser(req);
+    if (!isAdmin(user.role)) {
+      res.json({ success: false, error: "Admin only" });
+      return;
+    }
+    const data = updateWorkViewSchema.parse(req.body);
+    const updates: Record<string, unknown> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.scope !== undefined) updates.scope = data.scope;
+    if (data.sort_order !== undefined) updates.sort_order = data.sort_order;
+
+    if (Object.keys(updates).length === 0) {
+      res.json({ success: false, error: "No fields to update" });
+      return;
+    }
+
+    const { data: wv, error } = await supabaseServer
+      .from("progress_work_views")
+      .update(updates)
+      .eq("id", data.id)
+      .select("id, name, scope, sort_order")
+      .single();
+
+    if (error || !wv) {
+      res.json({ success: false, error: error?.message || "Failed to update work view" });
+      return;
+    }
+    await logAction(user, "update_work_view", "progress_work_view", wv.id, updates);
+    res.json({ success: true, data: wv });
+  } catch (err) {
+    handleErr(res, err, "updateWorkView");
+  }
+});
+
+// POST /api/progress-tracking/work-views/delete
+progressTrackingRouter.post("/work-views/delete", async (req: Request, res: Response) => {
+  try {
+    const user = await requireSessionUser(req);
+    if (!isAdmin(user.role)) {
+      res.json({ success: false, error: "Admin only" });
+      return;
+    }
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.body);
+
+    const { error } = await supabaseServer
+      .from("progress_work_views")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      res.json({ success: false, error: error.message });
+      return;
+    }
+    await logAction(user, "delete_work_view", "progress_work_view", id, {});
+    res.json({ success: true });
+  } catch (err) {
+    handleErr(res, err, "deleteWorkView");
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Hierarchy CRUD — Admin only
 // ---------------------------------------------------------------------------
 
@@ -145,8 +275,9 @@ progressTrackingRouter.post("/floors/create", async (req: Request, res: Response
 });
 
 // POST /api/progress-tracking/categories/create
-const nameSchema = z.object({
+const createCategorySchema = z.object({
   name: z.string().min(1),
+  work_view_id: z.string().uuid(),
   sort_order: z.number().int().default(0),
 });
 
@@ -157,18 +288,23 @@ progressTrackingRouter.post("/categories/create", async (req: Request, res: Resp
       res.json({ success: false, error: "Admin only" });
       return;
     }
-    const data = nameSchema.parse(req.body);
+    const data = createCategorySchema.parse(req.body);
     const { data: cat, error } = await supabaseServer
       .from("progress_categories")
-      .insert({ name: data.name, sort_order: data.sort_order, created_by: user.id })
-      .select("id, name, sort_order")
+      .insert({
+        name: data.name,
+        work_view_id: data.work_view_id,
+        sort_order: data.sort_order,
+        created_by: user.id,
+      })
+      .select("id, name, work_view_id, sort_order")
       .single();
 
     if (error || !cat) {
       res.json({ success: false, error: "Failed to create category" });
       return;
     }
-    await logAction(user, "create_category", "progress_category", cat.id, { name: data.name });
+    await logAction(user, "create_category", "progress_category", cat.id, { name: data.name, work_view_id: data.work_view_id });
     res.json({ success: true, data: cat });
   } catch (err) {
     handleErr(res, err, "createCategory");
@@ -221,6 +357,7 @@ const createCellGroupSchema = z.object({
   floor_id: z.string().uuid(),
   work_item_id: z.string().uuid(),
   cell_count: z.number().int().min(1).max(500),
+  unit_numbers: z.array(z.string()).optional(),
 });
 
 progressTrackingRouter.post("/cell-groups/create", async (req: Request, res: Response) => {
@@ -248,9 +385,16 @@ progressTrackingRouter.post("/cell-groups/create", async (req: Request, res: Res
       return;
     }
 
+    const unitNumbers = data.unit_numbers;
+    if (unitNumbers && unitNumbers.length !== data.cell_count) {
+      res.json({ success: false, error: "unit_numbers length must equal cell_count" });
+      return;
+    }
+
     const cells = Array.from({ length: data.cell_count }, (_, i) => ({
       cell_group_id: group.id,
       cell_number: i + 1,
+      unit_number: unitNumbers ? unitNumbers[i] ?? null : null,
     }));
 
     const { error: cellError } = await supabaseServer.from("progress_cells").insert(cells);
@@ -321,7 +465,7 @@ progressTrackingRouter.get("/hierarchy", async (req: Request, res: Response) => 
   try {
     await requireSessionUser(req);
 
-    const [blocks, floors, categories, workItems] = await Promise.all([
+    const [blocks, floors, workViews, categories, workItems] = await Promise.all([
       supabaseServer
         .from("progress_blocks")
         .select("id, name, sort_order, work_category")
@@ -330,7 +474,14 @@ progressTrackingRouter.get("/hierarchy", async (req: Request, res: Response) => 
         .from("progress_floors")
         .select("id, block_id, name, sort_order")
         .order("sort_order"),
-      supabaseServer.from("progress_categories").select("id, name, sort_order").order("sort_order"),
+      supabaseServer
+        .from("progress_work_views")
+        .select("id, name, scope, sort_order")
+        .order("sort_order"),
+      supabaseServer
+        .from("progress_categories")
+        .select("id, name, work_view_id, sort_order")
+        .order("sort_order"),
       supabaseServer
         .from("progress_work_items")
         .select("id, category_id, name, sort_order")
@@ -340,6 +491,7 @@ progressTrackingRouter.get("/hierarchy", async (req: Request, res: Response) => 
     res.json({
       blocks: blocks.data ?? [],
       floors: floors.data ?? [],
+      workViews: workViews.data ?? [],
       categories: categories.data ?? [],
       workItems: workItems.data ?? [],
     });
@@ -424,10 +576,13 @@ progressTrackingRouter.get("/my-cells", async (req: Request, res: Response) => {
         .from("progress_work_items")
         .select("id, name, category_id")
         .in("id", workItemIds),
-      supabaseServer.from("progress_categories").select("id, name"),
+      supabaseServer
+        .from("progress_categories")
+        .select("id, name, work_view_id, sort_order, progress_work_views!inner(scope)")
+        .order("sort_order"),
     ]);
     const wiMap = new Map((workItems ?? []).map((w: any) => [w.id, w]));
-    const catMap = new Map((cats ?? []).map((c: any) => [c.id, c.name]));
+    const catMap = new Map((cats ?? []).map((c: any) => [c.id, c]));
 
     const { data: blocks } = await supabaseServer
       .from("progress_blocks")
@@ -445,7 +600,7 @@ progressTrackingRouter.get("/my-cells", async (req: Request, res: Response) => {
     let cellQuery = supabaseServer
       .from("progress_cells")
       .select(
-        "id, cell_group_id, cell_number, status, completion_pct, remarks, updated_by, updated_at",
+        "id, cell_group_id, cell_number, unit_number, status, completion_pct, remarks, updated_by, updated_at",
       )
       .in("cell_group_id", validGroupIds)
       .order("cell_number");
@@ -457,10 +612,12 @@ progressTrackingRouter.get("/my-cells", async (req: Request, res: Response) => {
     const result = (cells ?? []).map((c: any) => {
       const g = groupMap.get(c.cell_group_id);
       const wi = g ? wiMap.get(g.work_item_id) : null;
+      const cat = wi ? catMap.get(wi.category_id) : null;
       return {
         id: c.id,
         cell_group_id: c.cell_group_id,
         cell_number: c.cell_number,
+        unit_number: c.unit_number ?? null,
         status: c.status,
         completion_pct: Number(c.completion_pct),
         remarks: c.remarks,
@@ -470,7 +627,8 @@ progressTrackingRouter.get("/my-cells", async (req: Request, res: Response) => {
         block_name: g ? (blockMap.get(g.block_id) ?? "") : "",
         floor_name: g ? (floorMap.get(g.floor_id) ?? "") : "",
         work_item_name: wi?.name ?? "",
-        category_name: wi ? (catMap.get(wi.category_id) ?? "") : "",
+        category_name: cat?.name ?? "",
+        work_view_scope: cat?.progress_work_views?.scope ?? "flat",
       };
     });
 
@@ -684,10 +842,6 @@ progressTrackingRouter.get("/cells/history", async (req: Request, res: Response)
 progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => {
   try {
     const user = await requireSessionUser(req);
-    if (!isAdmin(user.role)) {
-      res.json({ blocks: [], cells: [] });
-      return;
-    }
 
     const { data: groups } = await supabaseServer
       .from("progress_cell_groups")
@@ -700,7 +854,7 @@ progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => 
           cell_count,
           progress_blocks!inner(name),
           progress_floors!inner(name),
-          progress_work_items!inner(name, category_id, progress_categories!inner(name))
+          progress_work_items!inner(name, category_id, progress_categories!inner(name, work_view_id, progress_work_views!inner(scope)))
         `,
       )
       .order("id");
@@ -714,11 +868,44 @@ progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => 
 
     const { data: cells } = await supabaseServer
       .from("progress_cells")
-      .select("id, cell_group_id, cell_number, status, completion_pct, updated_at")
+      .select("id, cell_group_id, cell_number, unit_number, status, completion_pct, updated_at")
       .in("cell_group_id", groupIds)
       .order("cell_number");
 
     const groupMap = new Map(groups.map((g: any) => [g.id, g]));
+
+    // Compute is_editable per cell using the same logic as canSupervisorEditCell:
+    //   Admin → always true; Supervisor → true only if assigned to the cell's block/floor; other → false.
+    // We batch-fetch the supervisor's assignments once instead of calling canSupervisorEditCell per cell.
+    let editableCellIds: Set<string> | null = null;
+    if (!isAdmin(user.role) && user.role === "Supervisor") {
+      const { data: assignments } = await supabaseServer
+        .from("progress_supervisor_assignments")
+        .select("block_id, floor_id")
+        .eq("supervisor_id", user.id);
+
+      if (assignments && assignments.length > 0) {
+        const blockFloorMap = new Map<string, (string | null)[]>();
+        for (const a of assignments) {
+          const existing = blockFloorMap.get(a.block_id) ?? [];
+          existing.push(a.floor_id);
+          blockFloorMap.set(a.block_id, existing);
+        }
+        editableCellIds = new Set<string>();
+        for (const c of cells ?? []) {
+          const g = groupMap.get(c.cell_group_id);
+          if (!g) continue;
+          const floors = blockFloorMap.get(g.block_id);
+          if (!floors) continue;
+          for (const f of floors) {
+            if (f === null || f === g.floor_id) {
+              editableCellIds.add(c.id);
+              break;
+            }
+          }
+        }
+      }
+    }
 
     const blockAgg = new Map<
       string,
@@ -773,6 +960,7 @@ progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => 
         id: c.id,
         cell_group_id: c.cell_group_id,
         cell_number: c.cell_number,
+        unit_number: c.unit_number ?? null,
         status: c.status,
         completion_pct: Number(c.completion_pct),
         updated_at: c.updated_at,
@@ -780,6 +968,8 @@ progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => 
         floor_name: g?.progress_floors?.name ?? "",
         work_item_name: g?.progress_work_items?.name ?? "",
         category_name: g?.progress_work_items?.progress_categories?.name ?? "",
+        work_view_scope: g?.progress_work_items?.progress_categories?.progress_work_views?.scope ?? "flat",
+        is_editable: isAdmin(user.role) ? true : (editableCellIds?.has(c.id) ?? false),
       };
     });
 
