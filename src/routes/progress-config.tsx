@@ -51,6 +51,12 @@ export const Route = createFileRoute("/progress-config")({
 
 type Tab = "workViews" | "blocks" | "floors" | "categories" | "workItems" | "cellGroups" | "assignments";
 
+const SCOPE_LABELS: Record<string, string> = {
+  flat: "Unit/Room",
+  floor: "Floor",
+  block: "Block",
+};
+
 const TABS: { id: Tab; label: string; icon: typeof Building2 }[] = [
   { id: "workViews", label: "Work Views", icon: Eye },
   { id: "blocks", label: "Blocks", icon: Building2 },
@@ -366,11 +372,7 @@ function WorkViewsTab() {
     }
   };
 
-  const scopeLabels: Record<string, string> = {
-    flat: "Unit/Room",
-    floor: "Floor",
-    block: "Block",
-  };
+  const scopeLabels = SCOPE_LABELS;
 
   return (
     <div className="space-y-3">
@@ -509,7 +511,7 @@ function CategoriesTab() {
             <SelectContent>
               {workViews.map((wv: any) => (
                 <SelectItem key={wv.id} value={wv.id}>
-                  {wv.name} ({wv.scope})
+                  {wv.name} ({SCOPE_LABELS[wv.scope] ?? wv.scope})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -740,7 +742,7 @@ function CellGroupsTab() {
         floor_id: floorId,
         work_item_id: workItemId,
         cell_count: count,
-        unit_numbers,
+        ...(unit_numbers ? { unit_numbers } : {}),
       });
       if (result.success) {
         toast.success(`Cell group created with ${count} cells`);
