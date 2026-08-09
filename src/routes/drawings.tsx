@@ -161,10 +161,8 @@ function DrawingsPage() {
     queryKey: ["drawings", search, disciplineFilter],
     queryFn: () =>
       fetchDrawings({
-        data: {
-          search: search || undefined,
-          discipline: disciplineFilter !== "all" ? disciplineFilter : undefined,
-        } as any,
+        ...(search && { search }),
+        ...(disciplineFilter !== "all" && { discipline: disciplineFilter }),
       }),
   });
   const drawings = drawData?.data ?? [];
@@ -172,9 +170,7 @@ function DrawingsPage() {
   const { data: rfiData } = useQuery({
     queryKey: ["rfis", selectedDrawing?.id],
     queryFn: () =>
-      fetchRfis({
-        data: { drawingId: selectedDrawing?.id } as any,
-      }),
+      fetchRfis({ drawingId: selectedDrawing?.id }),
     enabled: !!selectedDrawing,
   });
   const rfis = rfiData?.data ?? [];
@@ -228,15 +224,13 @@ function DrawingsPage() {
     setSaving(true);
     try {
       const result = await uploadDrawingRevision({
-        data: {
           drawing_no: drawForm.drawing_no.trim(),
           title: drawForm.title.trim(),
-          discipline: drawForm.discipline.trim() || undefined,
+          ...(drawForm.discipline.trim() && { discipline: drawForm.discipline.trim() }),
           revision: drawForm.revision.trim() || "R0",
           fileData: fileData.base64,
           contentType: fileData.type,
           fileName: fileData.name,
-        } as any,
       });
       if (result.success) {
         toast.success("Drawing uploaded");
@@ -259,11 +253,9 @@ function DrawingsPage() {
     setSaving(true);
     try {
       const result = await raiseRfi({
-        data: {
           drawing_id: selectedDrawing?.id ?? null,
           question: rfiForm.question.trim(),
-          sla_due_date: rfiForm.sla_due_date || null,
-        } as any,
+          ...(rfiForm.sla_due_date && { sla_due_date: rfiForm.sla_due_date }),
       });
       if (result.success) {
         toast.success(`RFI ${result.rfi_no ?? ""} raised`);
@@ -285,9 +277,7 @@ function DrawingsPage() {
     }
     setSaving(true);
     try {
-      const result = await respondToRfi({
-        data: { id: activeRfi.id, response: responseText.trim() } as any,
-      });
+      const result = await respondToRfi({ id: activeRfi.id, response: responseText.trim() });
       if (result.success) {
         toast.success("RFI responded");
         setRespondDialogOpen(false);
@@ -303,7 +293,7 @@ function DrawingsPage() {
 
   async function handleCloseRfi(rfiId: string) {
     try {
-      const result = await closeRfi({ data: { id: rfiId } as any });
+      const result = await closeRfi({ id: rfiId });
       if (result.success) {
         toast.success("RFI closed");
         queryClient.invalidateQueries({ queryKey: ["rfis"] });

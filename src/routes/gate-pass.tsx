@@ -239,7 +239,7 @@ function GatePassPage() {
     if (!active) return;
     setSendingOtp(true);
     try {
-      const precheck = await precheckOtpSend({ data: { gatePassId: active.id } });
+      const precheck = await precheckOtpSend({ gatePassId: active.id });
       if (!precheck.allowed) {
         toast.error(precheck.error ?? "OTP send not allowed");
         setSendingOtp(false);
@@ -259,7 +259,7 @@ function GatePassPage() {
     setVerifying(true);
     try {
       const idToken = await confirmPhoneOtp(confirmationRef.current, otp);
-      const result = await verifyPhoneOtp({ data: { gatePassId: active.id, idToken } });
+      const result = await verifyPhoneOtp({ gatePassId: active.id, idToken });
       if (result.success) {
         toast.success("OTP verified — gate pass approved");
         setOtp("");
@@ -280,7 +280,7 @@ function GatePassPage() {
     if (!active) return;
     setExiting(true);
     try {
-      const result = await recordExit({ data: { gatePassId: active.id } });
+      const result = await recordExit({ gatePassId: active.id });
       if (result.success) {
         toast.success("Exit time stamped");
         refresh();
@@ -298,7 +298,7 @@ function GatePassPage() {
     if (!active) return;
     setLoadingPdf(true);
     try {
-      const result = await getGatePassSignedUrl({ data: { gatePassId: active.id } });
+      const result = await getGatePassSignedUrl({ gatePassId: active.id });
       if (result.success && result.url) {
         setPdfUrl(result.url);
       } else {
@@ -620,7 +620,7 @@ function GatePassPage() {
 function TimelineContent({ gatePassId }: { gatePassId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["gatePassTimeline", gatePassId],
-    queryFn: () => fetchGatePassTimeline({ data: { gatePassId } }),
+    queryFn: () => fetchGatePassTimeline({ gatePassId }),
     enabled: !!gatePassId,
   });
 
@@ -794,12 +794,10 @@ function CreateGatePassDialog({
 
         photoPath = `gate-pass/${Date.now()}-${photoFile.name}`;
         const uploadResult = await uploadFile({
-          data: {
             bucket: "photos",
             path: photoPath,
             contentType: photoFile.type,
             fileData,
-          },
         });
 
         if (!uploadResult.success) {
@@ -811,24 +809,22 @@ function CreateGatePassDialog({
       const cleanMaterialList = materialList.filter((m) => m.name.trim());
 
       const result = await createGatePass({
-        data: {
-          person_name: personName,
-          purpose: purpose || undefined,
-          vehicle_type: vehicleType || undefined,
-          vehicle: vehicleNumber || undefined,
-          driver_name: driverName || undefined,
-          driver_mobile: driverMobile || undefined,
-          material_movement: materialMovement,
-          material_list: cleanMaterialList,
-          remarks: remarks || undefined,
-          photo_proof_path: photoPath,
-          gp_date: gpDate,
-          gp_time: gpTime,
-          approver_phone: approverPhone,
-          type: gpType,
-          batch_id: batchId,
-          requisition_id: requisitionId,
-        },
+        person_name: personName,
+        purpose: purpose || undefined,
+        vehicle_type: vehicleType || undefined,
+        vehicle: vehicleNumber || undefined,
+        driver_name: driverName || undefined,
+        driver_mobile: driverMobile || undefined,
+        material_movement: materialMovement,
+        material_list: cleanMaterialList,
+        remarks: remarks || undefined,
+        photo_proof_path: photoPath,
+        gp_date: gpDate,
+        gp_time: gpTime,
+        approver_phone: approverPhone,
+        type: gpType,
+        batch_id: batchId,
+        requisition_id: requisitionId,
       });
 
       if (result.success && result.id) {
@@ -850,7 +846,7 @@ function CreateGatePassDialog({
     if (!gatePassId || !approverPhone.trim()) return;
     setSendingOtp(true);
     try {
-      const precheck = await precheckOtpSend({ data: { gatePassId } });
+      const precheck = await precheckOtpSend({ gatePassId });
       if (!precheck.allowed) {
         toast.error(precheck.error ?? "OTP send not allowed");
         setSendingOtp(false);
@@ -870,7 +866,7 @@ function CreateGatePassDialog({
     setVerifying(true);
     try {
       const idToken = await confirmPhoneOtp(confirmationRef.current, otp);
-      const result = await verifyPhoneOtp({ data: { gatePassId, idToken } });
+      const result = await verifyPhoneOtp({ gatePassId, idToken });
       if (result.success) {
         toast.success("OTP verified — Gate Pass approved");
         setStep("success");
@@ -1254,7 +1250,7 @@ function AdminContactPicker({ value, onChange }: { value: string; onChange: (v: 
   const { data } = useQuery({
     queryKey: ["adminContacts", search],
     queryFn: () =>
-      fetchAdminContacts({ data: { search: search || undefined } as { search?: string } }),
+      fetchAdminContacts({ search: search || undefined } as { search?: string }),
     enabled: open,
   });
 
@@ -1326,7 +1322,7 @@ function BatchPicker({
 
   const { data } = useQuery({
     queryKey: ["batchesForGatePass", search],
-    queryFn: () => fetchBatches({ data: { search: search || undefined } as { search?: string } }),
+    queryFn: () => fetchBatches({ search: search || undefined } as { search?: string }),
     enabled: open,
   });
 
@@ -1407,7 +1403,7 @@ function RequisitionPicker({
   const { data } = useQuery({
     queryKey: ["requisitionsForGatePass", search],
     queryFn: () =>
-      fetchRequisitions({ data: { search: search || undefined } as { search?: string } }),
+      fetchRequisitions({ search: search || undefined } as { search?: string }),
     enabled: open,
   });
 
@@ -1484,7 +1480,7 @@ function PrintPreviewDialog({
 }) {
   const { data, isLoading } = useQuery({
     queryKey: ["gatePassPrint", gatePassId],
-    queryFn: () => fetchGatePassById({ data: { gatePassId: gatePassId! } }),
+    queryFn: () => fetchGatePassById({ gatePassId: gatePassId! }),
     enabled: !!gatePassId,
   });
 

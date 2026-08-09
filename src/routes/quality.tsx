@@ -69,7 +69,7 @@ function Quality() {
   const queryClient = useQueryClient();
   const { data: inspData } = useQuery({
     queryKey: ["inspections"],
-    queryFn: () => fetchInspections({ data: {} }),
+    queryFn: () => fetchInspections({}),
   });
   const inspections = inspData?.data ?? [];
 
@@ -151,12 +151,10 @@ function Quality() {
         });
         const path = `inspections/${Date.now()}-${file.name}`;
         const result = await uploadFile({
-          data: {
             bucket: "photos",
             path,
             contentType: file.type || "image/jpeg",
             fileData: base64,
-          },
         });
         if (result.success) {
           paths.push(path);
@@ -201,7 +199,7 @@ function Quality() {
       };
 
       if (editing) {
-        const result = await updateInspection({ data: { id: editing.id, ...payload } });
+        const result = await updateInspection({ id: editing.id, ...payload });
         if (result.success) {
           toast.success("Inspection updated");
           setDialogOpen(false);
@@ -210,7 +208,7 @@ function Quality() {
           toast.error(result.error ?? "Failed to update inspection");
         }
       } else {
-        const result = await createInspection({ data: payload });
+        const result = await createInspection(payload);
         if (result.success) {
           toast.success("Inspection created");
           setDialogOpen(false);
@@ -227,7 +225,7 @@ function Quality() {
 
   const handleViewPhoto = async (path: string) => {
     const tab = window.open("", "_blank");
-    const result = await getSignedUrl({ data: { bucket: "photos", path } });
+    const result = await getSignedUrl({ bucket: "photos", path });
     if (result.success && result.url) {
       if (tab) {
         tab.location.href = result.url;

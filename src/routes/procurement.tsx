@@ -280,7 +280,7 @@ function Procurement() {
     error,
   } = useQuery({
     queryKey: ["requisitions"],
-    queryFn: () => fetchRequisitions({ data: {} }),
+    queryFn: () => fetchRequisitions({}),
     refetchInterval: (q) => (q.state.error ? false : 15000), // poll every 15s, stop on error
   });
   const requisitions = reqData?.data ?? [];
@@ -759,7 +759,7 @@ function CreatePRDialog({
 
   const { data: vendorData } = useQuery({
     queryKey: ["vendors"],
-    queryFn: () => fetchVendors({ data: {} }),
+    queryFn: () => fetchVendors({}),
   });
   const vendors = vendorData?.data ?? [];
 
@@ -783,14 +783,12 @@ function CreatePRDialog({
     }
     setSaving(true);
     const result = await createRequisition({
-      data: {
-        title: title.trim(),
-        block: block.trim(),
-        vendor_id: vendorId === "none" ? null : vendorId,
-        amount: effectiveAmount,
-        quotations: [],
-        documents: [],
-      },
+      title: title.trim(),
+      block: block.trim(),
+      vendor_id: vendorId === "none" ? null : vendorId,
+      amount: effectiveAmount,
+      quotations: [],
+      documents: [],
     });
     if (!result.success) {
       setSaving(false);
@@ -807,7 +805,7 @@ function CreatePRDialog({
         unit_price: Number(it.unitPrice) || 0,
         amount: (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0),
       }));
-      await saveRequisitionItems({ data: { requisitionId: result.id, items: itemPayload } });
+      await saveRequisitionItems({ requisitionId: result.id, items: itemPayload });
     }
 
     setSaving(false);
@@ -1042,7 +1040,7 @@ function RequisitionDetail({
 
   const { data: vendorData } = useQuery({
     queryKey: ["vendors"],
-    queryFn: () => fetchVendors({ data: {} }),
+    queryFn: () => fetchVendors({}),
   });
   const vendors = vendorData?.data ?? [];
 
@@ -1051,7 +1049,7 @@ function RequisitionDetail({
 
   const { data: itemData } = useQuery({
     queryKey: ["inventory-items"],
-    queryFn: () => fetchItems({ data: {} }),
+    queryFn: () => fetchItems({}),
   });
   const inventoryItems = itemData?.data ?? [];
 
@@ -1071,12 +1069,10 @@ function RequisitionDetail({
     }
     setWorking(true);
     const result = await updateRequisitionStage({
-      data: {
-        id: req.id,
-        newStage,
-        expectedStage: req.stage,
-        ...extra,
-      },
+      id: req.id,
+      newStage,
+      expectedStage: req.stage,
+      ...extra,
     });
     setWorking(false);
     if (result.success) {
@@ -1105,12 +1101,10 @@ function RequisitionDetail({
   const rejectRequisition = async () => {
     setWorking(true);
     const result = await updateRequisitionStage({
-      data: {
-        id: req.id,
-        newStage: "Quotation",
-        expectedStage: req.stage,
-        rejectionReason: rejectReason.trim() || undefined,
-      },
+      id: req.id,
+      newStage: "Quotation",
+      expectedStage: req.stage,
+      ...(rejectReason.trim() && { rejectionReason: rejectReason.trim() }),
     });
     setWorking(false);
     if (result.success) {
@@ -1127,12 +1121,10 @@ function RequisitionDetail({
   const cancelRequisition = async () => {
     setWorking(true);
     const result = await updateRequisitionStage({
-      data: {
-        id: req.id,
-        newStage: "Cancelled",
-        expectedStage: req.stage,
-        cancelReason: cancelReason.trim() || undefined,
-      },
+      id: req.id,
+      newStage: "Cancelled",
+      expectedStage: req.stage,
+      ...(cancelReason.trim() && { cancelReason: cancelReason.trim() }),
     });
     setWorking(false);
     if (result.success) {
@@ -1153,13 +1145,11 @@ function RequisitionDetail({
     }
     setSavingEdit(true);
     const result = await updateRequisitionDetails({
-      data: {
-        id: req.id,
-        title: editTitle.trim(),
-        block: editBlock.trim(),
-        amount: Number(editAmount),
-        vendor_id: editVendorId === "none" ? null : editVendorId,
-      },
+      id: req.id,
+      title: editTitle.trim(),
+      block: editBlock.trim(),
+      amount: Number(editAmount),
+      vendor_id: editVendorId === "none" ? null : editVendorId,
     });
     setSavingEdit(false);
     if (result.success) {
@@ -1725,12 +1715,10 @@ function RequisitionDetail({
                           reader.onload = async () => {
                             const base64 = (reader.result as string).split(",")[1] ?? "";
                             const result = await uploadFile({
-                              data: {
                                 bucket: "documents",
                                 path,
                                 contentType: file.type || "application/octet-stream",
                                 fileData: base64,
-                              },
                             });
                             setUploadingProof(false);
                             if (result.success) {
@@ -1973,7 +1961,7 @@ function QuotationEditor({
 
   const { data: vendorData } = useQuery({
     queryKey: ["vendors"],
-    queryFn: () => fetchVendors({ data: {} }),
+    queryFn: () => fetchVendors({}),
   });
   const vendors = vendorData?.data ?? [];
 
@@ -2153,7 +2141,7 @@ function QuotationEditor({
 function LineItemsSection({ requisitionId }: { requisitionId: string }) {
   const { data: items } = useQuery({
     queryKey: ["requisition-items", requisitionId],
-    queryFn: () => fetchRequisitionItems({ data: { requisitionId } }),
+    queryFn: () => fetchRequisitionItems({ requisitionId }),
     staleTime: 30000,
   });
 
@@ -2207,7 +2195,7 @@ function PaymentsSection({
 }) {
   const { data: payments } = useQuery({
     queryKey: ["requisition-payments", req.id],
-    queryFn: () => fetchRequisitionPayments({ data: { requisitionId: req.id } }),
+    queryFn: () => fetchRequisitionPayments({ requisitionId: req.id }),
     staleTime: 10000,
   });
 
@@ -2233,13 +2221,11 @@ function PaymentsSection({
     }
     setSaving(true);
     const result = await addRequisitionPayment({
-      data: {
-        requisitionId: req.id,
-        vendorId: req.vendor_id!,
-        amount: Number(payAmount),
-        paymentMethod: payMethod as any,
-        referenceNumber: payRef.trim() || undefined,
-      },
+      requisitionId: req.id,
+      vendorId: req.vendor_id!,
+      amount: Number(payAmount),
+      paymentMethod: payMethod as any,
+      ...(payRef.trim() && { referenceNumber: payRef.trim() }),
     });
     setSaving(false);
     if (result.success) {
@@ -2390,7 +2376,7 @@ function PaymentsSection({
 function ApprovalTimeline({ requisitionId }: { requisitionId: string }) {
   const { data: history, isLoading } = useQuery({
     queryKey: ["requisition-history", requisitionId],
-    queryFn: () => fetchRequisitionHistory({ data: { requisitionId } }),
+    queryFn: () => fetchRequisitionHistory({ requisitionId }),
     staleTime: 30000,
   });
 
@@ -2494,19 +2480,17 @@ function DocumentSection({ req, onChanged }: { req: RequisitionRow; onChanged: (
     reader.onload = async () => {
       const base64 = (reader.result as string).split(",")[1] ?? "";
       const result = await uploadFile({
-        data: {
           bucket: "documents",
           path,
           contentType: file.type || "application/octet-stream",
           fileData: base64,
-        },
       });
       setUploading(false);
       if (result.success) {
         // Store the full storage path (not just filename) so we can generate signed URLs later
         const updated = [...documents, path];
         setDocuments(updated);
-        await updateRequisitionDetails({ data: { id: req.id, documents: updated } });
+        await updateRequisitionDetails({ id: req.id, documents: updated });
         toast.success(`${file.name} uploaded`);
         onChanged();
       } else {
@@ -2521,7 +2505,7 @@ function DocumentSection({ req, onChanged }: { req: RequisitionRow; onChanged: (
     const tab = window.open("", "_blank");
     setLoadingUrl(true);
     setViewing(docPath);
-    const result = await getSignedUrl({ data: { bucket: "documents", path: docPath } });
+    const result = await getSignedUrl({ bucket: "documents", path: docPath });
     setLoadingUrl(false);
     if (result.success && result.url) {
       if (tab) {

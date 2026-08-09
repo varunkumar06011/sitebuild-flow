@@ -32,14 +32,14 @@ function BackupVerificationPage() {
 
   const { data: logData, isLoading } = useQuery({
     queryKey: ["backup-log"],
-    queryFn: () => fetchBackupLog({ data: {} }),
+    queryFn: () => fetchBackupLog(),
   });
   const log = logData?.data ?? [];
 
   const handleRun = async () => {
     setRunning(true);
     try {
-      const result = await runBackupVerification({ data: notes ? { notes } : {} });
+      const result = await runBackupVerification(notes ? { notes } : {});
       if (result.success) {
         const msg =
           result.failedTables.length === 0

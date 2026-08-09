@@ -39,7 +39,7 @@ export function useApprovalActions(approverLabel?: string): ApprovalActions {
   const approve = async (id: string, prNumber: string, expectedStage: string): Promise<boolean> => {
     if (processingId) return false;
     setProcessingId(id);
-    const result = await updateRequisitionStage({ data: { id, newStage: "PO", expectedStage } });
+    const result = await updateRequisitionStage({ id, newStage: "PO", expectedStage });
     setProcessingId(null);
     if (result.success) {
       setDecided((d) => ({ ...d, [id]: "Approved" }));
@@ -60,12 +60,10 @@ export function useApprovalActions(approverLabel?: string): ApprovalActions {
     if (processingId) return false;
     setProcessingId(id);
     const result = await updateRequisitionStage({
-      data: {
-        id,
-        newStage: "Quotation",
-        expectedStage,
-        rejectionReason: reason?.trim() || undefined,
-      },
+      id,
+      newStage: "Quotation",
+      expectedStage,
+      rejectionReason: reason?.trim() || undefined,
     });
     setProcessingId(null);
     if (result.success) {

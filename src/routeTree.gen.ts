@@ -29,6 +29,7 @@ import { Route as LabourRouteImport } from './routes/labour'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MedicalEquipmentRouteImport } from './routes/medical-equipment'
 import { Route as NotificationSettingsRouteImport } from './routes/notification-settings'
+import { Route as OfflineSyncRouteImport } from './routes/offline-sync'
 import { Route as PartsOrdersRouteImport } from './routes/parts-orders'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as ProcurementRouteImport } from './routes/procurement'
@@ -38,11 +39,13 @@ import { Route as ProgressTrackingRouteImport } from './routes/progress-tracking
 import { Route as PunchListRouteImport } from './routes/punch-list'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RegistersRouteImport } from './routes/registers'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RetentionRouteImport } from './routes/retention'
 import { Route as RoleAuditRouteImport } from './routes/role-audit'
 import { Route as SafetyRouteImport } from './routes/safety'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
+import { Route as SystemRobustnessRouteImport } from './routes/system-robustness'
 import { Route as TdsGstRouteImport } from './routes/tds-gst'
 import { Route as TraceabilityRouteImport } from './routes/traceability'
 import { Route as UsersRouteImport } from './routes/users'
@@ -163,6 +166,11 @@ const NotificationSettingsRoute = NotificationSettingsRouteImport.update({
   path: '/notification-settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OfflineSyncRoute = OfflineSyncRouteImport.update({
+  id: '/offline-sync',
+  path: '/offline-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PartsOrdersRoute = PartsOrdersRouteImport.update({
   id: '/parts-orders',
   path: '/parts-orders',
@@ -208,6 +216,11 @@ const RegistersRoute = RegistersRouteImport.update({
   path: '/registers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RetentionRoute = RetentionRouteImport.update({
   id: '/retention',
   path: '/retention',
@@ -231,6 +244,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SupervisorRoute = SupervisorRouteImport.update({
   id: '/supervisor',
   path: '/supervisor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SystemRobustnessRoute = SystemRobustnessRouteImport.update({
+  id: '/system-robustness',
+  path: '/system-robustness',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TdsGstRoute = TdsGstRouteImport.update({
@@ -350,6 +368,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRouteWithChildren
   '/medical-equipment': typeof MedicalEquipmentRoute
   '/notification-settings': typeof NotificationSettingsRoute
+  '/offline-sync': typeof OfflineSyncRoute
   '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
@@ -359,11 +378,13 @@ export interface FileRoutesByFullPath {
   '/punch-list': typeof PunchListRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/reports': typeof ReportsRoute
   '/retention': typeof RetentionRoute
   '/role-audit': typeof RoleAuditRoute
   '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
+  '/system-robustness': typeof SystemRobustnessRoute
   '/tds-gst': typeof TdsGstRoute
   '/traceability': typeof TraceabilityRoute
   '/users': typeof UsersRoute
@@ -404,6 +425,7 @@ export interface FileRoutesByTo {
   '/labour': typeof LabourRoute
   '/medical-equipment': typeof MedicalEquipmentRoute
   '/notification-settings': typeof NotificationSettingsRoute
+  '/offline-sync': typeof OfflineSyncRoute
   '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
@@ -413,11 +435,13 @@ export interface FileRoutesByTo {
   '/punch-list': typeof PunchListRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/reports': typeof ReportsRoute
   '/retention': typeof RetentionRoute
   '/role-audit': typeof RoleAuditRoute
   '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
+  '/system-robustness': typeof SystemRobustnessRoute
   '/tds-gst': typeof TdsGstRoute
   '/traceability': typeof TraceabilityRoute
   '/users': typeof UsersRoute
@@ -460,6 +484,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRouteWithChildren
   '/medical-equipment': typeof MedicalEquipmentRoute
   '/notification-settings': typeof NotificationSettingsRoute
+  '/offline-sync': typeof OfflineSyncRoute
   '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
@@ -469,11 +494,13 @@ export interface FileRoutesById {
   '/punch-list': typeof PunchListRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
+  '/reports': typeof ReportsRoute
   '/retention': typeof RetentionRoute
   '/role-audit': typeof RoleAuditRoute
   '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
+  '/system-robustness': typeof SystemRobustnessRoute
   '/tds-gst': typeof TdsGstRoute
   '/traceability': typeof TraceabilityRoute
   '/users': typeof UsersRoute
@@ -517,6 +544,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/medical-equipment'
     | '/notification-settings'
+    | '/offline-sync'
     | '/parts-orders'
     | '/portal'
     | '/procurement'
@@ -526,11 +554,13 @@ export interface FileRouteTypes {
     | '/punch-list'
     | '/quality'
     | '/registers'
+    | '/reports'
     | '/retention'
     | '/role-audit'
     | '/safety'
     | '/settings'
     | '/supervisor'
+    | '/system-robustness'
     | '/tds-gst'
     | '/traceability'
     | '/users'
@@ -571,6 +601,7 @@ export interface FileRouteTypes {
     | '/labour'
     | '/medical-equipment'
     | '/notification-settings'
+    | '/offline-sync'
     | '/parts-orders'
     | '/portal'
     | '/procurement'
@@ -580,11 +611,13 @@ export interface FileRouteTypes {
     | '/punch-list'
     | '/quality'
     | '/registers'
+    | '/reports'
     | '/retention'
     | '/role-audit'
     | '/safety'
     | '/settings'
     | '/supervisor'
+    | '/system-robustness'
     | '/tds-gst'
     | '/traceability'
     | '/users'
@@ -626,6 +659,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/medical-equipment'
     | '/notification-settings'
+    | '/offline-sync'
     | '/parts-orders'
     | '/portal'
     | '/procurement'
@@ -635,11 +669,13 @@ export interface FileRouteTypes {
     | '/punch-list'
     | '/quality'
     | '/registers'
+    | '/reports'
     | '/retention'
     | '/role-audit'
     | '/safety'
     | '/settings'
     | '/supervisor'
+    | '/system-robustness'
     | '/tds-gst'
     | '/traceability'
     | '/users'
@@ -682,6 +718,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRouteWithChildren
   MedicalEquipmentRoute: typeof MedicalEquipmentRoute
   NotificationSettingsRoute: typeof NotificationSettingsRoute
+  OfflineSyncRoute: typeof OfflineSyncRoute
   PartsOrdersRoute: typeof PartsOrdersRoute
   PortalRoute: typeof PortalRouteWithChildren
   ProcurementRoute: typeof ProcurementRoute
@@ -691,11 +728,13 @@ export interface RootRouteChildren {
   PunchListRoute: typeof PunchListRoute
   QualityRoute: typeof QualityRoute
   RegistersRoute: typeof RegistersRoute
+  ReportsRoute: typeof ReportsRoute
   RetentionRoute: typeof RetentionRoute
   RoleAuditRoute: typeof RoleAuditRoute
   SafetyRoute: typeof SafetyRoute
   SettingsRoute: typeof SettingsRoute
   SupervisorRoute: typeof SupervisorRoute
+  SystemRobustnessRoute: typeof SystemRobustnessRoute
   TdsGstRoute: typeof TdsGstRoute
   TraceabilityRoute: typeof TraceabilityRoute
   UsersRoute: typeof UsersRoute
@@ -846,6 +885,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/offline-sync': {
+      id: '/offline-sync'
+      path: '/offline-sync'
+      fullPath: '/offline-sync'
+      preLoaderRoute: typeof OfflineSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/parts-orders': {
       id: '/parts-orders'
       path: '/parts-orders'
@@ -909,6 +955,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegistersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/retention': {
       id: '/retention'
       path: '/retention'
@@ -942,6 +995,13 @@ declare module '@tanstack/react-router' {
       path: '/supervisor'
       fullPath: '/supervisor'
       preLoaderRoute: typeof SupervisorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system-robustness': {
+      id: '/system-robustness'
+      path: '/system-robustness'
+      fullPath: '/system-robustness'
+      preLoaderRoute: typeof SystemRobustnessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tds-gst': {
@@ -1144,6 +1204,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRouteWithChildren,
   MedicalEquipmentRoute: MedicalEquipmentRoute,
   NotificationSettingsRoute: NotificationSettingsRoute,
+  OfflineSyncRoute: OfflineSyncRoute,
   PartsOrdersRoute: PartsOrdersRoute,
   PortalRoute: PortalRouteWithChildren,
   ProcurementRoute: ProcurementRoute,
@@ -1153,11 +1214,13 @@ const rootRouteChildren: RootRouteChildren = {
   PunchListRoute: PunchListRoute,
   QualityRoute: QualityRoute,
   RegistersRoute: RegistersRoute,
+  ReportsRoute: ReportsRoute,
   RetentionRoute: RetentionRoute,
   RoleAuditRoute: RoleAuditRoute,
   SafetyRoute: SafetyRoute,
   SettingsRoute: SettingsRoute,
   SupervisorRoute: SupervisorRoute,
+  SystemRobustnessRoute: SystemRobustnessRoute,
   TdsGstRoute: TdsGstRoute,
   TraceabilityRoute: TraceabilityRoute,
   UsersRoute: UsersRoute,

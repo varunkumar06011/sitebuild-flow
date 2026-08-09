@@ -185,18 +185,16 @@ function LabourPage() {
     queryKey: ["attendance", search, workCatFilter, fromDate, toDate],
     queryFn: () =>
       fetchAttendance({
-        data: {
-          workCategory: workCatFilter !== "all" ? workCatFilter : undefined,
-          fromDate: fromDate || undefined,
-          toDate: toDate || undefined,
-          contractorName: search || undefined,
-        } as any,
+        ...(workCatFilter !== "all" && { workCategory: workCatFilter }),
+        ...(fromDate && { fromDate }),
+        ...(toDate && { toDate }),
+        ...(search && { contractorName: search }),
       }),
   });
 
   const { data: catData } = useQuery({
     queryKey: ["workCategories"],
-    queryFn: () => fetchWorkCategories({ data: {} }),
+    queryFn: () => fetchWorkCategories(),
   });
   const categories = catData?.data ?? [];
 
@@ -204,11 +202,9 @@ function LabourPage() {
     queryKey: ["manpowerCost", fromDate, toDate, workCatFilter],
     queryFn: () =>
       getManpowerCostSummary({
-        data: {
-          fromDate: fromDate || undefined,
-          toDate: toDate || undefined,
-          workCategory: workCatFilter !== "all" ? workCatFilter : undefined,
-        } as any,
+        ...(fromDate && { fromDate }),
+        ...(toDate && { toDate }),
+        ...(workCatFilter !== "all" && { workCategory: workCatFilter }),
       }),
     enabled: isAdmin,
   });
@@ -258,7 +254,7 @@ function LabourPage() {
       };
 
       if (editing) {
-        const result = await updateAttendance({ data: { id: editing.id, ...payload } });
+        const result = await updateAttendance({ id: editing.id, ...payload } as any);
         if (result.success) {
           toast.success("Attendance updated");
           setDialogOpen(false);
@@ -269,7 +265,7 @@ function LabourPage() {
         }
       } else {
         const result = await withOfflineQueue("labour-attendance", payload, () =>
-          markAttendance({ data: payload as any }),
+          markAttendance(payload as any),
         );
         if ("queued" in result) {
           setDialogOpen(false);

@@ -74,7 +74,7 @@ function UsersPage() {
   const queryClient = useQueryClient();
   const { role: currentUserRole } = useRole();
 
-  const { data } = useQuery({ queryKey: ["users"], queryFn: () => fetchUsers({ data: {} }) });
+  const { data } = useQuery({ queryKey: ["users"], queryFn: () => fetchUsers() });
   const users = (data?.data ?? []) as any[];
 
   const [search, setSearch] = useState("");
@@ -133,7 +133,7 @@ function UsersPage() {
         };
         if (form.password) updates.password = form.password;
 
-        const result = await updateUser({ data: updates });
+        const result = await updateUser(updates);
         if (result.success) {
           toast.success("User updated");
           setDialogOpen(false);
@@ -143,13 +143,11 @@ function UsersPage() {
         }
       } else {
         const result = await createUser({
-          data: {
             username: form.username.trim(),
             password: form.password,
             name: form.name.trim(),
             role: form.role as "Supervisor" | "Administrator" | "A1" | "A1+",
-            phone: form.phone.trim() || undefined,
-          },
+            ...(form.phone.trim() && { phone: form.phone.trim() }),
         });
         if (result.success) {
           toast.success("User created");
@@ -168,7 +166,7 @@ function UsersPage() {
   const handleDelete = async (id: string) => {
     setDeleting(id);
     try {
-      const result = await deleteUser({ data: { id } });
+      const result = await deleteUser({ id });
       if (result.success) {
         toast.success("User deleted");
         queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -184,7 +182,7 @@ function UsersPage() {
   const handleUnlock = async (id: string) => {
     setUnlocking(id);
     try {
-      const result = await unlockUser({ data: { id } });
+      const result = await unlockUser({ id });
       if (result.success) {
         toast.success("Account unlocked");
         queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -438,7 +436,7 @@ function ActiveSessionsSection() {
 
   const { data: sessionsData, isLoading } = useQuery({
     queryKey: ["active-sessions"],
-    queryFn: () => fetchActiveSessions({ data: {} }),
+    queryFn: () => fetchActiveSessions(),
   });
   const sessions = sessionsData?.data ?? [];
 
@@ -446,7 +444,7 @@ function ActiveSessionsSection() {
     if (!confirm("Force-revoke this session? The user will be logged out immediately.")) return;
     setRevoking(id);
     try {
-      const result = await revokeSession({ data: { id } });
+      const result = await revokeSession({ id });
       if (result.success) {
         toast.success("Session revoked");
         queryClient.invalidateQueries({ queryKey: ["active-sessions"] });

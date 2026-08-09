@@ -100,7 +100,7 @@ export function GlobalSearch() {
   // Entity search — only fires when query is at least 2 characters
   const { data: entityData } = useQuery({
     queryKey: ["global-entity-search", debouncedQuery],
-    queryFn: () => globalEntitySearch({ data: { query: debouncedQuery } }),
+    queryFn: () => globalEntitySearch({ query: debouncedQuery }),
     enabled: open && debouncedQuery.length >= 2,
     staleTime: 30 * 1000,
   });

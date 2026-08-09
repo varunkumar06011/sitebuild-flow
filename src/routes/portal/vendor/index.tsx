@@ -51,9 +51,14 @@ export const Route = createFileRoute("/portal/vendor/")({
     meta: [{ title: "Vendor Portal — Meditrust ERP" }],
   }),
   beforeLoad: async () => {
-    const result = await verifyPortalSession();
-    if (!result.authenticated || result.account?.account_type !== "vendor") {
-      throw new Error("Vendor login required");
+    try {
+      const result = await verifyPortalSession();
+      if (!result.authenticated || result.account?.account_type !== "vendor") {
+        throw redirect({ to: "/portal/vendor/login" });
+      }
+    } catch (err: any) {
+      if (err?.status === 307 || err?.name === "RedirectError") throw err;
+      throw redirect({ to: "/portal/vendor/login" });
     }
   },
   component: VendorPortalPage,
@@ -89,13 +94,13 @@ function VendorPortalPage() {
 
   const { data: profileData } = useQuery({
     queryKey: ["vendor-profile"],
-    queryFn: () => fetchVendorProfile({ data: {} }),
+    queryFn: () => fetchVendorProfile(),
   });
   const profile = profileData?.data;
 
   const { data: outstandingData } = useQuery({
     queryKey: ["vendor-outstanding"],
-    queryFn: () => fetchVendorOutstanding({ data: {} }),
+    queryFn: () => fetchVendorOutstanding(),
   });
   const outstanding = outstandingData?.data;
 
@@ -206,7 +211,7 @@ function VendorPortalPage() {
 function VendorPOsTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["vendor-pos"],
-    queryFn: () => fetchVendorPOs({ data: {} }),
+    queryFn: () => fetchVendorPOs(),
   });
   const pos = (data?.data ?? []) as any[];
 
@@ -326,11 +331,9 @@ function DeliveryDialog({ po, onClose }: { po: any; onClose: () => void }) {
     setSaving(true);
     try {
       const result = await updateDeliveryStatus({
-        data: {
-          requisition_id: po.id,
-          delivery_date: form.delivery_date || undefined,
-          quantity_received: form.quantity_received || undefined,
-        },
+        requisition_id: po.id,
+        delivery_date: form.delivery_date || undefined,
+        quantity_received: form.quantity_received || undefined,
       });
       if (result.success) {
         toast.success("Delivery status updated");
@@ -420,12 +423,10 @@ function UploadDialog({ po, onClose }: { po: any; onClose: () => void }) {
         const filePath = `vendor-uploads/${po.id}/${docType}-${Date.now()}-${file.name}`;
 
         const uploadResult = await uploadFile({
-          data: {
             bucket: "documents",
             path: filePath,
             contentType: file.type,
             fileData: base64,
-          },
         });
 
         if (!uploadResult.success) {
@@ -435,12 +436,10 @@ function UploadDialog({ po, onClose }: { po: any; onClose: () => void }) {
         }
 
         const result = await uploadVendorDocument({
-          data: {
             requisition_id: po.id,
             doc_type: docType as any,
             file_path: filePath,
             file_name: file.name,
-          },
         });
 
         if (result.success) {
@@ -516,7 +515,7 @@ function UploadDialog({ po, onClose }: { po: any; onClose: () => void }) {
 function VendorPaymentsTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["vendor-payments"],
-    queryFn: () => fetchVendorPayments({ data: {} }),
+    queryFn: () => fetchVendorPayments(),
   });
   const payments = (data?.data ?? []) as any[];
 

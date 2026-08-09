@@ -65,15 +65,15 @@ function Registers() {
   const queryClient = useQueryClient();
   const { data: visData } = useQuery({
     queryKey: ["visitors"],
-    queryFn: () => fetchVisitors({ data: {} }),
+    queryFn: () => fetchVisitors({}),
   });
   const { data: vehData } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => fetchVehicles({ data: {} }),
+    queryFn: () => fetchVehicles({}),
   });
   const { data: labData } = useQuery({
     queryKey: ["labour"],
-    queryFn: () => fetchLabour({ data: {} }),
+    queryFn: () => fetchLabour({}),
   });
   const visitors = visData?.data ?? [];
   const vehicles = vehData?.data ?? [];
@@ -99,7 +99,7 @@ function Registers() {
           <VisitorTab
             visitors={visitors}
             onCheckout={async (id) => {
-              const result = await checkOutVisitor({ data: { id } });
+              const result = await checkOutVisitor({ id });
               if (result.success) {
                 toast.success("Visitor checked out");
                 queryClient.invalidateQueries({ queryKey: ["visitors"] });
@@ -117,7 +117,7 @@ function Registers() {
           <VehicleTab
             vehicles={vehicles}
             onCheckout={async (id) => {
-              const result = await checkOutVehicle({ data: { id } });
+              const result = await checkOutVehicle({ id });
               if (result.success) {
                 toast.success("Vehicle checked out");
                 queryClient.invalidateQueries({ queryKey: ["vehicles"] });
@@ -167,12 +167,10 @@ function VisitorTab({
     setSaving(true);
     try {
       const result = await createVisitor({
-        data: {
-          name: form.name.trim(),
-          org: form.org.trim() || undefined,
-          purpose: form.purpose.trim() || undefined,
-          host: form.host.trim() || undefined,
-        },
+        name: form.name.trim(),
+        org: form.org.trim() || undefined,
+        purpose: form.purpose.trim() || undefined,
+        host: form.host.trim() || undefined,
       });
       if (result.success) {
         toast.success("Visitor checked in");
@@ -363,12 +361,10 @@ function VehicleTab({
     setSaving(true);
     try {
       const result = await createVehicle({
-        data: {
-          number: form.number.trim(),
-          type: form.type.trim() || undefined,
-          driver: form.driver.trim() || undefined,
-          material: form.material.trim() || undefined,
-        },
+        number: form.number.trim(),
+        type: form.type.trim() || undefined,
+        driver: form.driver.trim() || undefined,
+        material: form.material.trim() || undefined,
       });
       if (result.success) {
         toast.success("Vehicle entry logged");
@@ -557,13 +553,11 @@ function LabourTab({ labour, onCreated }: { labour: any[]; onCreated: () => void
     setSaving(true);
     try {
       const result = await createLabour({
-        data: {
-          trade: form.trade.trim(),
-          contractor: form.contractor.trim() || undefined,
-          planned: form.planned ? Number(form.planned) : 0,
-          present: form.present ? Number(form.present) : 0,
-          block: form.block.trim() || undefined,
-        },
+        trade: form.trade.trim(),
+        contractor: form.contractor.trim() || undefined,
+        planned: form.planned ? Number(form.planned) : 0,
+        present: form.present ? Number(form.present) : 0,
+        block: form.block.trim() || undefined,
       });
       if (result.success) {
         toast.success("Labour attendance recorded");

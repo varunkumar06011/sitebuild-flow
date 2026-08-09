@@ -78,7 +78,7 @@ function MedicalEquipmentPage() {
   const queryClient = useQueryClient();
   const { data: eqData } = useQuery({
     queryKey: ["equipment"],
-    queryFn: () => fetchEquipment({ data: {} }),
+    queryFn: () => fetchEquipment({}),
   });
   const equipment = eqData?.data ?? [];
 
@@ -243,12 +243,10 @@ function MedicalEquipmentPage() {
         });
         const path = `equipment/${Date.now()}-${file.name}`;
         const result = await uploadFile({
-          data: {
             bucket: "photos",
             path,
             contentType: file.type || "image/jpeg",
             fileData: base64,
-          },
         });
         if (result.success) paths.push(path);
       }
@@ -294,7 +292,7 @@ function MedicalEquipmentPage() {
       };
 
       if (editing) {
-        const result = await updateEquipment({ data: { id: editing.id, ...payload } });
+        const result = await updateEquipment({ id: editing.id, ...payload });
         if (result.success) {
           toast.success("Equipment updated");
           setDialogOpen(false);
@@ -303,7 +301,7 @@ function MedicalEquipmentPage() {
           toast.error(result.error ?? "Failed to update equipment");
         }
       } else {
-        const result = await createEquipment({ data: payload });
+        const result = await createEquipment(payload);
         if (result.success) {
           toast.success("Equipment created");
           setDialogOpen(false);

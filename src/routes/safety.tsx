@@ -190,18 +190,16 @@ function SafetyPage() {
     queryKey: ["safetyIncidents", search, typeFilter, severityFilter],
     queryFn: () =>
       fetchIncidents({
-        data: {
-          type: typeFilter !== "all" ? typeFilter : undefined,
-          severity: severityFilter !== "all" ? severityFilter : undefined,
-          contractorName: search || undefined,
-        } as any,
+        ...(typeFilter !== "all" && { type: typeFilter }),
+        ...(severityFilter !== "all" && { severity: severityFilter }),
+        ...(search && { contractorName: search }),
       }),
   });
   const incidents = incData?.data ?? [];
 
   const { data: dashData } = useQuery({
     queryKey: ["safetyDashboard"],
-    queryFn: () => getSafetyDashboardStats({ data: {} }),
+    queryFn: () => getSafetyDashboardStats(),
     enabled: isAdmin,
   });
 
@@ -230,12 +228,10 @@ function SafetyPage() {
       });
       const path = `safety/${Date.now()}-${file.name}`;
       const result = await uploadFile({
-        data: {
           bucket: "photos",
           path,
           contentType: file.type || "image/jpeg",
           fileData: base64,
-        },
       });
       if (result.success) {
         setPhotoPath(path);
@@ -267,7 +263,7 @@ function SafetyPage() {
       };
 
       const result = await withOfflineQueue("safety-incident", payload, () =>
-        reportIncident({ data: payload as any }),
+        reportIncident(payload as any),
       );
 
       if ("queued" in result) {
@@ -288,7 +284,7 @@ function SafetyPage() {
 
   async function handleStatusChange(id: string, status: string) {
     try {
-      const result = await updateIncidentStatus({ data: { id, status } as any });
+      const result = await updateIncidentStatus({ id, status });
       if (result.success) {
         toast.success(`Status updated to ${status}`);
         queryClient.invalidateQueries({ queryKey: ["safetyIncidents"] });

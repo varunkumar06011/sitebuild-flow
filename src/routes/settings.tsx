@@ -80,17 +80,15 @@ function SettingsPage() {
     setSaving(true);
     try {
       const result = await updateOrgSettings({
-        data: {
-          name: form.name.trim(),
-          gst_number: form.gst_number.trim() || undefined,
-          address: form.address.trim() || undefined,
-          city: form.city.trim() || undefined,
-          state: form.state.trim() || undefined,
-          pincode: form.pincode.trim() || undefined,
-          phone: form.phone.trim() || undefined,
-          email: form.email.trim() || undefined,
-          logo_url: form.logo_url.trim() || undefined,
-        },
+        name: form.name.trim(),
+        gst_number: form.gst_number.trim() || undefined,
+        address: form.address.trim() || undefined,
+        city: form.city.trim() || undefined,
+        state: form.state.trim() || undefined,
+        pincode: form.pincode.trim() || undefined,
+        phone: form.phone.trim() || undefined,
+        email: form.email.trim() || undefined,
+        logo_url: form.logo_url.trim() || undefined,
       });
       if (result.success) {
         toast.success("Settings saved");

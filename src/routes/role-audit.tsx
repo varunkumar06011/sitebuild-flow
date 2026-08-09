@@ -42,7 +42,7 @@ const ACTION_LABEL: Record<string, string> = {
 function RoleAuditPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["role-change-audit"],
-    queryFn: () => fetchRoleChangeAudit({ data: {} }),
+    queryFn: () => fetchRoleChangeAudit(),
   });
   const entries = data?.data ?? [];
 

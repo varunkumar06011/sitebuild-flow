@@ -50,37 +50,37 @@ function A1PlusDashboard() {
     error: reqErr,
   } = useQuery({
     queryKey: ["requisitions"],
-    queryFn: () => fetchRequisitions({ data: {} }),
+    queryFn: () => fetchRequisitions({}),
     refetchInterval: (q) => (q.state.error ? false : 15000),
   });
   const { data: inspData } = useQuery({
     queryKey: ["inspections"],
-    queryFn: () => fetchInspections({ data: {} }),
+    queryFn: () => fetchInspections({}),
   });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
   const { data: batchData } = useQuery({
     queryKey: ["batches"],
-    queryFn: () => fetchBatches({ data: {} }),
+    queryFn: () => fetchBatches({}),
   });
   const { data: gpData } = useQuery({
     queryKey: ["gatePasses"],
-    queryFn: () => fetchGatePasses({ data: {} }),
+    queryFn: () => fetchGatePasses({}),
   });
   const { data: labourData } = useQuery({
     queryKey: ["labour"],
-    queryFn: () => fetchLabour({ data: {} }),
+    queryFn: () => fetchLabour({}),
   });
   const { data: partsData } = useQuery({
     queryKey: ["partsOrders", "a1plus"],
-    queryFn: () => fetchPartsOrders({ data: { limit: 5 } as any }),
+    queryFn: () => fetchPartsOrders({ limit: 5 } as any),
   });
   const { data: workData } = useQuery({
     queryKey: ["workOrders", "a1plus"],
-    queryFn: () => fetchWorkOrders({ data: { limit: 5 } as any }),
+    queryFn: () => fetchWorkOrders({ limit: 5 } as any),
   });
   const { data: docsData } = useQuery({
     queryKey: ["documents", "a1plus"],
-    queryFn: () => fetchDocuments({ data: { limit: 5 } as any }),
+    queryFn: () => fetchDocuments({ limit: 5 }),
   });
 
   const requisitions: RequisitionRow[] = reqData?.data ?? [];

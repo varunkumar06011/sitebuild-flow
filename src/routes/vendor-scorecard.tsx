@@ -109,11 +109,9 @@ function VendorScorecardPage() {
     queryKey: ["vendors", search, workCatFilter],
     queryFn: () =>
       fetchVendors({
-        data: {
-          search: search || undefined,
-          workCategory: workCatFilter !== "all" ? workCatFilter : undefined,
-          limit: 100,
-        } as any,
+        ...(search && { search }),
+        ...(workCatFilter !== "all" && { workCategory: workCatFilter }),
+        limit: 100,
       }),
   });
   const vendors = vendorData?.data ?? [];
@@ -125,7 +123,7 @@ function VendorScorecardPage() {
       const results: Record<string, any> = {};
       for (const v of vendors) {
         try {
-          const sc = await getVendorScorecard({ data: { vendorId: (v as any).id } });
+          const sc = await getVendorScorecard({ vendorId: (v as any).id });
           if (sc.success !== false) {
             results[(v as any).id] = sc;
           }
@@ -143,7 +141,7 @@ function VendorScorecardPage() {
   // Detail dialog scorecard
   const { data: detailScore, isFetching: detailLoading } = useQuery({
     queryKey: ["vendorScorecard", detailVendor?.id],
-    queryFn: () => getVendorScorecard({ data: { vendorId: detailVendor.id } }),
+    queryFn: () => getVendorScorecard({ vendorId: detailVendor.id }),
     enabled: !!detailVendor,
   });
 

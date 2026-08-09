@@ -74,14 +74,14 @@ function RetentionPage() {
   const queryClient = useQueryClient();
   const { data } = useQuery({
     queryKey: ["retention"],
-    queryFn: () => fetchRetentionRecords({ data: {} }),
+    queryFn: () => fetchRetentionRecords({}),
   });
   const records = (data?.data ?? []) as any[];
   const summary = (data as any)?.summary;
 
   const { data: vendorData } = useQuery({
     queryKey: ["vendors-list"],
-    queryFn: () => fetchVendors({ data: {} }),
+    queryFn: () => fetchVendors({}),
   });
   const vendors = (vendorData?.data ?? []) as any[];
 
@@ -174,7 +174,7 @@ function RetentionPage() {
       };
 
       if (editing) {
-        const result = await updateRetentionRecord({ data: { id: editing.id, ...payload } });
+        const result = await updateRetentionRecord({ id: editing.id, ...payload });
         if (result.success) {
           toast.success("Retention record updated");
           setDialogOpen(false);
@@ -183,7 +183,7 @@ function RetentionPage() {
           toast.error(result.error ?? "Failed to update record");
         }
       } else {
-        const result = await createRetentionRecord({ data: payload });
+        const result = await createRetentionRecord(payload);
         if (result.success) {
           toast.success("Retention record created");
           setDialogOpen(false);

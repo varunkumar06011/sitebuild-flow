@@ -165,23 +165,21 @@ function PunchListPage() {
     queryKey: ["punchItems", search, zoneFilter, statusFilter],
     queryFn: () =>
       fetchPunchItems({
-        data: {
-          zone: zoneFilter !== "all" ? zoneFilter : undefined,
-          status: statusFilter !== "all" ? statusFilter : undefined,
-        } as any,
+        ...(zoneFilter !== "all" && { zone: zoneFilter }),
+        ...(statusFilter !== "all" && { status: statusFilter }),
       }),
   });
   const items = punchData?.data ?? [];
 
   const { data: readinessData } = useQuery({
     queryKey: ["zoneReadiness"],
-    queryFn: () => getZoneReadinessSummary({ data: {} }),
+    queryFn: () => getZoneReadinessSummary(),
     enabled: isAdmin,
   });
 
   const { data: vendorData } = useQuery({
     queryKey: ["vendors"],
-    queryFn: () => fetchVendors({ data: { limit: 100 } as any }),
+    queryFn: () => fetchVendors({ limit: 100 }),
   });
   const vendors = vendorData?.data ?? [];
 
@@ -212,12 +210,10 @@ function PunchListPage() {
       });
       const path = `punch/${Date.now()}-${file.name}`;
       const result = await uploadFile({
-        data: {
           bucket: "photos",
           path,
           contentType: file.type || "image/jpeg",
           fileData: base64,
-        },
       });
       if (result.success) {
         setPhotoPath(path);
@@ -249,7 +245,7 @@ function PunchListPage() {
       };
 
       const result = await withOfflineQueue("punch-item", payload, () =>
-        createPunchItem({ data: payload as any }),
+        createPunchItem(payload as any),
       );
 
       if ("queued" in result) {
@@ -270,7 +266,7 @@ function PunchListPage() {
 
   async function handleStatusChange(id: string, status: string) {
     try {
-      const result = await updatePunchItemStatus({ data: { id, status } as any });
+      const result = await updatePunchItemStatus({ id, status: status as any });
       if (result.success) {
         toast.success(`Status updated to ${status}`);
         queryClient.invalidateQueries({ queryKey: ["punchItems"] });

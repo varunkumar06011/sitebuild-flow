@@ -49,25 +49,25 @@ function AdministratorDashboard() {
     error: reqErr,
   } = useQuery({
     queryKey: ["requisitions"],
-    queryFn: () => fetchRequisitions({ data: {} }),
+    queryFn: () => fetchRequisitions({}),
     refetchInterval: (q) => (q.state.error ? false : 15000),
   });
   const { data: inspData } = useQuery({
     queryKey: ["inspections"],
-    queryFn: () => fetchInspections({ data: {} }),
+    queryFn: () => fetchInspections({}),
   });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
   const { data: partsData } = useQuery({
     queryKey: ["partsOrders", "admin"],
-    queryFn: () => fetchPartsOrders({ data: { limit: 5 } as any }),
+    queryFn: () => fetchPartsOrders({ limit: 5 } as any),
   });
   const { data: workData } = useQuery({
     queryKey: ["workOrders", "admin"],
-    queryFn: () => fetchWorkOrders({ data: { limit: 5 } as any }),
+    queryFn: () => fetchWorkOrders({ limit: 5 } as any),
   });
   const { data: docsData } = useQuery({
     queryKey: ["documents", "admin"],
-    queryFn: () => fetchDocuments({ data: { limit: 5 } as any }),
+    queryFn: () => fetchDocuments({ limit: 5 }),
   });
 
   const requisitions: RequisitionRow[] = reqData?.data ?? [];

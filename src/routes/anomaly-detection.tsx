@@ -76,20 +76,20 @@ function AnomalyDetectionPage() {
   const { data: anomalyData, isLoading } = useQuery({
     queryKey: ["anomalies", filter],
     queryFn: () =>
-      fetchAnomalies({ data: { dismissed: false, ...(filter !== "all" ? { type: filter } : {}) } }),
+      fetchAnomalies({ dismissed: false, ...(filter !== "all" ? { type: filter } : {}) }),
   });
   const anomalies = (anomalyData?.data ?? []) as any[];
 
   const { data: dismissedData } = useQuery({
     queryKey: ["anomalies-dismissed"],
-    queryFn: () => fetchAnomalies({ data: { dismissed: true } }),
+    queryFn: () => fetchAnomalies({ dismissed: true }),
   });
   const dismissed = (dismissedData?.data ?? []) as any[];
 
   const handleRun = async () => {
     setRunning(true);
     try {
-      const result = await runAnomalyDetection({ data: {} });
+      const result = await runAnomalyDetection();
       if (result.success) {
         toast.success(
           `Detection complete: ${result.total} anomalies found (${result.by_severity.high} high, ${result.by_severity.medium} medium, ${result.by_severity.low} low)`,
@@ -108,7 +108,7 @@ function AnomalyDetectionPage() {
   const handleDismiss = async (id: string) => {
     setDismissing(id);
     try {
-      const result = await dismissAnomaly({ data: { id } });
+      const result = await dismissAnomaly({ id });
       if (result.success) {
         toast.success("Anomaly dismissed");
         queryClient.invalidateQueries({ queryKey: ["anomalies"] });

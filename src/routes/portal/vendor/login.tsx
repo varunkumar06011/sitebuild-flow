@@ -32,7 +32,9 @@ function VendorLoginPage() {
     setLoading(true);
     try {
       const result = await loginPortalAccount({
-        data: { username, password, account_type: "vendor" },
+        username,
+        password,
+        account_type: "vendor",
       });
       if (result.success) {
         toast.success(`Welcome, ${result.account.name}`);

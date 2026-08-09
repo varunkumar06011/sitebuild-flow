@@ -202,7 +202,7 @@ function ProgressDashboardPage() {
 function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }) {
   const { data: histData } = useQuery({
     queryKey: ["cellHistory", cell.id],
-    queryFn: () => fetchCellHistory({ data: { cell_id: cell.id } }),
+    queryFn: () => fetchCellHistory({ cell_id: cell.id }),
   });
 
   const history = histData?.history ?? [];
@@ -272,7 +272,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
 function SignedPhoto({ path, caption }: { path: string; caption?: string | null }) {
   const { data } = useQuery({
     queryKey: ["signedUrl", path],
-    queryFn: () => getSignedUrl({ data: { bucket: "photos", path } }),
+    queryFn: () => getSignedUrl({ bucket: "photos", path }),
     staleTime: 300000,
   });
   const url = data?.success ? data.url : null;

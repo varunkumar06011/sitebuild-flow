@@ -70,20 +70,20 @@ function NotificationSettingsPage() {
 
   const { data: prefsData, isLoading } = useQuery({
     queryKey: ["notification-prefs"],
-    queryFn: () => fetchNotificationPreferences({ data: {} }),
+    queryFn: () => fetchNotificationPreferences(),
   });
   const prefs = prefsData?.data ?? [];
 
   const { data: queueData } = useQuery({
     queryKey: ["notification-queue"],
-    queryFn: () => fetchNotificationQueue({ data: {} }),
+    queryFn: () => fetchNotificationQueue(),
     enabled: isAdmin,
   });
   const queue = queueData?.data ?? [];
 
   const { data: providerStatusData } = useQuery({
     queryKey: ["notification-provider-status"],
-    queryFn: () => fetchProviderStatus({ data: {} }),
+    queryFn: () => fetchProviderStatus(),
     enabled: isAdmin,
   });
   const providerStatus = providerStatusData?.data;
@@ -91,7 +91,8 @@ function NotificationSettingsPage() {
   const handleToggle = async (eventType: string, channel: string, value: boolean) => {
     try {
       const result = await updateNotificationPreference({
-        data: { event_type: eventType, [channel]: value },
+        event_type: eventType,
+        [channel]: value,
       });
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["notification-prefs"] });
@@ -106,7 +107,7 @@ function NotificationSettingsPage() {
   const handleProcess = async () => {
     setProcessing(true);
     try {
-      const result = await processPendingNotifications({ data: {} });
+      const result = await processPendingNotifications();
       if (result.success) {
         toast.success(`Processed: ${result.sent} sent, ${result.failed} failed`);
         queryClient.invalidateQueries({ queryKey: ["notification-queue"] });

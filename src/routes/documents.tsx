@@ -227,25 +227,23 @@ function DocumentsPage() {
     ],
     queryFn: () =>
       fetchDocuments({
-        data: {
-          search: search || undefined,
-          documentType: typeFilter !== "all" ? typeFilter : undefined,
-          expiryStatus: expiryFilter !== "all" ? expiryFilter : undefined,
-          vendorId: vendorFilter !== "all" ? vendorFilter : undefined,
-          blockId: blockFilter !== "all" ? blockFilter : undefined,
-          workCategory: workCatFilter !== "all" ? workCatFilter : undefined,
-        } as any,
+        ...(search && { search }),
+        ...(typeFilter !== "all" && { documentType: typeFilter }),
+        ...(expiryFilter !== "all" && { expiryStatus: expiryFilter }),
+        ...(vendorFilter !== "all" && { vendorId: vendorFilter }),
+        ...(blockFilter !== "all" && { blockId: blockFilter }),
+        ...(workCatFilter !== "all" && { workCategory: workCatFilter }),
       }),
   });
 
   const { data: vendorsData } = useQuery({
     queryKey: ["vendors", "all"],
-    queryFn: () => fetchVendors({ data: { limit: 200 } }),
+    queryFn: () => fetchVendors({ limit: 200 }),
   });
 
   const { data: blocksData } = useQuery({
     queryKey: ["blocks"],
-    queryFn: () => fetchBlocks({ data: {} }),
+    queryFn: () => fetchBlocks(),
   });
 
   const documents = docsData?.data ?? [];
@@ -386,12 +384,10 @@ function DocumentsPage() {
 
         const path = `documents/${Date.now()}-${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
         const uploadResult = await uploadFile({
-          data: {
             bucket: "documents",
             path,
             contentType: selectedFile.type || "application/octet-stream",
             fileData: base64,
-          },
         });
 
         if (!uploadResult.success) {
@@ -429,7 +425,7 @@ function DocumentsPage() {
       };
 
       if (editing) {
-        const result = await updateDocument({ data: { id: editing.id, ...payload } as any });
+        const result = await updateDocument({ id: editing.id, ...payload } as any);
         if (result.success) {
           toast.success("Document updated");
           queryClient.invalidateQueries({ queryKey: ["documents"] });
@@ -437,7 +433,7 @@ function DocumentsPage() {
           toast.error(result.error ?? "Failed to update document");
         }
       } else {
-        const result = await createDocument({ data: payload as any });
+        const result = await createDocument(payload as any);
         if (result.success) {
           toast.success("Document saved");
           queryClient.invalidateQueries({ queryKey: ["documents"] });
@@ -459,7 +455,7 @@ function DocumentsPage() {
   // -------------------------------------------------------------------------
   async function handleDelete(doc: DocumentRow) {
     if (!confirm(`Delete "${doc.name}"? This will also remove the file from storage.`)) return;
-    const result = await deleteDocument({ data: { id: doc.id } });
+    const result = await deleteDocument({ id: doc.id });
     if (result.success) {
       toast.success("Document deleted");
       queryClient.invalidateQueries({ queryKey: ["documents"] });
@@ -473,7 +469,7 @@ function DocumentsPage() {
   // -------------------------------------------------------------------------
   async function handlePreview(doc: DocumentRow) {
     const tab = window.open("", "_blank");
-    const result = await getDocumentUrl({ data: { id: doc.id } });
+    const result = await getDocumentUrl({ id: doc.id });
     if (result.success && result.url) {
       if (tab) {
         tab.location.href = result.url;
@@ -489,7 +485,7 @@ function DocumentsPage() {
   }
 
   async function handleDownload(doc: DocumentRow) {
-    const result = await getDocumentUrl({ data: { id: doc.id, download: true } });
+    const result = await getDocumentUrl({ id: doc.id, download: true });
     if (result.success && result.url) {
       const a = window.document.createElement("a");
       a.href = result.url;

@@ -56,7 +56,7 @@ function formatINR(n: number): string {
 // Main budget page with summary cards, budget table and create/edit dialog.
 function BudgetPage() {
   const queryClient = useQueryClient();
-  const { data } = useQuery({ queryKey: ["budgets"], queryFn: () => fetchBudgets({ data: {} }) });
+  const { data } = useQuery({ queryKey: ["budgets"], queryFn: () => fetchBudgets() });
   const budgets = (data?.data ?? []) as any[];
   const summary = (data as any)?.summary;
 
@@ -121,7 +121,7 @@ function BudgetPage() {
       };
 
       if (editing) {
-        const result = await updateBudget({ data: { id: editing.id, ...payload } });
+        const result = await updateBudget({ id: editing.id, ...payload });
         if (result.success) {
           toast.success("Budget updated");
           setDialogOpen(false);
@@ -130,7 +130,7 @@ function BudgetPage() {
           toast.error(result.error ?? "Failed to update budget");
         }
       } else {
-        const result = await createBudget({ data: payload });
+        const result = await createBudget(payload);
         if (result.success) {
           toast.success("Budget created");
           setDialogOpen(false);
@@ -148,7 +148,7 @@ function BudgetPage() {
   const handleDelete = async (id: string) => {
     setDeleting(id);
     try {
-      const result = await deleteBudget({ data: { id } });
+      const result = await deleteBudget({ id });
       if (result.success) {
         toast.success("Budget deleted");
         queryClient.invalidateQueries({ queryKey: ["budgets"] });

@@ -32,7 +32,9 @@ function ClientLoginPage() {
     setLoading(true);
     try {
       const result = await loginPortalAccount({
-        data: { username, password, account_type: "client" },
+        username,
+        password,
+        account_type: "client",
       });
       if (result.success) {
         toast.success(`Welcome, ${result.account.name}`);

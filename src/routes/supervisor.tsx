@@ -40,19 +40,19 @@ function SupervisorDashboard() {
     data: reqData,
     isError: reqError,
     error: reqErr,
-  } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({ data: {} }) });
+  } = useQuery({ queryKey: ["requisitions"], queryFn: () => fetchRequisitions({}) });
   const { data: gpData } = useQuery({
     queryKey: ["gatePasses"],
-    queryFn: () => fetchGatePasses({ data: {} }),
+    queryFn: () => fetchGatePasses({}),
   });
   const { data: inspData } = useQuery({
     queryKey: ["inspections"],
-    queryFn: () => fetchInspections({ data: {} }),
+    queryFn: () => fetchInspections({}),
   });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
   const { data: labourData } = useQuery({
     queryKey: ["labour"],
-    queryFn: () => fetchLabour({ data: {} }),
+    queryFn: () => fetchLabour({}),
   });
 
   const requisitions = reqData?.data ?? [];

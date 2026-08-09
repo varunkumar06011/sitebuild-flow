@@ -85,7 +85,7 @@ function Approvals() {
     error,
   } = useQuery({
     queryKey: ["requisitions"],
-    queryFn: () => fetchRequisitions({ data: {} }),
+    queryFn: () => fetchRequisitions({}),
     refetchInterval: (q) => (q.state.error ? false : 15000),
   });
   const requisitions: RequisitionRow[] = useMemo(() => reqData?.data ?? [], [reqData]);

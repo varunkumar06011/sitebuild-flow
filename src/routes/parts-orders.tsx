@@ -177,28 +177,26 @@ function PartsOrdersPage() {
     queryKey: ["partsOrders", search, statusFilter, workCatFilter],
     queryFn: () =>
       fetchPartsOrders({
-        data: {
-          search: search || undefined,
-          status: statusFilter !== "all" ? statusFilter : undefined,
-          workCategory: workCatFilter !== "all" ? workCatFilter : undefined,
-        } as any,
-      }),
+        search: search || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        workCategory: workCatFilter !== "all" ? workCatFilter : undefined,
+      } as any),
   });
 
   const { data: vendorsData } = useQuery({
     queryKey: ["vendors", "all"],
-    queryFn: () => fetchVendors({ data: { limit: 200 } }),
+    queryFn: () => fetchVendors({ limit: 200 }),
   });
 
   const { data: itemsData } = useQuery({
     queryKey: ["inventoryItems", itemSearch],
-    queryFn: () => fetchItems({ data: { search: itemSearch || undefined } as any }),
+    queryFn: () => fetchItems({ search: itemSearch || undefined } as any),
     enabled: !!itemSearch,
   });
 
   const { data: blocksData } = useQuery({
     queryKey: ["blocks"],
-    queryFn: () => fetchBlocks({ data: {} }),
+    queryFn: () => fetchBlocks(),
   });
 
   const { data: orgData } = useQuery({
@@ -353,9 +351,9 @@ function PartsOrdersPage() {
 
       let result: any;
       if (editing) {
-        result = await updatePartsOrder({ data: { id: editing.id, ...payload } });
+        result = await updatePartsOrder({ id: editing.id, ...payload });
       } else {
-        result = await createPartsOrder({ data: payload });
+        result = await createPartsOrder(payload);
       }
 
       if (!result.success) {
@@ -367,7 +365,7 @@ function PartsOrdersPage() {
 
       // Update status to "Sent" if WhatsApp send requested
       if (sendWhatsApp && result.id) {
-        await updatePartsOrderStatus({ data: { id: result.id, status: "Sent" } });
+        await updatePartsOrderStatus({ id: result.id, status: "Sent" });
       }
 
       toast.success(
@@ -446,7 +444,7 @@ function PartsOrdersPage() {
   }
 
   async function handleDuplicate(order: PartsOrderRow) {
-    const result = await duplicatePartsOrder({ data: { id: order.id } });
+    const result = await duplicatePartsOrder({ id: order.id });
     if (result.success) {
       toast.success(`Duplicated as ${result.order_number}`);
       queryClient.invalidateQueries({ queryKey: ["partsOrders"] });
@@ -457,7 +455,8 @@ function PartsOrdersPage() {
 
   async function handleStatusChange(order: PartsOrderRow, newStatus: string) {
     const result = await updatePartsOrderStatus({
-      data: { id: order.id, status: newStatus as any },
+      id: order.id,
+      status: newStatus as any,
     });
     if (result.success) {
       toast.success(`Status changed to ${newStatus}`);

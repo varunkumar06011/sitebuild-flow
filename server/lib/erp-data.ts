@@ -26,3 +26,20 @@ export function canApprove(role: Role, amount: number): boolean {
   if (role === "A1") return need !== "A1+";
   return need === "Administrator";
 }
+
+export const inr = (n: number) => "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+
+export const PROCUREMENT_STAGES = [
+  "PR",
+  "Quotation",
+  "Admin",
+  "A1",
+  "A1+",
+  "PO",
+  "Material Received",
+  "Invoice",
+  "Payment",
+  "Completed",
+  "Cancelled",
+] as const;
+export type Stage = (typeof PROCUREMENT_STAGES)[number];

@@ -21,7 +21,7 @@ export function WorkCategorySelect({
 }) {
   const { data } = useQuery({
     queryKey: ["workCategories"],
-    queryFn: () => fetchWorkCategories({ data: {} }),
+    queryFn: () => fetchWorkCategories(),
   });
 
   const categories = data?.data ?? [];
@@ -51,7 +51,7 @@ const CATEGORY_TONES: Record<string, string> = {
 export function WorkCategoryBadge({ category }: { category: string }) {
   const { data } = useQuery({
     queryKey: ["workCategories"],
-    queryFn: () => fetchWorkCategories({ data: {} }),
+    queryFn: () => fetchWorkCategories(),
   });
 
   const categories = data?.data ?? [];

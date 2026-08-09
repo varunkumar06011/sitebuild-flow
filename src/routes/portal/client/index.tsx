@@ -32,9 +32,14 @@ export const Route = createFileRoute("/portal/client/")({
     meta: [{ title: "Client Portal — Meditrust ERP" }],
   }),
   beforeLoad: async () => {
-    const result = await verifyPortalSession();
-    if (!result.authenticated || result.account?.account_type !== "client") {
-      throw new Error("Client login required");
+    try {
+      const result = await verifyPortalSession();
+      if (!result.authenticated || result.account?.account_type !== "client") {
+        throw redirect({ to: "/portal/client/login" });
+      }
+    } catch (err: any) {
+      if (err?.status === 307 || err?.name === "RedirectError") throw err;
+      throw redirect({ to: "/portal/client/login" });
     }
   },
   component: ClientPortalPage,
@@ -53,7 +58,7 @@ function ClientPortalPage() {
 
   const { data: dashData, isLoading } = useQuery({
     queryKey: ["client-dashboard"],
-    queryFn: () => fetchClientDashboard({ data: {} }),
+    queryFn: () => fetchClientDashboard(),
   });
   const dash = dashData?.data;
 
@@ -249,7 +254,7 @@ function ClientPortalPage() {
 function ClientProgressTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["client-progress"],
-    queryFn: () => fetchClientProgress({ data: {} }),
+    queryFn: () => fetchClientProgress(),
   });
   const blocks = (data?.data ?? []) as any[];
 
@@ -301,7 +306,7 @@ function ClientProgressTab() {
 function ClientBudgetTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["client-budget"],
-    queryFn: () => fetchClientBudget({ data: {} }),
+    queryFn: () => fetchClientBudget(),
   });
   const budgets = (data?.data ?? []) as any[];
 
@@ -375,7 +380,7 @@ function ClientBudgetTab() {
 function ClientQualityTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["client-quality"],
-    queryFn: () => fetchClientQuality({ data: {} }),
+    queryFn: () => fetchClientQuality(),
   });
   const inspections = (data?.data ?? []) as any[];
 
@@ -464,7 +469,7 @@ function ClientQualityTab() {
 function ClientGatePassTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["client-gatepass"],
-    queryFn: () => fetchClientGatePass({ data: {} }),
+    queryFn: () => fetchClientGatePass(),
   });
   const gatePasses = (data?.data ?? []) as any[];
 

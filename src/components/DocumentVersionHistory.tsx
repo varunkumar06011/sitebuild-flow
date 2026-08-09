@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { fetchDocumentVersions } from "@/lib/api/system-robustness";
+import { fetchDocumentVersions } from "@/lib/api/system-robustness-client";
 import { History, Loader2, FileText, CheckCircle2, XCircle } from "lucide-react";
 
 interface DocumentVersionHistoryProps {

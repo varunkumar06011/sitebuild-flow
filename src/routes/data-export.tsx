@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchBackupOverview, exportTableData } from "@/lib/api/system-robustness";
+import { fetchBackupOverview, exportTableData } from "@/lib/api/system-robustness-client";
 import { useRole } from "@/lib/role-context";
 import { requireAuth } from "@/lib/auth-guards";
 import { toast } from "sonner";
@@ -139,7 +139,7 @@ function DataExportPage() {
   const { role } = useRole();
   const { data, isLoading } = useQuery({
     queryKey: ["backup-overview"],
-    queryFn: () => fetchBackupOverview({ data: {} }),
+    queryFn: () => fetchBackupOverview(),
   });
   const tables = (data?.data ?? []) as any[];
 
@@ -165,7 +165,7 @@ function DataExportPage() {
       };
       if (dateFrom) payload.dateFrom = dateFrom;
       if (dateTo) payload.dateTo = dateTo;
-      const result = await exportTableData({ data: payload });
+      const result = await exportTableData(payload);
       if (result.error) {
         toast.error(result.error);
       } else {

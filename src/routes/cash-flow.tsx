@@ -49,7 +49,7 @@ const AGING_COLORS: Record<string, string> = {
 function CashFlowPage() {
   const { data } = useQuery({
     queryKey: ["cash-flow"],
-    queryFn: () => fetchCashFlow({ data: {} }),
+    queryFn: () => fetchCashFlow(),
   });
   const summary = (data as any)?.summary;
   const vendorAging = (data as any)?.vendor_aging ?? [];

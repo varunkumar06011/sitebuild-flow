@@ -28,7 +28,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   const { data, refetch } = useQuery({
     queryKey: ["onboardingCompleted"],
-    queryFn: () => getCompletedSections({ data: {} }),
+    queryFn: () => getCompletedSections(),
     staleTime: Infinity, // cache for the session — only refetch on markComplete
   });
 
@@ -37,7 +37,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const markComplete = useCallback(
     async (sectionKey: string) => {
       try {
-        await markSectionComplete({ data: { section_key: sectionKey } });
+        await markSectionComplete({ section_key: sectionKey });
         queryClient.setQueryData(["onboardingCompleted"], (old: any) => ({
           ...old,
           data: [...(old?.data ?? []), sectionKey],

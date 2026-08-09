@@ -61,14 +61,14 @@ function TdsGstPage() {
   const queryClient = useQueryClient();
   const { data } = useQuery({
     queryKey: ["tds-gst"],
-    queryFn: () => fetchTdsGstRecords({ data: {} }),
+    queryFn: () => fetchTdsGstRecords({}),
   });
   const records = (data?.data ?? []) as any[];
   const summary = (data as any)?.summary;
 
   const { data: vendorData } = useQuery({
     queryKey: ["vendors-list"],
-    queryFn: () => fetchVendors({ data: {} }),
+    queryFn: () => fetchVendors({}),
   });
   const vendors = (vendorData?.data ?? []) as any[];
 
@@ -170,7 +170,7 @@ function TdsGstPage() {
       };
 
       if (editing) {
-        const result = await updateTdsGstRecord({ data: { id: editing.id, ...payload } });
+        const result = await updateTdsGstRecord({ id: editing.id, ...payload });
         if (result.success) {
           toast.success("Record updated");
           setDialogOpen(false);
@@ -179,7 +179,7 @@ function TdsGstPage() {
           toast.error(result.error ?? "Failed to update record");
         }
       } else {
-        const result = await createTdsGstRecord({ data: payload });
+        const result = await createTdsGstRecord(payload);
         if (result.success) {
           toast.success("Record created");
           setDialogOpen(false);

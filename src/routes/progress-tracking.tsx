@@ -67,7 +67,7 @@ function ProgressTrackingPage() {
 
   const { data: cellsData } = useQuery({
     queryKey: ["myCells", statusFilter],
-    queryFn: () => fetchMyCells({ data: statusFilter !== "all" ? { status: statusFilter } : {} }),
+    queryFn: () => fetchMyCells(statusFilter !== "all" ? { status: statusFilter } : undefined),
   });
 
   const cells = cellsData?.data ?? [];
@@ -184,12 +184,10 @@ function CellEditDialog({
     setSaving(true);
     try {
       const result = await updateCell({
-        data: {
-          cell_id: cell.id,
-          status,
-          completion_pct: pct,
-          remarks: remarks || null,
-        },
+        cell_id: cell.id,
+        status,
+        completion_pct: pct,
+        remarks: remarks || null,
       });
       if (result.success) {
         toast.success("Cell updated");
@@ -214,11 +212,9 @@ function CellEditDialog({
       reader.onload = async () => {
         const base64 = (reader.result as string).split(",")[1] ?? "";
         const result = await uploadCellPhoto({
-          data: {
-            cell_id: cell.id,
-            contentType: file.type || "image/jpeg",
-            fileData: base64,
-          },
+          cell_id: cell.id,
+          contentType: file.type || "image/jpeg",
+          fileData: base64,
         });
         if (result.success) {
           toast.success("Photo uploaded");
@@ -327,7 +323,7 @@ function CellEditDialog({
 function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }) {
   const { data: histData } = useQuery({
     queryKey: ["cellHistory", cell.id],
-    queryFn: () => fetchCellHistory({ data: { cell_id: cell.id } }),
+    queryFn: () => fetchCellHistory({ cell_id: cell.id }),
   });
 
   const history = histData?.history ?? [];
@@ -399,7 +395,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
 function SignedPhoto({ path, caption }: { path: string; caption?: string | null }) {
   const { data } = useQuery({
     queryKey: ["signedUrl", path],
-    queryFn: () => getSignedUrl({ data: { bucket: "photos", path } }),
+    queryFn: () => getSignedUrl({ bucket: "photos", path }),
     staleTime: 300000,
   });
   const url = data?.success ? data.url : null;

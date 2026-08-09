@@ -74,7 +74,7 @@ function Traceability() {
   const queryClient = useQueryClient();
   const { data: batchData } = useQuery({
     queryKey: ["batches"],
-    queryFn: () => fetchBatches({ data: {} }),
+    queryFn: () => fetchBatches({}),
   });
   const batches = batchData?.data ?? [];
 
@@ -155,12 +155,10 @@ function Traceability() {
         });
         const path = `batches/${Date.now()}-${file.name}`;
         const result = await uploadFile({
-          data: {
             bucket: "photos",
             path,
             contentType: file.type || "image/jpeg",
             fileData: base64,
-          },
         });
         if (result.success) {
           paths.push(path);
@@ -206,7 +204,7 @@ function Traceability() {
       };
 
       if (editing) {
-        const result = await updateBatch({ data: { id: editing.id, ...payload } });
+        const result = await updateBatch({ id: editing.id, ...payload });
         if (result.success) {
           toast.success("Batch updated");
           setDialogOpen(false);
@@ -215,7 +213,7 @@ function Traceability() {
           toast.error(result.error ?? "Failed to update batch");
         }
       } else {
-        const result = await createBatch({ data: payload });
+        const result = await createBatch(payload);
         if (result.success) {
           toast.success("Batch registered");
           setDialogOpen(false);
@@ -232,7 +230,7 @@ function Traceability() {
 
   const handleViewPhoto = async (path: string) => {
     const tab = window.open("", "_blank");
-    const result = await getSignedUrl({ data: { bucket: "photos", path } });
+    const result = await getSignedUrl({ bucket: "photos", path });
     if (result.success && result.url) {
       if (tab) {
         tab.location.href = result.url;

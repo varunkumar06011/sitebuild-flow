@@ -204,13 +204,13 @@ function InventorySupervisorPage() {
 
   const { data: itemsData } = useQuery({
     queryKey: ["inventory-items", search],
-    queryFn: () => fetchItems({ data: search ? { search } : {} }),
+    queryFn: () => fetchItems(search ? { search } : {}),
   });
   const items = itemsData?.data ?? [];
 
   const { data: blocksData } = useQuery({
     queryKey: ["inventory-blocks"],
-    queryFn: () => fetchBlocks({ data: {} }),
+    queryFn: () => fetchBlocks(),
   });
   const blocks = blocksData?.data ?? [];
 
@@ -233,15 +233,13 @@ function InventorySupervisorPage() {
     setSaving(true);
     try {
       const result = await recordTransaction({
-        data: {
-          item_id: form.item_id,
-          type: form.type as any,
-          quantity: Number(form.quantity),
-          is_wastage: form.type === "out" ? form.is_wastage : undefined,
-          block_id: form.block_id || null,
-          reference: form.reference.trim() || undefined,
-          remarks: form.remarks.trim() || undefined,
-        },
+        item_id: form.item_id,
+        type: form.type as any,
+        quantity: Number(form.quantity),
+        is_wastage: form.type === "out" ? form.is_wastage : undefined,
+        block_id: form.block_id || null,
+        reference: form.reference.trim() || undefined,
+        remarks: form.remarks.trim() || undefined,
       });
       if (result.success) {
         toast.success("Movement logged");

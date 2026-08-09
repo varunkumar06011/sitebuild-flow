@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { enqueueOfflineWrite, processSyncQueue, getPendingSyncCount } from "@/lib/api/offline-sync";
+import { enqueueOfflineWrite, processSyncQueue, getPendingSyncCount } from "@/lib/api/offline-sync-client";
 import { toast } from "sonner";
 
 // Wraps a server function call so that if it fails (offline/network error),
@@ -14,7 +14,7 @@ export function useOfflineSync() {
 
   const { data: pendingData, refetch } = useQuery({
     queryKey: ["pendingSyncCount"],
-    queryFn: () => getPendingSyncCount({ data: {} }),
+    queryFn: () => getPendingSyncCount(),
     refetchInterval: (q) => (q.state.error ? false : 30000),
   });
   const pendingCount = pendingData?.pending_count ?? 0;
@@ -24,7 +24,7 @@ export function useOfflineSync() {
     const handleOnline = () => {
       setIsOnline(true);
       toast.success("Back online — syncing queued items...");
-      processSyncQueue({ data: {} })
+      processSyncQueue({})
         .then((result) => {
           if (result.success && result.processed > 0) {
             toast.success(
@@ -66,12 +66,11 @@ export function useOfflineSync() {
         // Network failure — queue for offline sync
         try {
           await enqueueOfflineWrite({
-            data: {
-              entity_type: entityType as any,
-              payload,
-              device_id:
-                typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 50) : undefined,
-            },
+            entity_type: entityType as any,
+            payload,
+            ...(typeof navigator !== "undefined" && {
+              device_id: navigator.userAgent.slice(0, 50),
+            }),
           });
           refetch();
           toast.info("Saved offline — will sync when connection returns");
@@ -87,7 +86,7 @@ export function useOfflineSync() {
 
   // Manually trigger sync (e.g. from the AppShell badge button)
   const triggerSync = useCallback(async () => {
-    const result = await processSyncQueue({ data: {} });
+    const result = await processSyncQueue({});
     if (result.success) {
       if (result.processed > 0) {
         toast.success(

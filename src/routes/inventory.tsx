@@ -312,7 +312,7 @@ function InventoryPage() {
   // Category tree
   const { data: treeData } = useQuery({
     queryKey: ["inventory-categories"],
-    queryFn: () => fetchCategoryTree({ data: {} }),
+    queryFn: () => fetchCategoryTree(),
   });
   const tree = useMemo(() => buildTree(treeData?.data ?? []), [treeData]);
 
@@ -332,28 +332,28 @@ function InventoryPage() {
   // Stock levels
   const { data: stockData } = useQuery({
     queryKey: ["inventory-stock"],
-    queryFn: () => fetchStockLevels({ data: {} }),
+    queryFn: () => fetchStockLevels(),
   });
   const stockItems = stockData?.data ?? [];
 
   // Low stock alerts
   const { data: lowStockData } = useQuery({
     queryKey: ["inventory-low-stock"],
-    queryFn: () => fetchLowStockAlerts({ data: {} }),
+    queryFn: () => fetchLowStockAlerts(),
   });
   const lowStock = lowStockData?.data ?? [];
 
   // A2: Persistent inventory alerts
   const { data: alertsData } = useQuery({
     queryKey: ["inventory-alerts"],
-    queryFn: () => fetchInventoryAlerts({ data: { resolved: false } }),
+    queryFn: () => fetchInventoryAlerts({ resolved: false }),
   });
   const alerts = alertsData?.data ?? [];
 
   // B4: Instant consolidated report
   const { data: reportData } = useQuery({
     queryKey: ["inventory-instant-report"],
-    queryFn: () => fetchInstantInventoryReport({ data: {} }),
+    queryFn: () => fetchInstantInventoryReport(),
   });
   const report = reportData?.data;
 
@@ -364,7 +364,8 @@ function InventoryPage() {
     queryKey: ["inventory-wastage", wastageFrom, wastageTo],
     queryFn: () =>
       fetchWastageReport({
-        data: { fromDate: wastageFrom || undefined, toDate: wastageTo || undefined },
+        fromDate: wastageFrom || undefined,
+        toDate: wastageTo || undefined,
       }),
   });
   const wastageItems = wastageData?.data ?? [];
@@ -372,21 +373,21 @@ function InventoryPage() {
   // B2: Stock projections
   const { data: projectionsData } = useQuery({
     queryKey: ["inventory-projections"],
-    queryFn: () => fetchStockProjections({ data: {} }),
+    queryFn: () => fetchStockProjections(),
   });
   const projections = projectionsData?.data ?? [];
 
   // B3: Budgets
   const { data: budgetsData } = useQuery({
     queryKey: ["inventory-budgets"],
-    queryFn: () => fetchBudgets({ data: {} }),
+    queryFn: () => fetchBudgets(),
   });
   const budgets = budgetsData?.data ?? [];
 
   // Blocks
   const { data: blocksData } = useQuery({
     queryKey: ["inventory-blocks"],
-    queryFn: () => fetchBlocks({ data: {} }),
+    queryFn: () => fetchBlocks(),
   });
   const blocks = blocksData?.data ?? [];
 
@@ -394,7 +395,7 @@ function InventoryPage() {
   const [ledgerItem, setLedgerItem] = useState<any | null>(null);
   const { data: ledgerData } = useQuery({
     queryKey: ["inventory-ledger", ledgerItem?.item_id],
-    queryFn: () => fetchItemLedger({ data: { itemId: ledgerItem.item_id } }),
+    queryFn: () => fetchItemLedger({ itemId: ledgerItem.item_id }),
     enabled: !!ledgerItem,
   });
   const ledger = ledgerData?.data ?? [];
@@ -402,7 +403,7 @@ function InventoryPage() {
   // B3: Budget for the selected ledger item
   const { data: itemBudgetData, refetch: refetchItemBudget } = useQuery({
     queryKey: ["inventory-item-budget", ledgerItem?.item_id],
-    queryFn: () => fetchItemBudget({ data: { itemId: ledgerItem.item_id } }),
+    queryFn: () => fetchItemBudget({ itemId: ledgerItem.item_id }),
     enabled: !!ledgerItem,
   });
   const itemBudget = itemBudgetData?.data;
@@ -415,7 +416,7 @@ function InventoryPage() {
 
   // A2: Resolve alert handler
   const handleResolveAlert = async (alertId: string) => {
-    const result = await resolveInventoryAlert({ data: { alertId } });
+    const result = await resolveInventoryAlert({ alertId });
     if (result.success) {
       toast.success("Alert resolved");
       queryClient.invalidateQueries({ queryKey: ["inventory-alerts"] });
@@ -433,12 +434,10 @@ function InventoryPage() {
     }
     setBudgetSaving(true);
     const result = await setItemBudget({
-      data: {
-        item_id: ledgerItem.item_id,
-        budget_qty: Number(budgetForm.budget_qty),
-        budget_value: Number(budgetForm.budget_value) || 0,
-        alert_threshold_pct: Number(budgetForm.alert_threshold_pct) || 80,
-      },
+      item_id: ledgerItem.item_id,
+      budget_qty: Number(budgetForm.budget_qty),
+      budget_value: Number(budgetForm.budget_value) || 0,
+      alert_threshold_pct: Number(budgetForm.alert_threshold_pct) || 80,
     });
     if (result.success) {
       toast.success("Budget saved");
@@ -480,11 +479,9 @@ function InventoryPage() {
     setCatSaving(true);
     try {
       const result = await createCategoryNode({
-        data: {
-          name: catForm.name.trim(),
-          level: catForm.level as any,
-          parent_id: catParent?.id ?? null,
-        },
+        name: catForm.name.trim(),
+        level: catForm.level as any,
+        parent_id: catParent?.id ?? null,
       });
       if (result.success) {
         toast.success(`${LEVEL_LABELS[catForm.level]} created`);
@@ -553,14 +550,12 @@ function InventoryPage() {
     setItemSaving(true);
     try {
       const result = await createItem({
-        data: {
-          category_id: itemForm.category_id,
-          name: itemForm.name.trim(),
-          unit_of_measure: itemForm.unit_of_measure.trim() || undefined,
-          reorder_level: Number(itemForm.reorder_level) || 0,
-          opening_stock: Number(itemForm.opening_stock) || 0,
-          work_category: itemForm.work_category,
-        },
+        category_id: itemForm.category_id,
+        name: itemForm.name.trim(),
+        unit_of_measure: itemForm.unit_of_measure.trim() || undefined,
+        reorder_level: Number(itemForm.reorder_level) || 0,
+        opening_stock: Number(itemForm.opening_stock) || 0,
+        work_category: itemForm.work_category,
       });
       if (result.success) {
         toast.success("Item created");

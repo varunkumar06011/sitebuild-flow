@@ -167,22 +167,20 @@ function WorkOrdersPage() {
     queryKey: ["workOrders", search, statusFilter, workCatFilter],
     queryFn: () =>
       fetchWorkOrders({
-        data: {
-          search: search || undefined,
-          status: statusFilter !== "all" ? statusFilter : undefined,
-          workCategory: workCatFilter !== "all" ? workCatFilter : undefined,
-        } as any,
-      }),
+        search: search || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        workCategory: workCatFilter !== "all" ? workCatFilter : undefined,
+      } as any),
   });
 
   const { data: blocksData } = useQuery({
     queryKey: ["blocks"],
-    queryFn: () => fetchBlocks({ data: {} }),
+    queryFn: () => fetchBlocks(),
   });
 
   const { data: supervisorsData } = useQuery({
     queryKey: ["supervisors"],
-    queryFn: () => fetchSupervisors({ data: {} }),
+    queryFn: () => fetchSupervisors(),
   });
 
   const { data: orgData } = useQuery({
@@ -330,9 +328,9 @@ function WorkOrdersPage() {
 
       let result: any;
       if (editing) {
-        result = await updateWorkOrder({ data: { id: editing.id, ...payload } });
+        result = await updateWorkOrder({ id: editing.id, ...payload });
       } else {
-        result = await createWorkOrder({ data: payload });
+        result = await createWorkOrder(payload);
       }
 
       if (!result.success) {
@@ -343,7 +341,7 @@ function WorkOrdersPage() {
       }
 
       if (sendWhatsApp && result.id) {
-        await updateWorkOrderStatus({ data: { id: result.id, status: "Sent" } });
+        await updateWorkOrderStatus({ id: result.id, status: "Sent" });
       }
 
       toast.success(
@@ -428,7 +426,8 @@ function WorkOrdersPage() {
 
   async function handleStatusChange(order: WorkOrderRow, newStatus: string) {
     const result = await updateWorkOrderStatus({
-      data: { id: order.id, status: newStatus as any },
+      id: order.id,
+      status: newStatus as any,
     });
     if (result.success) {
       toast.success(`Status changed to ${newStatus}`);

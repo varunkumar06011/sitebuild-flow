@@ -115,11 +115,9 @@ function BlocksTab() {
     if (!name.trim()) return;
     try {
       const result = await createBlock({
-        data: {
-          name: name.trim(),
-          sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)),
-          work_category: workCategory,
-        },
+        name: name.trim(),
+        sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)),
+        work_category: workCategory,
       });
       if (result.success) {
         toast.success("Block created");
@@ -226,11 +224,9 @@ function FloorsTab() {
     }
     try {
       const result = await createFloor({
-        data: {
-          block_id: blockId,
-          name: name.trim(),
-          sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)),
-        },
+        block_id: blockId,
+        name: name.trim(),
+        sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)),
       });
       if (result.success) {
         toast.success("Floor created");
@@ -332,7 +328,8 @@ function CategoriesTab() {
     if (!name.trim()) return;
     try {
       const result = await createCategory({
-        data: { name: name.trim(), sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)) },
+        name: name.trim(),
+        sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)),
       });
       if (result.success) {
         toast.success("Category created");
@@ -424,11 +421,9 @@ function WorkItemsTab() {
     }
     try {
       const result = await createWorkItem({
-        data: {
-          category_id: categoryId,
-          name: name.trim(),
-          sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)),
-        },
+        category_id: categoryId,
+        name: name.trim(),
+        sort_order: Math.max(0, Math.floor(Number(sortOrder) || 0)),
       });
       if (result.success) {
         toast.success("Work item created");
@@ -542,12 +537,10 @@ function CellGroupsTab() {
     }
     try {
       const result = await createCellGroup({
-        data: {
-          block_id: blockId,
-          floor_id: floorId,
-          work_item_id: workItemId,
-          cell_count: Math.max(1, Math.floor(cellCount)),
-        },
+        block_id: blockId,
+        floor_id: floorId,
+        work_item_id: workItemId,
+        cell_count: Math.max(1, Math.floor(cellCount)),
       });
       if (result.success) {
         toast.success(`Cell group created with ${cellCount} cells`);
@@ -682,11 +675,9 @@ function AssignmentsTab() {
     }
     try {
       const result = await assignSupervisor({
-        data: {
-          supervisor_id: supervisorId,
-          block_id: blockId,
-          floor_id: floorId === "all" ? null : floorId,
-        },
+        supervisor_id: supervisorId,
+        block_id: blockId,
+        floor_id: floorId === "all" ? null : floorId,
       });
       if (result.success) {
         toast.success("Supervisor assigned");
