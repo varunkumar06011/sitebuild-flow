@@ -1,7 +1,7 @@
 import { api } from "../api-client";
 
 export function fetchNotificationPreferences() {
-  return api.get("/notification-system/preferences");
+  return api.get("/api/notification-system/preferences");
 }
 
 export function updateNotificationPreference(data: {
@@ -11,14 +11,14 @@ export function updateNotificationPreference(data: {
   email?: boolean;
   in_app?: boolean;
 }) {
-  return api.post("/notification-system/preferences/update", data);
+  return api.post("/api/notification-system/preferences/update", data);
 }
 
 export function fetchNotificationQueue(params?: {
   status?: string;
   limit?: number;
 }) {
-  return api.get("/notification-system/queue", params);
+  return api.get("/api/notification-system/queue", params);
 }
 
 export function enqueueNotification(data: {
@@ -29,13 +29,13 @@ export function enqueueNotification(data: {
   body: string;
   metadata?: Record<string, unknown>;
 }) {
-  return api.post("/notification-system/enqueue", data);
+  return api.post("/api/notification-system/enqueue", data);
 }
 
 export function processPendingNotifications(data?: { limit?: number }) {
-  return api.post("/notification-system/process", data ?? {});
+  return api.post("/api/notification-system/process", data ?? {});
 }
 
 export function fetchProviderStatus() {
-  return api.get("/notification-system/provider-status");
+  return api.get("/api/notification-system/provider-status");
 }

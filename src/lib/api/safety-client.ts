@@ -9,7 +9,7 @@ export function fetchIncidents(params?: {
   status?: string;
   contractorName?: string;
 }) {
-  return api.get("/safety/incidents", params);
+  return api.get("/api/safety/incidents", params);
 }
 
 export function reportIncident(data: {
@@ -20,16 +20,16 @@ export function reportIncident(data: {
   photo_path?: string;
   severity?: "Low" | "Medium" | "High" | "Critical";
 }) {
-  return api.post("/safety/report", data);
+  return api.post("/api/safety/report", data);
 }
 
 export function updateIncidentStatus(data: { id: string; status: string }) {
-  return api.post("/safety/update-status", data);
+  return api.post("/api/safety/update-status", data);
 }
 
 export function getSafetyDashboardStats(params?: {
   fromDate?: string;
   toDate?: string;
 }) {
-  return api.get("/safety/dashboard-stats", params);
+  return api.get("/api/safety/dashboard-stats", params);
 }

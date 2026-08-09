@@ -9,5 +9,5 @@ export type SearchResult = {
 };
 
 export function globalEntitySearch(params: { query: string }) {
-  return api.get("/global-search", params);
+  return api.get("/api/global-search", params);
 }

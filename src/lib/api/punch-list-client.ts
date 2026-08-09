@@ -8,7 +8,7 @@ export function fetchPunchItems(params?: {
   severity?: string;
   assignedVendorId?: string;
 }) {
-  return api.get("/punch-list/fetch", params);
+  return api.get("/api/punch-list/fetch", params);
 }
 
 export function createPunchItem(data: {
@@ -19,16 +19,16 @@ export function createPunchItem(data: {
   assigned_vendor_id?: string | null;
   severity?: "Low" | "Medium" | "High" | "Critical";
 }) {
-  return api.post("/punch-list/create", data);
+  return api.post("/api/punch-list/create", data);
 }
 
 export function updatePunchItemStatus(data: {
   id: string;
   status: "Open" | "In Progress" | "Resolved" | "Verified";
 }) {
-  return api.post("/punch-list/update-status", data);
+  return api.post("/api/punch-list/update-status", data);
 }
 
 export function getZoneReadinessSummary() {
-  return api.get("/punch-list/zone-readiness");
+  return api.get("/api/punch-list/zone-readiness");
 }

@@ -6,7 +6,7 @@ export function fetchDrawings(params?: {
   discipline?: string;
   search?: string;
 }) {
-  return api.get("/drawings/fetch", params);
+  return api.get("/api/drawings/fetch", params);
 }
 
 export function uploadDrawingRevision(data: {
@@ -18,7 +18,7 @@ export function uploadDrawingRevision(data: {
   contentType: string;
   fileName: string;
 }) {
-  return api.post("/drawings/upload", data);
+  return api.post("/api/drawings/upload", data);
 }
 
 export function fetchRfis(params?: {
@@ -27,7 +27,7 @@ export function fetchRfis(params?: {
   status?: string;
   drawingId?: string;
 }) {
-  return api.get("/drawings/rfis", params);
+  return api.get("/api/drawings/rfis", params);
 }
 
 export function raiseRfi(data: {
@@ -35,13 +35,13 @@ export function raiseRfi(data: {
   question: string;
   sla_due_date?: string | null;
 }) {
-  return api.post("/drawings/rfi/raise", data);
+  return api.post("/api/drawings/rfi/raise", data);
 }
 
 export function respondToRfi(data: { id: string; response: string }) {
-  return api.post("/drawings/rfi/respond", data);
+  return api.post("/api/drawings/rfi/respond", data);
 }
 
 export function closeRfi(data: { id: string }) {
-  return api.post("/drawings/rfi/close", data);
+  return api.post("/api/drawings/rfi/close", data);
 }

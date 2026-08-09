@@ -1,7 +1,7 @@
 import { api } from "../api-client";
 
 export function runAnomalyDetection() {
-  return api.post("/anomaly-detection/run", {});
+  return api.post("/api/anomaly-detection/run", {});
 }
 
 export function fetchAnomalies(params?: {
@@ -9,9 +9,9 @@ export function fetchAnomalies(params?: {
   type?: string;
   severity?: string;
 }) {
-  return api.get("/anomaly-detection/fetch", params);
+  return api.get("/api/anomaly-detection/fetch", params);
 }
 
 export function dismissAnomaly(data: { id: string }) {
-  return api.post("/anomaly-detection/dismiss", data);
+  return api.post("/api/anomaly-detection/dismiss", data);
 }

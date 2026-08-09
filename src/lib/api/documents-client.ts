@@ -12,7 +12,7 @@ export function fetchDocuments(params?: {
   fromDate?: string;
   toDate?: string;
 }) {
-  return api.get("/documents/fetch", params);
+  return api.get("/api/documents/fetch", params);
 }
 
 export function createDocument(data: {
@@ -33,7 +33,7 @@ export function createDocument(data: {
   ocr_text?: string | null;
   ocr_extracted?: Record<string, unknown> | null;
 }) {
-  return api.post("/documents/create", data);
+  return api.post("/api/documents/create", data);
 }
 
 export function updateDocument(data: {
@@ -52,13 +52,13 @@ export function updateDocument(data: {
   ocr_text?: string | null;
   ocr_extracted?: Record<string, unknown> | null;
 }) {
-  return api.post("/documents/update", data);
+  return api.post("/api/documents/update", data);
 }
 
 export function deleteDocument(data: { id: string }) {
-  return api.post("/documents/delete", data);
+  return api.post("/api/documents/delete", data);
 }
 
 export function getDocumentUrl(params: { id: string; download?: boolean }) {
-  return api.get("/documents/url", params);
+  return api.get("/api/documents/url", params);
 }

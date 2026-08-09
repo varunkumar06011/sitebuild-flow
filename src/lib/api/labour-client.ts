@@ -8,7 +8,7 @@ export function fetchAttendance(params?: {
   page?: number;
   limit?: number;
 }) {
-  return api.get("/labour/attendance", params);
+  return api.get("/api/labour/attendance", params);
 }
 
 export function markAttendance(data: {
@@ -19,7 +19,7 @@ export function markAttendance(data: {
   headcount_unskilled?: number;
   notes?: string;
 }) {
-  return api.post("/labour/mark-attendance", data);
+  return api.post("/api/labour/mark-attendance", data);
 }
 
 export function updateAttendance(data: {
@@ -31,7 +31,7 @@ export function updateAttendance(data: {
   headcount_unskilled?: number;
   notes?: string;
 }) {
-  return api.post("/labour/update-attendance", data);
+  return api.post("/api/labour/update-attendance", data);
 }
 
 export function getManpowerCostSummary(params?: {
@@ -39,5 +39,5 @@ export function getManpowerCostSummary(params?: {
   toDate?: string;
   workCategory?: string;
 }) {
-  return api.get("/labour/manpower-cost-summary", params);
+  return api.get("/api/labour/manpower-cost-summary", params);
 }
