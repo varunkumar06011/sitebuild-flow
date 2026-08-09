@@ -60,7 +60,7 @@ function LoginPage() {
     }
     setLoading(true);
     try {
-      const result = await loginUser({ data: { username, password } });
+      const result = await loginUser({ username, password });
       if (result.success) {
         setUser({ role: result.user.role, name: result.user.name });
         toast.success(`Welcome back, ${result.user.name}`);

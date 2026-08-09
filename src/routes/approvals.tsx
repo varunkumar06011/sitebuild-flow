@@ -86,7 +86,7 @@ function Approvals() {
   } = useQuery({
     queryKey: ["requisitions"],
     queryFn: () => fetchRequisitions({ data: {} }),
-    refetchInterval: 15000, // poll every 15 seconds for near-real-time updates
+    refetchInterval: (q) => (q.state.error ? false : 15000),
   });
   const requisitions: RequisitionRow[] = useMemo(() => reqData?.data ?? [], [reqData]);
 

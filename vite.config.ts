@@ -1,29 +1,37 @@
-// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
-// or the app will break with duplicate plugins:
-//   - TanStack devtools (dev-only, first), tanstackStart, viteReact, tailwindcss, tsConfigPaths,
-//     nitro (build-only using cloudflare as a default target), VITE_* env injection, @ path alias,
-//     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import { loadEnv } from "vite";
+import { defineConfig, loadEnv } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import tsConfigPaths from "vite-tsconfig-paths";
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 
-// Vite only injects VITE_* vars into import.meta.env. Server functions read
-// process.env directly (SUPABASE_URL, APP_JWT_SECRET, etc.), so we load .env
-// into process.env here — before any server module is imported.
-const env = loadEnv(process.env["NODE_ENV"] ?? "development", process.cwd(), "");
-for (const [key, value] of Object.entries(env)) {
-  if (process.env[key] === undefined) {
-    process.env[key] = value;
+// Plain Vite SPA config — no TanStack Start, no Nitro, no SSR.
+// The TanStack Router plugin is kept for file-based route generation (routeTree.gen.ts).
+export default defineConfig(({ mode }) => {
+  // Load .env into process.env so any shared env vars are available.
+  // Note: server-side env vars (SUPABASE_SERVICE_ROLE_KEY, APP_JWT_SECRET) are
+  // NOT used by the frontend — they live only in the Express server's env.
+  const env = loadEnv(mode, process.cwd(), "");
+  for (const [key, value] of Object.entries(env)) {
+    if (process.env[key] === undefined) {
+      process.env[key] = value;
+    }
   }
-}
 
-export default defineConfig({
-  tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
-  },
-  nitro: {
-    preset: "vercel",
-  },
+  return {
+    plugins: [
+      TanStackRouterVite({ target: "react", autoCodeSplitting: true }),
+      react(),
+      tailwindcss(),
+      tsConfigPaths(),
+    ],
+    server: {
+      port: 5173,
+    },
+    build: {
+      outDir: "dist",
+      rolldownOptions: {
+        external: ["@aws-sdk/client-ses"],
+      },
+    },
+  };
 });

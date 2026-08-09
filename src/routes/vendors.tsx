@@ -151,45 +151,43 @@ function VendorsPage() {
     queryKey: ["vendors", search, workCatFilter],
     queryFn: () =>
       fetchVendors({
-        data: {
-          ...(search ? { search } : {}),
-          ...(workCatFilter !== "all" ? { workCategory: workCatFilter } : {}),
-        },
+        ...(search ? { search } : {}),
+        ...(workCatFilter !== "all" ? { workCategory: workCatFilter } : {}),
       }),
   });
   const vendors = vendorData?.data ?? [];
 
   const { data: approversData } = useQuery({
     queryKey: ["approvable-users"],
-    queryFn: () => fetchApprovableUsers({ data: {} }),
+    queryFn: () => fetchApprovableUsers(),
     enabled: canManage,
   });
   const approvers = approversData?.data ?? [];
 
   const { data: categoriesData } = useQuery({
     queryKey: ["material-categories"],
-    queryFn: () => fetchMaterialCategories({ data: {} }),
+    queryFn: () => fetchMaterialCategories(),
     enabled: canManage,
   });
   const categories = categoriesData?.data ?? [];
 
   const { data: allPaymentsData } = useQuery({
     queryKey: ["all-vendor-payments"],
-    queryFn: () => fetchAllVendorPayments({ data: {} }),
+    queryFn: () => fetchAllVendorPayments({}),
     enabled: allPaymentsOpen && canManage,
   });
   const allPayments = allPaymentsData?.data ?? [];
 
   const { data: historyData } = useQuery({
     queryKey: ["vendor-payments", historyVendor?.id],
-    queryFn: () => fetchVendorPayments({ data: { vendorId: historyVendor.id } }),
+    queryFn: () => fetchVendorPayments({ vendorId: historyVendor.id }),
     enabled: !!historyVendor && historyDialogOpen,
   });
   const historyPayments = historyData?.data ?? [];
 
   const { data: auditData } = useQuery({
     queryKey: ["payment-audit-trail", auditPaymentId],
-    queryFn: () => fetchPaymentAuditTrail({ data: { paymentId: auditPaymentId! } }),
+    queryFn: () => fetchPaymentAuditTrail({ paymentId: auditPaymentId! }),
     enabled: !!auditPaymentId && auditDialogOpen,
   });
   const auditRecords = auditData?.data ?? [];
@@ -244,7 +242,7 @@ function VendorsPage() {
     }
     setCreatingCategory(true);
     try {
-      const result = await createMaterialCategory({ data: { name: newCategory.trim() } });
+      const result = await createMaterialCategory({ name: newCategory.trim() });
       if (result.success) {
         toast.success("Category created");
         setForm({ ...form, materials_purchased: result.name });
@@ -285,7 +283,7 @@ function VendorsPage() {
       };
 
       if (editing) {
-        const result = await updateVendor({ data: { id: editing.id, ...payload } });
+        const result = await updateVendor({ id: editing.id, ...payload });
         if (result.success) {
           toast.success("Vendor updated");
           setDialogOpen(false);
@@ -294,7 +292,7 @@ function VendorsPage() {
           toast.error(result.error ?? "Failed to update vendor");
         }
       } else {
-        const result = await createVendor({ data: payload });
+        const result = await createVendor(payload);
         if (result.success) {
           toast.success("Vendor created");
           setDialogOpen(false);
@@ -379,12 +377,10 @@ function VendorsPage() {
       const base64 = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
 
       const uploadResult = await uploadFile({
-        data: {
-          bucket: "documents",
-          path: filePath,
-          contentType: proofFile.type || "application/pdf",
-          fileData: base64,
-        },
+        bucket: "documents",
+        path: filePath,
+        contentType: proofFile.type || "application/pdf",
+        fileData: base64,
       });
 
       if (!uploadResult.success) {
@@ -397,17 +393,15 @@ function VendorsPage() {
       setPaymentSaving(true);
 
       const result = await addVendorPayment({
-        data: {
-          vendor_id: paymentVendor.id,
-          amount: Number(paymentForm.amount),
-          payment_type: paymentForm.payment_type as (typeof PAYMENT_METHODS)[number],
-          approved_by: paymentForm.approved_by,
-          proof_path: filePath,
-          payment_date: paymentForm.payment_date || undefined,
-          reference_number: paymentForm.reference_number.trim() || undefined,
-          status: paymentForm.status as "pending" | "paid",
-          notes: paymentForm.notes.trim() || undefined,
-        },
+        vendor_id: paymentVendor.id,
+        amount: Number(paymentForm.amount),
+        payment_type: paymentForm.payment_type as (typeof PAYMENT_METHODS)[number],
+        approved_by: paymentForm.approved_by,
+        proof_path: filePath,
+        payment_date: paymentForm.payment_date || undefined,
+        reference_number: paymentForm.reference_number.trim() || undefined,
+        status: paymentForm.status as "pending" | "paid",
+        notes: paymentForm.notes.trim() || undefined,
       });
 
       if (result.success) {
@@ -459,12 +453,10 @@ function VendorsPage() {
         const fileBuffer = await editProofFile.arrayBuffer();
         const base64 = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
         const uploadResult = await uploadFile({
-          data: {
-            bucket: "documents",
-            path: proofPath,
-            contentType: editProofFile.type || "application/pdf",
-            fileData: base64,
-          },
+          bucket: "documents",
+          path: proofPath,
+          contentType: editProofFile.type || "application/pdf",
+          fileData: base64,
         });
         if (!uploadResult.success) {
           toast.error(uploadResult.error ?? "Failed to upload proof");
@@ -482,17 +474,15 @@ function VendorsPage() {
     setEditPaymentSaving(true);
     try {
       const result = await updateVendorPayment({
-        data: {
-          payment_id: editingPayment.id,
-          amount: Number(editForm.amount),
-          payment_type: editForm.payment_type as (typeof PAYMENT_METHODS)[number],
-          approved_by: editForm.approved_by,
-          proof_path: proofPath,
-          payment_date: editForm.payment_date || undefined,
-          reference_number: editForm.reference_number.trim() || undefined,
-          status: editForm.status as "pending" | "paid",
-          notes: editForm.notes.trim() || undefined,
-        },
+        payment_id: editingPayment.id,
+        amount: Number(editForm.amount),
+        payment_type: editForm.payment_type as (typeof PAYMENT_METHODS)[number],
+        approved_by: editForm.approved_by,
+        proof_path: proofPath,
+        payment_date: editForm.payment_date || undefined,
+        reference_number: editForm.reference_number.trim() || undefined,
+        status: editForm.status as "pending" | "paid",
+        notes: editForm.notes.trim() || undefined,
       });
       if (result.success) {
         toast.success("Payment updated");
@@ -512,7 +502,7 @@ function VendorsPage() {
   // Generates a signed URL and opens the payment proof file in a new tab.
   const handleViewProof = async (proofPath: string) => {
     const tab = window.open("", "_blank");
-    const result = await getSignedUrl({ data: { bucket: "documents", path: proofPath } });
+    const result = await getSignedUrl({ bucket: "documents", path: proofPath });
     if (result.success && result.url) {
       if (tab) {
         tab.location.href = result.url;

@@ -6,7 +6,6 @@ import {
   createRootRouteWithContext,
   useRouter,
   HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -120,26 +119,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
   }),
 
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-// Outer HTML shell that renders <head> metadata and body content for SSR.
-function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 // Root component wrapping the app in React Query and role context providers with a toast notifier.
 function RootComponent() {
@@ -167,4 +150,16 @@ function RootComponent() {
       </RoleProvider>
     </QueryClientProvider>
   );
+}
+
+// HeadContent is rendered in the document head by TanStack Router in SPA mode.
+// This is a no-op component that keeps the type system happy — the actual
+// <head> is in index.html, and TanStack Router updates it client-side.
+export function RootHead() {
+  return <HeadContent />;
+}
+
+// Unused but kept for type compatibility — the HTML shell is now in index.html.
+export function RootShell({ children }: { children: ReactNode }) {
+  return <>{children}</>;
 }

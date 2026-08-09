@@ -51,7 +51,7 @@ function A1PlusDashboard() {
   } = useQuery({
     queryKey: ["requisitions"],
     queryFn: () => fetchRequisitions({ data: {} }),
-    refetchInterval: 15000,
+    refetchInterval: (q) => (q.state.error ? false : 15000),
   });
   const { data: inspData } = useQuery({
     queryKey: ["inspections"],

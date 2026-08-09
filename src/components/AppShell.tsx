@@ -117,17 +117,17 @@ export function AppShell({
     // Run on route change
     resetPointerEvents();
 
-    // Also check periodically — covers cases where the overlay closes
-    // without a route change (e.g. Esc key, outside click)
-    const interval = setInterval(resetPointerEvents, 1000);
+    // Also run on a less frequent interval (5s) — covers cases where the
+    // overlay closes without a route change (e.g. Esc key, outside click)
+    const interval = setInterval(resetPointerEvents, 5000);
 
     return () => clearInterval(interval);
   }, [router.state.location.pathname]);
 
   const { data: notifData } = useQuery({
     queryKey: ["notifications", "unread"],
-    queryFn: () => fetchNotifications({ data: { unreadOnly: true, limit: 10 } }),
-    refetchInterval: 30000,
+    queryFn: () => fetchNotifications({ unreadOnly: true, limit: 10 }),
+    refetchInterval: (q) => (q.state.error ? false : 30000),
   });
   const unreadCount = notifData?.data?.length ?? 0;
   const notifications = notifData?.data ?? [];

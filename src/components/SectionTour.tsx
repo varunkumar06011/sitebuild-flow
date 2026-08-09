@@ -1,6 +1,6 @@
-import { createContext, useContext, useCallback, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { driver, type DriveStep } from "driver.js";
+import { driver, type DriveStep, type Driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { getCompletedSections, markSectionComplete } from "@/lib/api/onboarding";
 import { Button } from "@/components/ui/button";
@@ -74,7 +74,7 @@ export type TourStep = {
 export function SectionTour({
   sectionKey,
   steps,
-  autoStartDelay = 500,
+  autoStartDelay = 800,
 }: {
   sectionKey: string;
   steps: TourStep[];
@@ -82,15 +82,36 @@ export function SectionTour({
 }) {
   const { completedSections, markComplete } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
+  const driverRef = useRef<Driver | null>(null);
+  const stepsRef = useRef(steps);
+  stepsRef.current = steps;
 
   const isCompleted = completedSections.includes(sectionKey);
 
+  const cleanupDriver = useCallback(() => {
+    if (driverRef.current) {
+      try {
+        driverRef.current.destroy();
+      } catch {
+        // ignore — already destroyed
+      }
+      driverRef.current = null;
+    }
+    // Remove any leftover driver.js overlay/popup DOM elements that could block clicks
+    document.querySelectorAll(".driver-overlay, .driver-popover, [data-driver-overlay]").forEach((el) => el.remove());
+    document.body.classList.remove("driver-active", "driver--simple-layout");
+    setTourActive(false);
+  }, []);
+
   const startTour = useCallback(() => {
     if (tourActive) return;
+    // Clean up any previous driver instance before starting a new one
+    cleanupDriver();
     setTourActive(true);
 
-    // Convert data-tour selectors to CSS selectors
-    const driverSteps: DriveStep[] = steps.map((s) => ({
+    // Convert data-tour selectors to CSS selectors (use ref for stable callback)
+    const currentSteps = stepsRef.current;
+    const driverSteps: DriveStep[] = currentSteps.map((s) => ({
       element: s.selector,
       popover: {
         title: s.title,
@@ -109,37 +130,79 @@ export function SectionTour({
       progressText: "{{current}} of {{total}}",
       onCloseClick: () => {
         markComplete(sectionKey);
-        driverInstance.destroy();
-        setTourActive(false);
+        cleanupDriver();
       },
       onDestroyed: () => {
+        driverRef.current = null;
         setTourActive(false);
       },
       onDoneClick: () => {
         markComplete(sectionKey);
-        driverInstance.destroy();
-        setTourActive(false);
+        cleanupDriver();
         toast.success("Tour complete! You can replay it anytime with the help icon.");
       },
     });
 
+    driverRef.current = driverInstance;
     driverInstance.drive();
-  }, [sectionKey, steps, markComplete, tourActive]);
+  }, [sectionKey, markComplete, tourActive, cleanupDriver]);
 
-  // Auto-start tour on first visit (not completed)
+  // Auto-start tour on first visit (not completed).
+  // Uses stepsRef to avoid re-running when the steps array reference changes
+  // (which happens on every render since routes define steps inline).
+  // Retries up to 10 times if target elements aren't rendered yet.
   useEffect(() => {
-    if (!isCompleted && !tourActive && steps.length > 0) {
-      const timer = setTimeout(() => {
-        // Verify all target elements exist before starting
-        const allExist = steps.every((s) => document.querySelector(s.selector));
-        if (allExist) {
-          startTour();
-        }
-      }, autoStartDelay);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [isCompleted, tourActive, steps, startTour, autoStartDelay]);
+    if (isCompleted || tourActive) return;
+    if (stepsRef.current.length === 0) return;
+
+    let attempt = 0;
+    const maxAttempts = 10;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const tryStart = () => {
+      const currentSteps = stepsRef.current;
+      if (currentSteps.length === 0) return;
+
+      // Check if at least the first element exists (don't require ALL —
+      // some may be inside dialogs or scrollable areas not yet visible)
+      const firstSelector = currentSteps[0]?.selector ?? "";
+      const firstExists = document.querySelector(firstSelector);
+      if (firstExists) {
+        startTour();
+        return;
+      }
+
+      attempt++;
+      if (attempt < maxAttempts) {
+        timer = setTimeout(tryStart, autoStartDelay);
+      } else {
+        console.warn(`[SectionTour] Tour "${sectionKey}" did not start: first element "${firstSelector}" not found after ${maxAttempts} attempts`);
+      }
+    };
+
+    timer = setTimeout(tryStart, autoStartDelay);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCompleted, tourActive, autoStartDelay]);
+
+  // Cleanup driver on unmount — prevents overlay from blocking all clicks
+  useEffect(() => {
+    return () => {
+      cleanupDriver();
+    };
+  }, [cleanupDriver]);
+
+  // Escape key safety net — force cleanup if driver overlay gets stuck
+  useEffect(() => {
+    if (!tourActive) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        cleanupDriver();
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [tourActive, cleanupDriver]);
 
   return (
     <Button

@@ -281,7 +281,7 @@ function Procurement() {
   } = useQuery({
     queryKey: ["requisitions"],
     queryFn: () => fetchRequisitions({ data: {} }),
-    refetchInterval: 15000, // poll every 15 seconds for near-real-time updates
+    refetchInterval: (q) => (q.state.error ? false : 15000), // poll every 15s, stop on error
   });
   const requisitions = reqData?.data ?? [];
   const totalCount = reqData?.total ?? 0;

@@ -209,7 +209,7 @@ export function RoleLoginPortal({ role }: { role: Role }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const result = await loginUser({ data: { username, password } });
+      const result = await loginUser({ username, password });
       if (result.success) {
         if (result.user.role !== role) {
           toast.error(

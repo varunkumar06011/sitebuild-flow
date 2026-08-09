@@ -55,11 +55,9 @@ function AuditLogPage() {
     queryKey: ["auditLog", entityFilter, page],
     queryFn: () =>
       fetchAuditLog({
-        data: {
-          limit,
-          page,
-          ...(entityFilter !== "all" ? { entityType: entityFilter } : {}),
-        },
+        limit,
+        page,
+        ...(entityFilter !== "all" ? { entityType: entityFilter } : {}),
       }),
   });
 

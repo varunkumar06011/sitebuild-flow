@@ -15,7 +15,7 @@ export function useOfflineSync() {
   const { data: pendingData, refetch } = useQuery({
     queryKey: ["pendingSyncCount"],
     queryFn: () => getPendingSyncCount({ data: {} }),
-    refetchInterval: 30000,
+    refetchInterval: (q) => (q.state.error ? false : 30000),
   });
   const pendingCount = pendingData?.pending_count ?? 0;
 
@@ -30,7 +30,7 @@ export function useOfflineSync() {
             toast.success(
               `Synced ${result.succeeded} of ${result.processed} queued item${result.processed > 1 ? "s" : ""}`,
             );
-            queryClient.invalidateQueries();
+            queryClient.invalidateQueries({ queryKey: ["pendingSyncCount"] });
             refetch();
           }
         })
@@ -93,7 +93,7 @@ export function useOfflineSync() {
         toast.success(
           `Synced ${result.succeeded} of ${result.processed} queued item${result.processed > 1 ? "s" : ""}`,
         );
-        queryClient.invalidateQueries();
+        queryClient.invalidateQueries({ queryKey: ["pendingSyncCount"] });
       } else {
         toast.info("No pending items to sync");
       }

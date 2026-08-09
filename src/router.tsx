@@ -32,6 +32,13 @@ export const getRouter = () => {
           if (isAuthError(error)) return false;
           return failureCount < 2;
         },
+        // Stop refetching when a query is in error state — prevents the
+        // loading → empty → loading → empty loop on failing API calls.
+        refetchInterval: (query) => {
+          if (query.state.error) return false;
+          return query.state.data ? false : 3000;
+        },
+        refetchOnWindowFocus: false,
       },
       mutations: {
         retry: (failureCount, error) => {

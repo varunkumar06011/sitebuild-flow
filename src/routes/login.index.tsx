@@ -75,7 +75,7 @@ function LoginPage() {
     }
     setLoading(true);
     try {
-      const result = await loginUser({ data: { username, password } });
+      const result = await loginUser({ username, password });
       if (result.success) {
         if (result.user.role !== selectedRole) {
           toast.error(
