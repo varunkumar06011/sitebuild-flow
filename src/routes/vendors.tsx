@@ -511,10 +511,18 @@ function VendorsPage() {
 
   // Generates a signed URL and opens the payment proof file in a new tab.
   const handleViewProof = async (proofPath: string) => {
+    const tab = window.open("", "_blank");
     const result = await getSignedUrl({ data: { bucket: "documents", path: proofPath } });
     if (result.success && result.url) {
-      window.open(result.url, "_blank");
+      if (tab) {
+        tab.location.href = result.url;
+      } else {
+        toast.error("Popup blocked — tap to open", {
+          action: { label: "Open", onClick: () => window.open(result.url!, "_blank") },
+        });
+      }
     } else {
+      if (tab) tab.close();
       toast.error("Failed to generate file URL");
     }
   };

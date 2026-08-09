@@ -7,7 +7,7 @@ const FINANCE_ROLES: Role[] = ["Administrator", "A1", "A1+"];
 
 // Fetches cash flow forecast data: vendor outstanding amounts (payables), recent payments, and aging buckets.
 export const fetchCashFlow = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireRole(FINANCE_ROLES);
 

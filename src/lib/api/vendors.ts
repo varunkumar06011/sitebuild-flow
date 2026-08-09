@@ -426,7 +426,7 @@ export const fetchPaymentAuditTrail = createServerFn({ method: "GET" })
 
 // Fetches all non-Supervisor users eligible to approve payments.
 export const fetchApprovableUsers = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -443,7 +443,7 @@ export const fetchApprovableUsers = createServerFn({ method: "GET" })
 
 // Fetches all material categories ordered by name.
 export const fetchMaterialCategories = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 

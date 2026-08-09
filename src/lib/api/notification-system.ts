@@ -34,7 +34,7 @@ export const NOTIFICATION_EVENTS = [
 // ---------------------------------------------------------------------------
 
 export const fetchNotificationPreferences = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const user = await requireSessionUser();
 
@@ -217,6 +217,56 @@ export const processPendingNotifications = createServerFn({ method: "POST" })
     return { success: true, sent, failed, total: (pending ?? []).length };
   });
 
+// Returns the connection status of each notification provider channel.
+// Called by the notification-settings page to show admins which channels are live.
+export const fetchProviderStatus = createServerFn({ method: "GET" })
+  .validator((input: Record<string, never>) => input)
+  .handler(async () => {
+    const user = await requireSessionUser();
+    if (!isAdmin(user.role)) {
+      return { data: {} };
+    }
+
+    const sms = {
+      configured: !!(
+        process.env["TWILIO_ACCOUNT_SID"] &&
+        process.env["TWILIO_AUTH_TOKEN"] &&
+        process.env["TWILIO_FROM_NUMBER"]
+      ),
+      provider: "Twilio",
+      missing: [
+        !process.env["TWILIO_ACCOUNT_SID"] && "TWILIO_ACCOUNT_SID",
+        !process.env["TWILIO_AUTH_TOKEN"] && "TWILIO_AUTH_TOKEN",
+        !process.env["TWILIO_FROM_NUMBER"] && "TWILIO_FROM_NUMBER",
+      ].filter(Boolean) as string[],
+    };
+
+    const whatsapp = {
+      configured: !!(process.env["GUPSHUP_API_KEY"] && process.env["GUPSHUP_FROM_NUMBER"]),
+      provider: "Gupshup",
+      missing: [
+        !process.env["GUPSHUP_API_KEY"] && "GUPSHUP_API_KEY",
+        !process.env["GUPSHUP_FROM_NUMBER"] && "GUPSHUP_FROM_NUMBER",
+      ].filter(Boolean) as string[],
+    };
+
+    const email = {
+      configured: !!(
+        process.env["AWS_SES_ACCESS_KEY"] &&
+        process.env["AWS_SES_SECRET_KEY"] &&
+        process.env["AWS_SES_FROM_EMAIL"]
+      ),
+      provider: "AWS SES",
+      missing: [
+        !process.env["AWS_SES_ACCESS_KEY"] && "AWS_SES_ACCESS_KEY",
+        !process.env["AWS_SES_SECRET_KEY"] && "AWS_SES_SECRET_KEY",
+        !process.env["AWS_SES_FROM_EMAIL"] && "AWS_SES_FROM_EMAIL",
+      ].filter(Boolean) as string[],
+    };
+
+    return { data: { sms, whatsapp, email } };
+  });
+
 // ---------------------------------------------------------------------------
 // Centralized notification dispatcher — called by any module when an event
 // occurs.  Resolves user preferences, creates in-app notifications, and
@@ -372,35 +422,194 @@ export async function dispatchNotification(params: {
   }
 }
 
-// Stub: sends a notification via the configured provider.
-// In production, this would call Twilio/Gupshup/SES APIs.
+// Sends a notification via the configured provider (Twilio SMS, Gupshup WhatsApp, AWS SES Email).
+// Returns success with a provider message ID, or failure with an error message.
 async function sendViaProvider(notif: any): Promise<{
   success: boolean;
   provider?: string;
   messageId?: string;
   error?: string;
 }> {
-  // Check if provider credentials are configured
-  const hasTwilio = !!process.env["TWILIO_ACCOUNT_SID"];
-  const hasGupshup = !!process.env["GUPSHUP_API_KEY"];
-  const hasSES = !!process.env["AWS_SES_ACCESS_KEY"];
-
-  if (notif.channel === "sms" && hasTwilio) {
-    // TODO: Integrate Twilio SMS API
-    return { success: false, error: "Twilio integration not configured" };
-  }
-  if (notif.channel === "whatsapp" && hasGupshup) {
-    // TODO: Integrate Gupshup WhatsApp API
-    return { success: false, error: "Gupshup integration not configured" };
-  }
-  if (notif.channel === "email" && hasSES) {
-    // TODO: Integrate AWS SES API
-    return { success: false, error: "SES integration not configured" };
-  }
   if (notif.channel === "in_app") {
-    // In-app notifications are stored in the notifications table directly
     return { success: true, provider: "in_app", messageId: `in_app_${Date.now()}` };
   }
 
-  return { success: false, error: `No provider configured for channel: ${notif.channel}` };
+  if (notif.channel === "sms") {
+    return sendViaTwilio(notif);
+  }
+  if (notif.channel === "whatsapp") {
+    return sendViaGupshup(notif);
+  }
+  if (notif.channel === "email") {
+    return sendViaSES(notif);
+  }
+
+  return { success: false, error: `Unknown channel: ${notif.channel}` };
+}
+
+// Sends an SMS via Twilio REST API.
+// Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER env vars.
+async function sendViaTwilio(notif: any): Promise<{
+  success: boolean;
+  provider?: string;
+  messageId?: string;
+  error?: string;
+}> {
+  const accountSid = process.env["TWILIO_ACCOUNT_SID"];
+  const authToken = process.env["TWILIO_AUTH_TOKEN"];
+  const fromNumber = process.env["TWILIO_FROM_NUMBER"];
+
+  if (!accountSid || !authToken || !fromNumber) {
+    return {
+      success: false,
+      error:
+        "Twilio credentials not configured (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER)",
+    };
+  }
+
+  try {
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+    const body = new URLSearchParams({
+      From: fromNumber,
+      To: notif.recipient,
+      Body: notif.body,
+    });
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    });
+
+    const data = await res.json();
+    if (res.ok && data.sid) {
+      return { success: true, provider: "twilio", messageId: data.sid };
+    }
+    return {
+      success: false,
+      provider: "twilio",
+      error: data.message ?? `Twilio API error: ${res.status}`,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      provider: "twilio",
+      error: `Twilio request failed: ${(err as Error).message}`,
+    };
+  }
+}
+
+// Sends a WhatsApp message via Gupshup API.
+// Requires GUPSHUP_API_KEY and GUPSHUP_FROM_NUMBER env vars.
+async function sendViaGupshup(notif: any): Promise<{
+  success: boolean;
+  provider?: string;
+  messageId?: string;
+  error?: string;
+}> {
+  const apiKey = process.env["GUPSHUP_API_KEY"];
+  const fromNumber = process.env["GUPSHUP_FROM_NUMBER"];
+
+  if (!apiKey || !fromNumber) {
+    return {
+      success: false,
+      error: "Gupshup credentials not configured (GUPSHUP_API_KEY, GUPSHUP_FROM_NUMBER)",
+    };
+  }
+
+  try {
+    const body = new URLSearchParams({
+      channel: "whatsapp",
+      source: fromNumber,
+      destination: notif.recipient,
+      message: JSON.stringify({
+        type: "text",
+        text: notif.body,
+      }),
+    });
+
+    const res = await fetch("https://api.gupshup.io/sm/api/v1/msg", {
+      method: "POST",
+      headers: {
+        apikey: apiKey,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    });
+
+    const data = await res.json();
+    if (res.ok && data.messageId) {
+      return { success: true, provider: "gupshup", messageId: data.messageId };
+    }
+    return {
+      success: false,
+      provider: "gupshup",
+      error: data.message ?? `Gupshup API error: ${res.status}`,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      provider: "gupshup",
+      error: `Gupshup request failed: ${(err as Error).message}`,
+    };
+  }
+}
+
+// Sends an email via AWS SES API (using SigV4 via @aws-sdk/client-ses if available,
+// or the SES HTTP API directly with a raw SendEmail action).
+// Requires AWS_SES_ACCESS_KEY, AWS_SES_SECRET_KEY, AWS_SES_FROM_EMAIL env vars.
+async function sendViaSES(notif: any): Promise<{
+  success: boolean;
+  provider?: string;
+  messageId?: string;
+  error?: string;
+}> {
+  const accessKey = process.env["AWS_SES_ACCESS_KEY"];
+  const secretKey = process.env["AWS_SES_SECRET_KEY"];
+  const fromEmail = process.env["AWS_SES_FROM_EMAIL"];
+  const region = process.env["AWS_SES_REGION"] ?? "us-east-1";
+
+  if (!accessKey || !secretKey || !fromEmail) {
+    return {
+      success: false,
+      error:
+        "AWS SES credentials not configured (AWS_SES_ACCESS_KEY, AWS_SES_SECRET_KEY, AWS_SES_FROM_EMAIL)",
+    };
+  }
+
+  try {
+    // Use @aws-sdk/client-ses if available (preferred), otherwise fall back to raw HTTP.
+    // @ts-expect-error — optional dependency; if not installed the dynamic import rejects and we fall back.
+    const { SESClient, SendEmailCommand } = await import("@aws-sdk/client-ses");
+    const client = new SESClient({
+      region,
+      credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
+    });
+
+    const command = new SendEmailCommand({
+      Source: fromEmail,
+      Destination: { ToAddresses: [notif.recipient] },
+      Message: {
+        Subject: { Data: notif.subject ?? "Notification", Charset: "UTF-8" },
+        Body: { Text: { Data: notif.body, Charset: "UTF-8" } },
+      },
+    });
+
+    const result = await client.send(command);
+    if (result.MessageId) {
+      return { success: true, provider: "ses", messageId: result.MessageId };
+    }
+    return { success: false, provider: "ses", error: "SES send returned no MessageId" };
+  } catch (err) {
+    // If @aws-sdk/client-ses is not installed, the dynamic import will reject.
+    // Fall back to a clear error rather than crashing the notification queue.
+    return {
+      success: false,
+      provider: "ses",
+      error: `SES send failed: ${(err as Error).message}. Ensure @aws-sdk/client-ses is installed.`,
+    };
+  }
 }

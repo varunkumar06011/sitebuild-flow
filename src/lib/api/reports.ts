@@ -9,7 +9,7 @@ import { requireSessionUser } from "./session";
 
 // (a) Project Status Report — overall project health from all modules.
 export const fetchProjectStatus = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireSessionUser();
 
@@ -118,7 +118,7 @@ export const fetchProjectStatus = createServerFn({ method: "GET" })
 
 // (b) Vendor Performance Report — per-vendor metrics.
 export const fetchVendorPerformance = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireSessionUser();
 
@@ -198,7 +198,7 @@ export const fetchVendorPerformance = createServerFn({ method: "GET" })
 
 // (c) Material Consumption Report — material categories with procurement and inventory data.
 export const fetchMaterialConsumption = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireSessionUser();
 
@@ -289,7 +289,7 @@ export const fetchMaterialConsumption = createServerFn({ method: "GET" })
 
 // (d) Labour Productivity Report — trade-wise attendance and productivity.
 export const fetchLabourProductivity = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireSessionUser();
 
@@ -388,7 +388,7 @@ export const fetchLabourProductivity = createServerFn({ method: "GET" })
 
 // (e) Compliance Status Report — NABH, AERB, QC, cleanroom, medical gas, equipment.
 export const fetchComplianceStatus = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireSessionUser();
 

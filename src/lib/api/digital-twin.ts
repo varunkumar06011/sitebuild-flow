@@ -8,7 +8,7 @@ import { requireSessionUser } from "./session";
 // Fetches block layout with progress overlay data.
 // Returns each block with its position, dimensions, and completion stats.
 export const fetchBlockOverlay = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireSessionUser();
 

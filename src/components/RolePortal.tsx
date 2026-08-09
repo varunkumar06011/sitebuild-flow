@@ -18,11 +18,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useRole } from "@/lib/role-context";
 import { loginUser } from "@/lib/auth-server";
-import {
-  ROLE_SUMMARY,
-  ROLE_NAV,
-  type Role,
-} from "@/lib/erp-data";
+import { ROLE_SUMMARY, ROLE_NAV, type Role } from "@/lib/erp-data";
 
 export const ROLE_ICONS: Record<Role, typeof HardHat> = {
   Supervisor: HardHat,

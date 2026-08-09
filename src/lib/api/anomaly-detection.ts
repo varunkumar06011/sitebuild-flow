@@ -285,7 +285,7 @@ async function detectBudgetOverrun(): Promise<AnomalyResult[]> {
 // Main: Run all detections and store results
 // ============================================================================
 export const runAnomalyDetection = createServerFn({ method: "POST" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const user = await requireSessionUser();
 

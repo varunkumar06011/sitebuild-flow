@@ -122,7 +122,7 @@ export const fetchWorkOrders = createServerFn({ method: "GET" })
     const { data: orders, count } = await query;
     const orderIds = (orders ?? []).map((o: any) => o.id);
 
-    let itemsMap = new Map<string, WorkOrderItemRow[]>();
+    const itemsMap = new Map<string, WorkOrderItemRow[]>();
     if (orderIds.length > 0) {
       const { data: items } = await supabaseServer
         .from("work_order_items")
@@ -670,7 +670,7 @@ export const updateWorkOrderStatus = createServerFn({ method: "POST" })
 // Fetch supervisors (for assignment dropdown)
 // ---------------------------------------------------------------------------
 export const fetchSupervisors = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data }) => {
     await requireSessionUser();
 

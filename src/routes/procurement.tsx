@@ -44,6 +44,7 @@ import { fetchItems } from "@/lib/api/inventory";
 import { uploadFile, getSignedUrl } from "@/lib/api/storage";
 import { useRole } from "@/lib/role-context";
 import { requireAuth } from "@/lib/auth-guards";
+import { SectionTour, type TourStep } from "@/components/SectionTour";
 import { toast } from "sonner";
 import {
   FileText,
@@ -116,11 +117,161 @@ const PAGE_SIZE = 20;
 // Main procurement page showing the requisitions table with create and detail dialogs.
 function Procurement() {
   const queryClient = useQueryClient();
+  const { role } = useRole();
   const [detailReq, setDetailReq] = useState<RequisitionRow | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  const isAdmin = role === "Administrator" || role === "A1" || role === "A1+";
+
+  const tourSteps: TourStep[] = isAdmin
+    ? [
+        {
+          selector: '[data-tour="proc-total-prs"]',
+          title: "Total PRs",
+          description:
+            "Shows all purchase requisitions across every stage — use this to gauge overall procurement volume.",
+        },
+        {
+          selector: '[data-tour="proc-pending"]',
+          title: "Pending Approval Count",
+          description:
+            "How many PRs are waiting for admin approval — if this is high, approvals are bottlenecking.",
+        },
+        {
+          selector: '[data-tour="proc-in-progress"]',
+          title: "In Progress Count",
+          description:
+            "PRs currently in Quotation, PO, Material Received, or Invoice stages — actively being worked.",
+        },
+        {
+          selector: '[data-tour="proc-completed"]',
+          title: "Completed Count",
+          description: "PRs that have gone through the full pipeline and are marked Completed.",
+        },
+        {
+          selector: '[data-tour="proc-total-value"]',
+          title: "Total Value",
+          description:
+            "Sum of all non-cancelled requisition amounts — your total procurement spend.",
+        },
+        {
+          selector: '[data-tour="new-requisition"]',
+          title: "New Purchase Requisition",
+          description:
+            "Start a purchase requisition here — it routes through Quotation → PO → Material Received → Invoice → Payment automatically based on approval limits.",
+        },
+        {
+          selector: '[data-tour="proc-search-input"]',
+          title: "Search Requisitions",
+          description:
+            "Type a PR number, PO number, title, vendor name, or block to find a specific requisition.",
+        },
+        {
+          selector: '[data-tour="proc-stage-filter"]',
+          title: "Filter by Stage",
+          description:
+            "Narrow the table to a specific pipeline stage — e.g. show only PRs awaiting your approval.",
+        },
+        {
+          selector: '[data-tour="proc-export"]',
+          title: "Export CSV",
+          description:
+            "Download the current filtered list as a spreadsheet for reporting or offline review.",
+        },
+        {
+          selector: '[data-tour="proc-open-detail"]',
+          title: "Open Requisition",
+          description:
+            "Click 'Open' on any row to view the full workflow — quotations, approval, PO, GRN, invoice, and payment details.",
+        },
+        {
+          selector: '[data-tour="proc-approve"]',
+          title: "Approve & Issue PO",
+          description:
+            "When a PR is in your approval stage, click here to approve and auto-generate the Purchase Order.",
+        },
+        {
+          selector: '[data-tour="proc-reject"]',
+          title: "Reject PR",
+          description:
+            "Send the requisition back to the supervisor with a reason if the amount or vendor needs revision.",
+        },
+        {
+          selector: '[data-tour="proc-material-received"]',
+          title: "Mark Materials Received",
+          description:
+            "Once the vendor delivers, record the delivery date, quantity, and optionally link to an inventory item to auto-update stock.",
+        },
+        {
+          selector: '[data-tour="proc-record-invoice"]',
+          title: "Record Invoice",
+          description:
+            "Enter the vendor's invoice number and actual invoiced amount — use this when the invoice arrives after delivery.",
+        },
+        {
+          selector: '[data-tour="proc-record-payment"]',
+          title: "Record Payment",
+          description:
+            "Log the payment method, reference number, and upload proof — a vendor payment record is created automatically.",
+        },
+        {
+          selector: '[data-tour="proc-cancel"]',
+          title: "Cancel Requisition",
+          description:
+            "Abort a requisition that's no longer needed — requires a reason and is irreversible.",
+        },
+      ]
+    : [
+        {
+          selector: '[data-tour="proc-total-prs"]',
+          title: "Total PRs",
+          description: "All purchase requisitions you've raised across every stage.",
+        },
+        {
+          selector: '[data-tour="proc-pending"]',
+          title: "Pending Approval",
+          description:
+            "PRs you've submitted that are waiting for admin approval — you'll be notified when approved.",
+        },
+        {
+          selector: '[data-tour="proc-in-progress"]',
+          title: "In Progress",
+          description:
+            "PRs currently in Quotation, PO, or Material Received stages — actively being procured.",
+        },
+        {
+          selector: '[data-tour="proc-completed"]',
+          title: "Completed",
+          description: "PRs that have gone through the full pipeline and are marked Completed.",
+        },
+        {
+          selector: '[data-tour="new-requisition"]',
+          title: "New Purchase Requisition",
+          description:
+            "Start a purchase requisition here — it routes through Quotation → PO → Material Received → Invoice → Payment automatically based on approval limits.",
+        },
+        {
+          selector: '[data-tour="proc-search-input"]',
+          title: "Search Requisitions",
+          description:
+            "Type a PR number, PO number, title, vendor name, or block to find a specific requisition.",
+        },
+        {
+          selector: '[data-tour="proc-stage-filter"]',
+          title: "Filter by Stage",
+          description:
+            "Narrow the table to a specific pipeline stage — e.g. show only your PRs in Quotation stage.",
+        },
+        {
+          selector: '[data-tour="proc-open-detail"]',
+          title: "Open Requisition",
+          description:
+            "Click 'Open' on any row to view the full workflow — quotations, approval status, PO, GRN, and delivery details.",
+        },
+      ];
 
   const {
     data: reqData,
@@ -186,21 +337,24 @@ function Procurement() {
       title="Procurement pipeline"
       subtitle="PR → Quotation → Approval → PO → Material received → Invoice → Payment"
     >
+      <div className="mb-4 flex items-center justify-between">
+        <SectionTour sectionKey="procurement" steps={tourSteps} />
+      </div>
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Card className="p-4">
+        <Card className="p-4" data-tour="proc-total-prs">
           <p className="text-xs text-muted-foreground">Total PRs</p>
           <p className="mt-1 text-2xl font-bold">{stats.total}</p>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4" data-tour="proc-pending">
           <p className="text-xs text-muted-foreground">Pending approval</p>
           <p className="mt-1 text-2xl font-bold text-warning">{stats.pendingApproval}</p>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4" data-tour="proc-in-progress">
           <p className="text-xs text-muted-foreground">In progress</p>
           <p className="mt-1 text-2xl font-bold text-info">{stats.inProgress}</p>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4" data-tour="proc-completed">
           <p className="text-xs text-muted-foreground">Completed</p>
           <p className="mt-1 text-2xl font-bold text-success">{stats.completed}</p>
         </Card>
@@ -208,7 +362,7 @@ function Procurement() {
           <p className="text-xs text-muted-foreground">Cancelled</p>
           <p className="mt-1 text-2xl font-bold text-destructive">{stats.cancelled}</p>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4" data-tour="proc-total-value">
           <p className="text-xs text-muted-foreground">Total value</p>
           <p className="mt-1 text-lg font-bold font-mono">{inr(stats.totalValue)}</p>
         </Card>
@@ -217,7 +371,7 @@ function Procurement() {
       <Card className="mt-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-bold">Requisitions</h2>
-          <Button size="sm" onClick={() => setShowCreate(true)}>
+          <Button size="sm" onClick={() => setShowCreate(true)} data-tour="new-requisition">
             <Plus className="size-4" />
             New purchase requisition
           </Button>
@@ -233,10 +387,15 @@ function Procurement() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Search requisitions"
+              data-tour="proc-search-input"
             />
           </div>
           <Select value={stageFilter} onValueChange={setStageFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by stage">
+            <SelectTrigger
+              className="w-full sm:w-[180px]"
+              aria-label="Filter by stage"
+              data-tour="proc-stage-filter"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -251,6 +410,7 @@ function Procurement() {
             size="sm"
             variant="outline"
             disabled={filtered.length === 0}
+            data-tour="proc-export"
             onClick={() => {
               const headers = [
                 "PR Number",
@@ -410,7 +570,12 @@ function Procurement() {
                         {approverFor(r.amount)}
                       </td>
                       <td className="py-3 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setDetailReq(r)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDetailReq(r)}
+                          data-tour="proc-open-detail"
+                        >
                           Open
                         </Button>
                       </td>
@@ -1281,7 +1446,11 @@ function RequisitionDetail({
             <div className="flex flex-wrap gap-2">
               {canUserApprove ? (
                 <>
-                  <Button onClick={() => advanceStage("PO")} disabled={working}>
+                  <Button
+                    onClick={() => advanceStage("PO")}
+                    disabled={working}
+                    data-tour="proc-approve"
+                  >
                     {working ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : (
@@ -1289,7 +1458,12 @@ function RequisitionDetail({
                     )}
                     Approve → Issue PO
                   </Button>
-                  <Button variant="outline" onClick={() => setShowReject(true)} disabled={working}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowReject(true)}
+                    disabled={working}
+                    data-tour="proc-reject"
+                  >
                     <X className="size-4" />
                     Reject → Send back
                   </Button>
@@ -1385,6 +1559,7 @@ function RequisitionDetail({
                   );
                 }}
                 disabled={working}
+                data-tour="proc-material-received"
               >
                 {working ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -1468,6 +1643,7 @@ function RequisitionDetail({
                   );
                 }}
                 disabled={working}
+                data-tour="proc-record-invoice"
               >
                 {working ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -1598,6 +1774,7 @@ function RequisitionDetail({
                   );
                 }}
                 disabled={working || uploadingProof}
+                data-tour="proc-record-payment"
               >
                 {working ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -1656,6 +1833,7 @@ function RequisitionDetail({
                 variant="ghost"
                 className="text-destructive hover:text-destructive"
                 onClick={() => setShowCancel(true)}
+                data-tour="proc-cancel"
               >
                 <XCircle className="size-4" />
                 Cancel requisition
@@ -2340,13 +2518,21 @@ function DocumentSection({ req, onChanged }: { req: RequisitionRow; onChanged: (
 
   // Generates a signed URL and opens the document in a new tab.
   const handleView = async (docPath: string) => {
+    const tab = window.open("", "_blank");
     setLoadingUrl(true);
     setViewing(docPath);
     const result = await getSignedUrl({ data: { bucket: "documents", path: docPath } });
     setLoadingUrl(false);
     if (result.success && result.url) {
-      window.open(result.url, "_blank");
+      if (tab) {
+        tab.location.href = result.url;
+      } else {
+        toast.error("Popup blocked — tap to open", {
+          action: { label: "Open", onClick: () => window.open(result.url!, "_blank") },
+        });
+      }
     } else {
+      if (tab) tab.close();
       toast.error(result.error ?? "Failed to open document");
     }
     setViewing(null);

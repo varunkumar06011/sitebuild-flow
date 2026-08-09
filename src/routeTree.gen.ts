@@ -21,9 +21,11 @@ import { Route as BudgetRouteImport } from './routes/budget'
 import { Route as CashFlowRouteImport } from './routes/cash-flow'
 import { Route as DataExportRouteImport } from './routes/data-export'
 import { Route as DocumentsRouteImport } from './routes/documents'
+import { Route as DrawingsRouteImport } from './routes/drawings'
 import { Route as GatePassRouteImport } from './routes/gate-pass'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as InventorySupervisorRouteImport } from './routes/inventory-supervisor'
+import { Route as LabourRouteImport } from './routes/labour'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MedicalEquipmentRouteImport } from './routes/medical-equipment'
 import { Route as NotificationSettingsRouteImport } from './routes/notification-settings'
@@ -33,15 +35,18 @@ import { Route as ProcurementRouteImport } from './routes/procurement'
 import { Route as ProgressConfigRouteImport } from './routes/progress-config'
 import { Route as ProgressDashboardRouteImport } from './routes/progress-dashboard'
 import { Route as ProgressTrackingRouteImport } from './routes/progress-tracking'
+import { Route as PunchListRouteImport } from './routes/punch-list'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RegistersRouteImport } from './routes/registers'
 import { Route as RetentionRouteImport } from './routes/retention'
 import { Route as RoleAuditRouteImport } from './routes/role-audit'
+import { Route as SafetyRouteImport } from './routes/safety'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as TdsGstRouteImport } from './routes/tds-gst'
 import { Route as TraceabilityRouteImport } from './routes/traceability'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as VendorScorecardRouteImport } from './routes/vendor-scorecard'
 import { Route as VendorsRouteImport } from './routes/vendors'
 import { Route as WorkOrdersRouteImport } from './routes/work-orders'
 import { Route as LoginIndexRouteImport } from './routes/login.index'
@@ -118,6 +123,11 @@ const DocumentsRoute = DocumentsRouteImport.update({
   path: '/documents',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DrawingsRoute = DrawingsRouteImport.update({
+  id: '/drawings',
+  path: '/drawings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GatePassRoute = GatePassRouteImport.update({
   id: '/gate-pass',
   path: '/gate-pass',
@@ -131,6 +141,11 @@ const InventoryRoute = InventoryRouteImport.update({
 const InventorySupervisorRoute = InventorySupervisorRouteImport.update({
   id: '/inventory-supervisor',
   path: '/inventory-supervisor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabourRoute = LabourRouteImport.update({
+  id: '/labour',
+  path: '/labour',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -178,6 +193,11 @@ const ProgressTrackingRoute = ProgressTrackingRouteImport.update({
   path: '/progress-tracking',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PunchListRoute = PunchListRouteImport.update({
+  id: '/punch-list',
+  path: '/punch-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QualityRoute = QualityRouteImport.update({
   id: '/quality',
   path: '/quality',
@@ -196,6 +216,11 @@ const RetentionRoute = RetentionRouteImport.update({
 const RoleAuditRoute = RoleAuditRouteImport.update({
   id: '/role-audit',
   path: '/role-audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SafetyRoute = SafetyRouteImport.update({
+  id: '/safety',
+  path: '/safety',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -221,6 +246,11 @@ const TraceabilityRoute = TraceabilityRouteImport.update({
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VendorScorecardRoute = VendorScorecardRouteImport.update({
+  id: '/vendor-scorecard',
+  path: '/vendor-scorecard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VendorsRoute = VendorsRouteImport.update({
@@ -312,9 +342,11 @@ export interface FileRoutesByFullPath {
   '/cash-flow': typeof CashFlowRoute
   '/data-export': typeof DataExportRoute
   '/documents': typeof DocumentsRoute
+  '/drawings': typeof DrawingsRoute
   '/gate-pass': typeof GatePassRoute
   '/inventory': typeof InventoryRoute
   '/inventory-supervisor': typeof InventorySupervisorRoute
+  '/labour': typeof LabourRoute
   '/login': typeof LoginRouteWithChildren
   '/medical-equipment': typeof MedicalEquipmentRoute
   '/notification-settings': typeof NotificationSettingsRoute
@@ -324,15 +356,18 @@ export interface FileRoutesByFullPath {
   '/progress-config': typeof ProgressConfigRoute
   '/progress-dashboard': typeof ProgressDashboardRoute
   '/progress-tracking': typeof ProgressTrackingRoute
+  '/punch-list': typeof PunchListRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/retention': typeof RetentionRoute
   '/role-audit': typeof RoleAuditRoute
+  '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
   '/tds-gst': typeof TdsGstRoute
   '/traceability': typeof TraceabilityRoute
   '/users': typeof UsersRoute
+  '/vendor-scorecard': typeof VendorScorecardRoute
   '/vendors': typeof VendorsRoute
   '/work-orders': typeof WorkOrdersRoute
   '/login/a1': typeof LoginA1Route
@@ -362,9 +397,11 @@ export interface FileRoutesByTo {
   '/cash-flow': typeof CashFlowRoute
   '/data-export': typeof DataExportRoute
   '/documents': typeof DocumentsRoute
+  '/drawings': typeof DrawingsRoute
   '/gate-pass': typeof GatePassRoute
   '/inventory': typeof InventoryRoute
   '/inventory-supervisor': typeof InventorySupervisorRoute
+  '/labour': typeof LabourRoute
   '/medical-equipment': typeof MedicalEquipmentRoute
   '/notification-settings': typeof NotificationSettingsRoute
   '/parts-orders': typeof PartsOrdersRoute
@@ -373,15 +410,18 @@ export interface FileRoutesByTo {
   '/progress-config': typeof ProgressConfigRoute
   '/progress-dashboard': typeof ProgressDashboardRoute
   '/progress-tracking': typeof ProgressTrackingRoute
+  '/punch-list': typeof PunchListRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/retention': typeof RetentionRoute
   '/role-audit': typeof RoleAuditRoute
+  '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
   '/tds-gst': typeof TdsGstRoute
   '/traceability': typeof TraceabilityRoute
   '/users': typeof UsersRoute
+  '/vendor-scorecard': typeof VendorScorecardRoute
   '/vendors': typeof VendorsRoute
   '/work-orders': typeof WorkOrdersRoute
   '/login/a1': typeof LoginA1Route
@@ -412,9 +452,11 @@ export interface FileRoutesById {
   '/cash-flow': typeof CashFlowRoute
   '/data-export': typeof DataExportRoute
   '/documents': typeof DocumentsRoute
+  '/drawings': typeof DrawingsRoute
   '/gate-pass': typeof GatePassRoute
   '/inventory': typeof InventoryRoute
   '/inventory-supervisor': typeof InventorySupervisorRoute
+  '/labour': typeof LabourRoute
   '/login': typeof LoginRouteWithChildren
   '/medical-equipment': typeof MedicalEquipmentRoute
   '/notification-settings': typeof NotificationSettingsRoute
@@ -424,15 +466,18 @@ export interface FileRoutesById {
   '/progress-config': typeof ProgressConfigRoute
   '/progress-dashboard': typeof ProgressDashboardRoute
   '/progress-tracking': typeof ProgressTrackingRoute
+  '/punch-list': typeof PunchListRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/retention': typeof RetentionRoute
   '/role-audit': typeof RoleAuditRoute
+  '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
   '/tds-gst': typeof TdsGstRoute
   '/traceability': typeof TraceabilityRoute
   '/users': typeof UsersRoute
+  '/vendor-scorecard': typeof VendorScorecardRoute
   '/vendors': typeof VendorsRoute
   '/work-orders': typeof WorkOrdersRoute
   '/login/a1': typeof LoginA1Route
@@ -464,9 +509,11 @@ export interface FileRouteTypes {
     | '/cash-flow'
     | '/data-export'
     | '/documents'
+    | '/drawings'
     | '/gate-pass'
     | '/inventory'
     | '/inventory-supervisor'
+    | '/labour'
     | '/login'
     | '/medical-equipment'
     | '/notification-settings'
@@ -476,15 +523,18 @@ export interface FileRouteTypes {
     | '/progress-config'
     | '/progress-dashboard'
     | '/progress-tracking'
+    | '/punch-list'
     | '/quality'
     | '/registers'
     | '/retention'
     | '/role-audit'
+    | '/safety'
     | '/settings'
     | '/supervisor'
     | '/tds-gst'
     | '/traceability'
     | '/users'
+    | '/vendor-scorecard'
     | '/vendors'
     | '/work-orders'
     | '/login/a1'
@@ -514,9 +564,11 @@ export interface FileRouteTypes {
     | '/cash-flow'
     | '/data-export'
     | '/documents'
+    | '/drawings'
     | '/gate-pass'
     | '/inventory'
     | '/inventory-supervisor'
+    | '/labour'
     | '/medical-equipment'
     | '/notification-settings'
     | '/parts-orders'
@@ -525,15 +577,18 @@ export interface FileRouteTypes {
     | '/progress-config'
     | '/progress-dashboard'
     | '/progress-tracking'
+    | '/punch-list'
     | '/quality'
     | '/registers'
     | '/retention'
     | '/role-audit'
+    | '/safety'
     | '/settings'
     | '/supervisor'
     | '/tds-gst'
     | '/traceability'
     | '/users'
+    | '/vendor-scorecard'
     | '/vendors'
     | '/work-orders'
     | '/login/a1'
@@ -563,9 +618,11 @@ export interface FileRouteTypes {
     | '/cash-flow'
     | '/data-export'
     | '/documents'
+    | '/drawings'
     | '/gate-pass'
     | '/inventory'
     | '/inventory-supervisor'
+    | '/labour'
     | '/login'
     | '/medical-equipment'
     | '/notification-settings'
@@ -575,15 +632,18 @@ export interface FileRouteTypes {
     | '/progress-config'
     | '/progress-dashboard'
     | '/progress-tracking'
+    | '/punch-list'
     | '/quality'
     | '/registers'
     | '/retention'
     | '/role-audit'
+    | '/safety'
     | '/settings'
     | '/supervisor'
     | '/tds-gst'
     | '/traceability'
     | '/users'
+    | '/vendor-scorecard'
     | '/vendors'
     | '/work-orders'
     | '/login/a1'
@@ -614,9 +674,11 @@ export interface RootRouteChildren {
   CashFlowRoute: typeof CashFlowRoute
   DataExportRoute: typeof DataExportRoute
   DocumentsRoute: typeof DocumentsRoute
+  DrawingsRoute: typeof DrawingsRoute
   GatePassRoute: typeof GatePassRoute
   InventoryRoute: typeof InventoryRoute
   InventorySupervisorRoute: typeof InventorySupervisorRoute
+  LabourRoute: typeof LabourRoute
   LoginRoute: typeof LoginRouteWithChildren
   MedicalEquipmentRoute: typeof MedicalEquipmentRoute
   NotificationSettingsRoute: typeof NotificationSettingsRoute
@@ -626,15 +688,18 @@ export interface RootRouteChildren {
   ProgressConfigRoute: typeof ProgressConfigRoute
   ProgressDashboardRoute: typeof ProgressDashboardRoute
   ProgressTrackingRoute: typeof ProgressTrackingRoute
+  PunchListRoute: typeof PunchListRoute
   QualityRoute: typeof QualityRoute
   RegistersRoute: typeof RegistersRoute
   RetentionRoute: typeof RetentionRoute
   RoleAuditRoute: typeof RoleAuditRoute
+  SafetyRoute: typeof SafetyRoute
   SettingsRoute: typeof SettingsRoute
   SupervisorRoute: typeof SupervisorRoute
   TdsGstRoute: typeof TdsGstRoute
   TraceabilityRoute: typeof TraceabilityRoute
   UsersRoute: typeof UsersRoute
+  VendorScorecardRoute: typeof VendorScorecardRoute
   VendorsRoute: typeof VendorsRoute
   WorkOrdersRoute: typeof WorkOrdersRoute
 }
@@ -725,6 +790,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/drawings': {
+      id: '/drawings'
+      path: '/drawings'
+      fullPath: '/drawings'
+      preLoaderRoute: typeof DrawingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gate-pass': {
       id: '/gate-pass'
       path: '/gate-pass'
@@ -744,6 +816,13 @@ declare module '@tanstack/react-router' {
       path: '/inventory-supervisor'
       fullPath: '/inventory-supervisor'
       preLoaderRoute: typeof InventorySupervisorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/labour': {
+      id: '/labour'
+      path: '/labour'
+      fullPath: '/labour'
+      preLoaderRoute: typeof LabourRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -809,6 +888,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProgressTrackingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/punch-list': {
+      id: '/punch-list'
+      path: '/punch-list'
+      fullPath: '/punch-list'
+      preLoaderRoute: typeof PunchListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quality': {
       id: '/quality'
       path: '/quality'
@@ -835,6 +921,13 @@ declare module '@tanstack/react-router' {
       path: '/role-audit'
       fullPath: '/role-audit'
       preLoaderRoute: typeof RoleAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/safety': {
+      id: '/safety'
+      path: '/safety'
+      fullPath: '/safety'
+      preLoaderRoute: typeof SafetyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -870,6 +963,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vendor-scorecard': {
+      id: '/vendor-scorecard'
+      path: '/vendor-scorecard'
+      fullPath: '/vendor-scorecard'
+      preLoaderRoute: typeof VendorScorecardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vendors': {
@@ -1036,9 +1136,11 @@ const rootRouteChildren: RootRouteChildren = {
   CashFlowRoute: CashFlowRoute,
   DataExportRoute: DataExportRoute,
   DocumentsRoute: DocumentsRoute,
+  DrawingsRoute: DrawingsRoute,
   GatePassRoute: GatePassRoute,
   InventoryRoute: InventoryRoute,
   InventorySupervisorRoute: InventorySupervisorRoute,
+  LabourRoute: LabourRoute,
   LoginRoute: LoginRouteWithChildren,
   MedicalEquipmentRoute: MedicalEquipmentRoute,
   NotificationSettingsRoute: NotificationSettingsRoute,
@@ -1048,15 +1150,18 @@ const rootRouteChildren: RootRouteChildren = {
   ProgressConfigRoute: ProgressConfigRoute,
   ProgressDashboardRoute: ProgressDashboardRoute,
   ProgressTrackingRoute: ProgressTrackingRoute,
+  PunchListRoute: PunchListRoute,
   QualityRoute: QualityRoute,
   RegistersRoute: RegistersRoute,
   RetentionRoute: RetentionRoute,
   RoleAuditRoute: RoleAuditRoute,
+  SafetyRoute: SafetyRoute,
   SettingsRoute: SettingsRoute,
   SupervisorRoute: SupervisorRoute,
   TdsGstRoute: TdsGstRoute,
   TraceabilityRoute: TraceabilityRoute,
   UsersRoute: UsersRoute,
+  VendorScorecardRoute: VendorScorecardRoute,
   VendorsRoute: VendorsRoute,
   WorkOrdersRoute: WorkOrdersRoute,
 }

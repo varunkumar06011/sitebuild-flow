@@ -231,10 +231,18 @@ function Traceability() {
   };
 
   const handleViewPhoto = async (path: string) => {
+    const tab = window.open("", "_blank");
     const result = await getSignedUrl({ data: { bucket: "photos", path } });
     if (result.success && result.url) {
-      window.open(result.url, "_blank");
+      if (tab) {
+        tab.location.href = result.url;
+      } else {
+        toast.error("Popup blocked — tap to open", {
+          action: { label: "Open", onClick: () => window.open(result.url!, "_blank") },
+        });
+      }
     } else {
+      if (tab) tab.close();
       toast.error("Failed to load photo");
     }
   };

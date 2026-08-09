@@ -105,7 +105,7 @@ export const fetchPartsOrders = createServerFn({ method: "GET" })
     const { data: orders, count } = await query;
     const orderIds = (orders ?? []).map((o: any) => o.id);
 
-    let itemsMap = new Map<string, PartsOrderItemRow[]>();
+    const itemsMap = new Map<string, PartsOrderItemRow[]>();
     if (orderIds.length > 0) {
       const { data: items } = await supabaseServer
         .from("parts_order_items")
@@ -275,7 +275,7 @@ export const createPartsOrder = createServerFn({ method: "POST" })
 
     // Fetch block name as project_name if block_id provided and project_name not set
     let projectName = data.project_name ?? null;
-    let siteAddress = data.site_address ?? null;
+    const siteAddress = data.site_address ?? null;
     if (data.block_id) {
       const { data: block } = await supabaseServer
         .from("progress_blocks")

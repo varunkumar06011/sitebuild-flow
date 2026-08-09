@@ -14,7 +14,7 @@ function vendorAuditUser(account: PortalAccount): SessionUser {
 
 // Fetches the vendor's profile information.
 export const fetchVendorProfile = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const account = await requireVendorAccount();
 
@@ -53,7 +53,7 @@ export const fetchVendorPOs = createServerFn({ method: "GET" })
 
 // Fetches all payments for this vendor.
 export const fetchVendorPayments = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const account = await requireVendorAccount();
 
@@ -180,7 +180,7 @@ export const uploadVendorDocument = createServerFn({ method: "POST" })
 
 // Fetches outstanding payment summary (aging analysis).
 export const fetchVendorOutstanding = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const account = await requireVendorAccount();
 

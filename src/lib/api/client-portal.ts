@@ -13,7 +13,7 @@ function clientAuditUser(account: any): SessionUser {
 
 // Fetches the project overview dashboard for the client.
 export const fetchClientDashboard = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const account = await requireClientAccount();
 
@@ -135,7 +135,7 @@ export const fetchClientDashboard = createServerFn({ method: "GET" })
 
 // Fetches block-level progress for the client (read-only).
 export const fetchClientProgress = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireClientAccount();
 
@@ -215,7 +215,7 @@ export const fetchClientProgress = createServerFn({ method: "GET" })
 
 // Fetches budget vs actual by block for the client.
 export const fetchClientBudget = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireClientAccount();
 
@@ -229,7 +229,7 @@ export const fetchClientBudget = createServerFn({ method: "GET" })
 
 // Fetches QC pass rate trend for the client.
 export const fetchClientQuality = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireClientAccount();
 
@@ -243,7 +243,7 @@ export const fetchClientQuality = createServerFn({ method: "GET" })
 
 // Fetches gate pass summary for the client.
 export const fetchClientGatePass = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireClientAccount();
 

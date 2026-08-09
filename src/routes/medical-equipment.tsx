@@ -26,6 +26,7 @@ import {
 import { fetchEquipment, createEquipment, updateEquipment } from "@/lib/api/medical-equipment";
 import { uploadFile, getSignedUrl } from "@/lib/api/storage";
 import { requireAuth } from "@/lib/auth-guards";
+import { SectionTour, type TourStep } from "@/components/SectionTour";
 import { toast } from "sonner";
 import {
   Plus,
@@ -80,6 +81,69 @@ function MedicalEquipmentPage() {
     queryFn: () => fetchEquipment({ data: {} }),
   });
   const equipment = eqData?.data ?? [];
+
+  const tourSteps: TourStep[] = [
+    {
+      selector: '[data-tour="me-search-input"]',
+      title: "Search Equipment",
+      description:
+        "Type an equipment name, model, manufacturer, or category to find a specific asset quickly.",
+    },
+    {
+      selector: '[data-tour="add-equipment"]',
+      title: "+ Add Equipment",
+      description:
+        "Register a new medical equipment asset as soon as it's ordered — you'll track it through delivery, installation, testing, and handover from here.",
+    },
+    {
+      selector: '[data-tour="equipment-status-badge"]',
+      title: "Commissioning Status Badge",
+      description:
+        "Shows where this asset is in the commissioning pipeline — tap the pencil icon next to it to update the status.",
+    },
+    {
+      selector: '[data-tour="me-edit-btn"]',
+      title: "Edit Equipment",
+      description:
+        "Click this pencil icon to update status, add commissioning checklist items, record certificates, and upload installation photos.",
+    },
+    {
+      selector: '[data-tour="me-status-dropdown"]',
+      title: "Status Dropdown",
+      description:
+        "Move the asset through Ordered → Delivered → Installed → Testing → Commissioned → Handed Over as it progresses on site.",
+    },
+    {
+      selector: '[data-tour="me-checklist-toggle"]',
+      title: "Commissioning Checklist",
+      description:
+        "Tick each checklist item as it's completed on site — all items must be green before marking the equipment Commissioned.",
+    },
+    {
+      selector: '[data-tour="me-add-checklist"]',
+      title: "Add Checklist Item",
+      description:
+        "Add a new commissioning step specific to this equipment — e.g. 'Electrical safety test passed' or 'MRI quench test completed'.",
+    },
+    {
+      selector: '[data-tour="me-add-certificate"]',
+      title: "Add Certificate",
+      description:
+        "Record regulatory certificates (NABH, AERB, CE, FDA) with certificate number and expiry date for compliance tracking.",
+    },
+    {
+      selector: '[data-tour="me-upload-photos"]',
+      title: "Upload Photos",
+      description:
+        "Upload installation photos as evidence — these are visible on the equipment card and useful for handover documentation.",
+    },
+    {
+      selector: '[data-tour="me-save"]',
+      title: "Save Equipment",
+      description:
+        "Save all changes — status updates, checklist, certificates, and photos are stored against this equipment record.",
+    },
+  ];
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -272,16 +336,20 @@ function MedicalEquipmentPage() {
       subtitle="Equipment commissioning — delivery → installation → testing → handover"
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search equipment..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-64 pl-9"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search equipment..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64 pl-9"
+              data-tour="me-search-input"
+            />
+          </div>
+          <SectionTour sectionKey="medical-equipment" steps={tourSteps} />
         </div>
-        <Button size="sm" onClick={openCreate}>
+        <Button size="sm" onClick={openCreate} data-tour="add-equipment">
           <Plus className="mr-1.5 size-4" /> Add equipment
         </Button>
       </div>
@@ -300,8 +368,18 @@ function MedicalEquipmentPage() {
                 <p className="font-mono text-xs text-muted-foreground">{eq.eq_number}</p>
               </div>
               <div className="flex items-center gap-2">
-                <StatusPill tone={STATUS_TONE[eq.status] ?? "info"}>{eq.status}</StatusPill>
-                <Button variant="ghost" size="sm" onClick={() => openEdit(eq)}>
+                <StatusPill
+                  tone={STATUS_TONE[eq.status] ?? "info"}
+                  data-tour="equipment-status-badge"
+                >
+                  {eq.status}
+                </StatusPill>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => openEdit(eq)}
+                  data-tour="me-edit-btn"
+                >
                   <Pencil className="size-3.5" />
                 </Button>
               </div>
@@ -455,7 +533,7 @@ function MedicalEquipmentPage() {
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger data-tour="me-status-dropdown">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -534,6 +612,7 @@ function MedicalEquipmentPage() {
                           checklist.map((ci, i) => (i === idx ? { ...ci, ok: !ci.ok } : ci)),
                         )
                       }
+                      data-tour="me-checklist-toggle"
                       className={`flex size-8 shrink-0 items-center justify-center rounded-md border ${c.ok ? "border-success bg-success/10 text-success" : "border-destructive bg-destructive/10 text-destructive"}`}
                     >
                       {c.ok ? <Check className="size-4" /> : <X className="size-4" />}
@@ -566,6 +645,7 @@ function MedicalEquipmentPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setChecklist([...checklist, { item: "", ok: false }])}
+                data-tour="me-add-checklist"
               >
                 <Plus className="mr-1.5 size-3.5" /> Add checklist item
               </Button>
@@ -632,6 +712,7 @@ function MedicalEquipmentPage() {
                     { type: "", number: "", issued_date: "", expiry_date: "" },
                   ])
                 }
+                data-tour="me-add-certificate"
               >
                 <Plus className="mr-1.5 size-3.5" /> Add certificate
               </Button>
@@ -646,6 +727,7 @@ function MedicalEquipmentPage() {
                   variant="outline"
                   disabled={uploadingPhotos}
                   onClick={() => fileInputRef.current?.click()}
+                  data-tour="me-upload-photos"
                 >
                   {uploadingPhotos ? (
                     <Loader2 className="mr-1.5 size-4 animate-spin" />
@@ -683,7 +765,7 @@ function MedicalEquipmentPage() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving || uploadingPhotos}>
+            <Button onClick={handleSave} disabled={saving || uploadingPhotos} data-tour="me-save">
               {saving ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />
               ) : (

@@ -16,6 +16,7 @@ import { RoleProvider } from "../lib/role-context";
 import { authStore } from "../lib/auth-store";
 import { Toaster } from "../components/ui/sonner";
 import { GlobalSearch } from "../components/GlobalSearch";
+import { OnboardingProvider } from "../components/SectionTour";
 
 // 404 fallback component shown when no route matches the current URL.
 function NotFoundComponent() {
@@ -157,10 +158,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <RoleProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <GlobalSearch />
-        <Toaster position="top-right" />
+        <OnboardingProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <GlobalSearch />
+          <Toaster position="top-right" />
+        </OnboardingProvider>
       </RoleProvider>
     </QueryClientProvider>
   );

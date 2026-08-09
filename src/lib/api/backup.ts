@@ -96,7 +96,7 @@ export const runBackupVerification = createServerFn({ method: "POST" })
 
     let totalRows = 0;
     let tablesCount = 0;
-    let failedTables: string[] = [];
+    const failedTables: string[] = [];
 
     for (const table of BACKUP_TABLES) {
       try {

@@ -51,6 +51,7 @@ import { sendPhoneOtp, confirmPhoneOtp, type PhoneConfirmationResult } from "@/l
 import { uploadFile } from "@/lib/api/storage";
 import { requireAuth } from "@/lib/auth-guards";
 import { useRole } from "@/lib/role-context";
+import { SectionTour, type TourStep } from "@/components/SectionTour";
 import { toast } from "sonner";
 import {
   Truck,
@@ -139,6 +140,100 @@ function GatePassPage() {
   const canCreate =
     role === "Supervisor" || role === "Administrator" || role === "A1" || role === "A1+";
 
+  const tourSteps: TourStep[] = canCreate
+    ? [
+        {
+          selector: '[data-tour="create-gate-pass"]',
+          title: "Create Gate Pass",
+          description:
+            "Log material or equipment leaving site — requires OTP confirmation from the approver before it's marked exited.",
+        },
+        {
+          selector: '[data-tour="gp-search-input"]',
+          title: "Search Gate Passes",
+          description:
+            "Type a GP number, person name, or material to find a specific pass quickly.",
+        },
+        {
+          selector: '[data-tour="gp-status-filter"]',
+          title: "Filter by Status",
+          description:
+            "Narrow the list to Awaiting OTP, OTP Verified, or Exited passes to focus on what needs action.",
+        },
+        {
+          selector: '[data-tour="gp-list-item"]',
+          title: "Select a Gate Pass",
+          description:
+            "Click any pass to load it in the gate terminal on the right — you'll send OTP and verify from there.",
+        },
+        {
+          selector: '[data-tour="gp-send-otp"]',
+          title: "Send OTP",
+          description:
+            "Triggers a 6-digit code SMS to the approver's phone — do this once the carrier is at the gate and ready to leave.",
+        },
+        {
+          selector: '[data-tour="gp-verify-otp"]',
+          title: "Verify OTP",
+          description:
+            "Enter the code the approver reads out to you, then click here to authorize the exit.",
+        },
+        {
+          selector: '[data-tour="gp-record-exit"]',
+          title: "Record Exit",
+          description:
+            "Once OTP is verified, stamp the actual exit time — this closes the pass and logs the material out.",
+        },
+        {
+          selector: '[data-tour="gp-share"]',
+          title: "Share via WhatsApp",
+          description:
+            "Send a quick summary of this gate pass to the approver or site lead via WhatsApp.",
+        },
+        {
+          selector: '[data-tour="gp-view-pdf"]',
+          title: "View PDF",
+          description:
+            "Open the printable gate pass PDF — use this for physical gate logs or records.",
+        },
+        {
+          selector: '[data-tour="gp-timeline"]',
+          title: "Timeline",
+          description:
+            "View the full audit trail: when the pass was created, OTP sent, verified, and exit recorded.",
+        },
+      ]
+    : [
+        {
+          selector: '[data-tour="gp-search-input"]',
+          title: "Search Gate Passes",
+          description:
+            "Type a GP number, person name, or material to find a specific pass quickly.",
+        },
+        {
+          selector: '[data-tour="gp-status-filter"]',
+          title: "Filter by Status",
+          description: "Narrow the list to Awaiting OTP, OTP Verified, or Exited passes.",
+        },
+        {
+          selector: '[data-tour="gp-list-item"]',
+          title: "Select a Gate Pass",
+          description:
+            "Click any pass to view its details, status, and exit timeline on the right.",
+        },
+        {
+          selector: '[data-tour="gp-view-pdf"]',
+          title: "View PDF",
+          description: "Open the printable gate pass PDF for physical gate logs or records.",
+        },
+        {
+          selector: '[data-tour="gp-timeline"]',
+          title: "Timeline",
+          description:
+            "View the full audit trail: when the pass was created, OTP sent, verified, and exit recorded.",
+        },
+      ];
+
   // Sends an OTP SMS to the approver via Firebase Phone Auth (rate-limited server-side).
   const handleSendOtp = async () => {
     if (!active) return;
@@ -225,12 +320,15 @@ function GatePassPage() {
 
   return (
     <AppShell title="Gate pass" subtitle="Gate Pass → OTP → Material exit → Exit time">
+      <div className="mb-4 flex items-center justify-between">
+        <SectionTour sectionKey="gate-pass" steps={tourSteps} />
+      </div>
       {/* Invisible reCAPTCHA container required by Firebase Phone Auth */}
       <div id="recaptcha-container" />
 
       {canCreate && (
         <div className="mb-4 flex justify-end">
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button onClick={() => setCreateOpen(true)} data-tour="create-gate-pass">
             <Plus className="mr-2 size-4" /> Create Gate Pass
           </Button>
         </div>
@@ -250,6 +348,7 @@ function GatePassPage() {
                   }}
                   placeholder="Search GP no / person / material"
                   className="h-8 w-48 pl-7 text-xs"
+                  data-tour="gp-search-input"
                 />
               </div>
               <Select
@@ -259,7 +358,7 @@ function GatePassPage() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-8 w-36 text-xs">
+                <SelectTrigger className="h-8 w-36 text-xs" data-tour="gp-status-filter">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -290,6 +389,7 @@ function GatePassPage() {
                   setOtp("");
                   confirmationRef.current = null;
                 }}
+                data-tour="gp-list-item"
                 className={`flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border p-4 text-left transition-colors ${
                   activeId === g.id ? "border-primary bg-accent" : "border-border hover:bg-surface"
                 }`}
@@ -365,6 +465,7 @@ function GatePassPage() {
                     className="mt-2 w-full"
                     disabled={sendingOtp}
                     onClick={handleSendOtp}
+                    data-tour="gp-send-otp"
                   >
                     <Send className="mr-2 size-4" />
                     {sendingOtp ? "Sending..." : "Send OTP"}
@@ -384,6 +485,7 @@ function GatePassPage() {
                         className="mt-3 w-full"
                         disabled={otp.length !== 6 || verifying}
                         onClick={handleVerifyOtp}
+                        data-tour="gp-verify-otp"
                       >
                         {verifying ? "Verifying..." : "Verify OTP"}
                       </Button>
@@ -394,10 +496,20 @@ function GatePassPage() {
 
               {active.status === "OTP Verified" && (
                 <>
-                  <Button className="w-full" disabled={exiting} onClick={handleRecordExit}>
+                  <Button
+                    className="w-full"
+                    disabled={exiting}
+                    onClick={handleRecordExit}
+                    data-tour="gp-record-exit"
+                  >
                     <Truck className="size-4" /> {exiting ? "Recording..." : "Record exit"}
                   </Button>
-                  <Button variant="outline" className="w-full" onClick={handleWhatsAppShare}>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleWhatsAppShare}
+                    data-tour="gp-share"
+                  >
                     <Share2 className="size-4" /> Share via WhatsApp
                   </Button>
                 </>
@@ -417,6 +529,7 @@ function GatePassPage() {
                   className="flex-1"
                   disabled={loadingPdf}
                   onClick={handleViewPdf}
+                  data-tour="gp-view-pdf"
                 >
                   <FileText className="mr-1.5 size-3.5" /> {loadingPdf ? "Loading..." : "View PDF"}
                 </Button>
@@ -425,6 +538,7 @@ function GatePassPage() {
                   size="sm"
                   className="flex-1"
                   onClick={() => setTimelineOpen(true)}
+                  data-tour="gp-timeline"
                 >
                   <Clock className="mr-1.5 size-3.5" /> Timeline
                 </Button>

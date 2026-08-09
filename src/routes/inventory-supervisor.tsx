@@ -27,6 +27,7 @@ import {
 } from "@/lib/api/inventory";
 import { useRole } from "@/lib/role-context";
 import { requireAuth } from "@/lib/auth-guards";
+import { SectionTour, type TourStep } from "@/components/SectionTour";
 import { toast } from "sonner";
 import {
   Search,
@@ -76,6 +77,130 @@ function InventorySupervisorPage() {
   });
   const [saving, setSaving] = useState(false);
   const canAdjust = role !== "Supervisor";
+
+  const tourSteps: TourStep[] = canAdjust
+    ? [
+        {
+          selector: '[data-tour="is-search-input"]',
+          title: "Search Item",
+          description:
+            "Type an item name to filter the dropdown below — start here every time you need to log a material movement.",
+        },
+        {
+          selector: '[data-tour="is-item-select"]',
+          title: "Select Item",
+          description:
+            "Pick the inventory item from the filtered list — its current stock and category are shown below once selected.",
+        },
+        {
+          selector: '[data-tour="is-type-in"]',
+          title: "Stock In Button",
+          description:
+            "Select this when material arrives on site or is returned — adds to the item's current stock.",
+        },
+        {
+          selector: '[data-tour="is-type-out"]',
+          title: "Stock Out Button",
+          description:
+            "Select this when material is issued to a block or consumed — deducts from the item's current stock.",
+        },
+        {
+          selector: '[data-tour="is-type-adjust"]',
+          title: "Adjust Button",
+          description:
+            "Select this to correct a stock discrepancy found during physical verification — use sparingly and always add a remark explaining why.",
+        },
+        {
+          selector: '[data-tour="is-qty-input"]',
+          title: "Quantity Input",
+          description: "Enter the number of units being moved — must be a positive number.",
+        },
+        {
+          selector: '[data-tour="is-block-select"]',
+          title: "Block Selector",
+          description:
+            "Optionally assign this movement to a specific block so you can track block-wise consumption later.",
+        },
+        {
+          selector: '[data-tour="is-wastage"]',
+          title: "Mark as Wastage",
+          description:
+            "Tick this when stock out is due to damage or spoilage — wastage transactions appear in the Wastage Report tab and affect cost analysis.",
+        },
+        {
+          selector: '[data-tour="is-reference"]',
+          title: "Reference Field",
+          description:
+            "Enter a PR number, gate pass number, or invoice number to link this movement to its source document.",
+        },
+        {
+          selector: '[data-tour="is-submit"]',
+          title: "Log Movement",
+          description:
+            "Submit the transaction — stock levels update in real time and the movement appears in the ledger immediately.",
+        },
+        {
+          selector: '[data-tour="is-recent"]',
+          title: "Recent Items",
+          description:
+            "Quick reference for items you've moved recently — shows current stock so you can spot low items without switching tabs.",
+        },
+      ]
+    : [
+        {
+          selector: '[data-tour="is-search-input"]',
+          title: "Search Item",
+          description:
+            "Type an item name to filter the dropdown below — start here every time you need to log a material movement.",
+        },
+        {
+          selector: '[data-tour="is-item-select"]',
+          title: "Select Item",
+          description:
+            "Pick the inventory item from the filtered list — its current stock and category are shown below once selected.",
+        },
+        {
+          selector: '[data-tour="is-type-in"]',
+          title: "Stock In Button",
+          description:
+            "Select this when material arrives on site or is returned — adds to the item's current stock.",
+        },
+        {
+          selector: '[data-tour="is-type-out"]',
+          title: "Stock Out Button",
+          description:
+            "Select this when material is issued to a block or consumed — deducts from the item's current stock.",
+        },
+        {
+          selector: '[data-tour="is-qty-input"]',
+          title: "Quantity Input",
+          description: "Enter the number of units being moved — must be a positive number.",
+        },
+        {
+          selector: '[data-tour="is-block-select"]',
+          title: "Block Selector",
+          description:
+            "Optionally assign this movement to a specific block so you can track block-wise consumption later.",
+        },
+        {
+          selector: '[data-tour="is-wastage"]',
+          title: "Mark as Wastage",
+          description:
+            "Tick this when stock out is due to damage or spoilage — wastage transactions appear in the Wastage Report tab.",
+        },
+        {
+          selector: '[data-tour="is-reference"]',
+          title: "Reference Field",
+          description:
+            "Enter a PR number, gate pass number, or invoice number to link this movement to its source document.",
+        },
+        {
+          selector: '[data-tour="is-submit"]',
+          title: "Log Movement",
+          description:
+            "Submit the transaction — stock levels update in real time and the movement appears in the ledger immediately.",
+        },
+      ];
 
   const { data: itemsData } = useQuery({
     queryKey: ["inventory-items", search],
@@ -152,6 +277,9 @@ function InventorySupervisorPage() {
       title="Log material movement"
       subtitle="Record stock in / out / adjustment for any inventory item"
     >
+      <div className="mb-4 flex items-center justify-between">
+        <SectionTour sectionKey="inventory-supervisor" steps={tourSteps} />
+      </div>
       <div className="mx-auto max-w-xl">
         <Card className="p-6">
           <div className="space-y-5">
@@ -166,6 +294,7 @@ function InventorySupervisorPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
+                  data-tour="is-search-input"
                 />
               </div>
             </div>
@@ -176,7 +305,7 @@ function InventorySupervisorPage() {
                 value={form.item_id}
                 onValueChange={(val) => setForm({ ...form, item_id: val })}
               >
-                <SelectTrigger id="iitem">
+                <SelectTrigger id="iitem" data-tour="is-item-select">
                   <SelectValue placeholder="Select item..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -206,6 +335,7 @@ function InventorySupervisorPage() {
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, type: "in" })}
+                  data-tour="is-type-in"
                   className={`flex flex-col items-center gap-1.5 rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
                     form.type === "in"
                       ? "border-success bg-success-soft text-success"
@@ -218,6 +348,7 @@ function InventorySupervisorPage() {
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, type: "out" })}
+                  data-tour="is-type-out"
                   className={`flex flex-col items-center gap-1.5 rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
                     form.type === "out"
                       ? "border-destructive bg-danger-soft text-destructive"
@@ -231,6 +362,7 @@ function InventorySupervisorPage() {
                   type="button"
                   disabled={!canAdjust}
                   onClick={() => canAdjust && setForm({ ...form, type: "adjustment" })}
+                  data-tour="is-type-adjust"
                   className={`flex flex-col items-center gap-1.5 rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
                     !canAdjust
                       ? "cursor-not-allowed border-input opacity-40"
@@ -256,6 +388,7 @@ function InventorySupervisorPage() {
                   value={form.quantity}
                   onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                   placeholder="0"
+                  data-tour="is-qty-input"
                 />
               </div>
               <div className="space-y-2">
@@ -264,7 +397,7 @@ function InventorySupervisorPage() {
                   value={form.block_id}
                   onValueChange={(val) => setForm({ ...form, block_id: val })}
                 >
-                  <SelectTrigger id="iblock">
+                  <SelectTrigger id="iblock" data-tour="is-block-select">
                     <SelectValue placeholder="None" />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,6 +418,7 @@ function InventorySupervisorPage() {
                   id="iwastage"
                   checked={form.is_wastage}
                   onCheckedChange={(checked) => setForm({ ...form, is_wastage: checked === true })}
+                  data-tour="is-wastage"
                 />
                 <Label htmlFor="iwastage" className="cursor-pointer text-sm">
                   Mark as wastage / damage
@@ -300,6 +434,7 @@ function InventorySupervisorPage() {
                 value={form.reference}
                 onChange={(e) => setForm({ ...form, reference: e.target.value })}
                 placeholder="PR number, gate pass number, etc."
+                data-tour="is-reference"
               />
             </div>
 
@@ -315,14 +450,19 @@ function InventorySupervisorPage() {
               />
             </div>
 
-            <Button className="w-full" disabled={saving} onClick={handleSubmit}>
+            <Button
+              className="w-full"
+              disabled={saving}
+              onClick={handleSubmit}
+              data-tour="is-submit"
+            >
               {saving ? "Logging..." : "Log movement"}
             </Button>
           </div>
         </Card>
 
         {/* Recent items list for context */}
-        <Card className="mt-4 p-4">
+        <Card className="mt-4 p-4" data-tour="is-recent">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Recent items
           </p>

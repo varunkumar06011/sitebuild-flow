@@ -18,7 +18,7 @@ function isAdmin(role: Role): boolean {
 
 // Fetches the full inventory category tree ordered by sort order.
 export const fetchCategoryTree = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -165,7 +165,7 @@ export const fetchItems = createServerFn({ method: "GET" })
 
     // Fetch work_category for each item
     const itemIdsForCat = (items ?? []).map((i: any) => i.item_id);
-    let workCatMap = new Map<string, string>();
+    const workCatMap = new Map<string, string>();
     if (itemIdsForCat.length > 0) {
       const { data: itemCats } = await supabaseServer
         .from("inventory_items")
@@ -354,7 +354,7 @@ export const recordTransaction = createServerFn({ method: "POST" })
 
 // Fetches current stock levels for all items with resolved category paths (any authenticated role).
 export const fetchStockLevels = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -397,7 +397,7 @@ export const fetchStockLevels = createServerFn({ method: "GET" })
 
 // Fetches items whose current stock has fallen to or below their reorder level (any authenticated role).
 export const fetchLowStockAlerts = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -558,7 +558,7 @@ export const fetchItemLedger = createServerFn({ method: "GET" })
 
 // Fetches the list of construction blocks for the transaction form's block dropdown.
 export const fetchBlocks = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -706,7 +706,7 @@ export const fetchWastageReport = createServerFn({ method: "GET" })
 
 // Fetches stock projections: average daily usage (last 30 days) and estimated days remaining per item.
 export const fetchStockProjections = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -817,7 +817,7 @@ export const setItemBudget = createServerFn({ method: "POST" })
 
 // Fetches all item budgets with item names and current usage joined.
 export const fetchBudgets = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -837,7 +837,7 @@ export const fetchBudgets = createServerFn({ method: "GET" })
     }
 
     // Get cumulative 'out' usage per item (all time)
-    let usageMap = new Map<string, number>();
+    const usageMap = new Map<string, number>();
     if (itemIds.length > 0) {
       const { data: outTxns } = await supabaseServer
         .from("inventory_transactions")
@@ -913,7 +913,7 @@ export const fetchItemBudget = createServerFn({ method: "GET" })
 // Fetches a consolidated inventory summary: item count, low-stock count, open alerts,
 // wastage total (30 days), and total vendor outstanding (admin only).
 export const fetchInstantInventoryReport = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     const user = await requireSessionUser();
     if (!isAdmin(user.role)) {
@@ -973,7 +973,7 @@ export const fetchInstantInventoryReport = createServerFn({ method: "GET" })
 
 // Fetches the list of inventory warehouses for the transaction form dropdown.
 export const fetchWarehouses = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -987,7 +987,7 @@ export const fetchWarehouses = createServerFn({ method: "GET" })
 
 // Fetches requisitions (PR/PO) for linkage in the transaction form.
 export const fetchRequisitionsForLinkage = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -1002,7 +1002,7 @@ export const fetchRequisitionsForLinkage = createServerFn({ method: "GET" })
 
 // Fetches gate passes for linkage in the transaction form.
 export const fetchGatePassesForLinkage = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -1017,7 +1017,7 @@ export const fetchGatePassesForLinkage = createServerFn({ method: "GET" })
 
 // Fetches material batches for linkage in the transaction form.
 export const fetchBatchesForLinkage = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async ({ data, context }) => {
     await requireSessionUser();
 
@@ -1255,7 +1255,7 @@ export const createWarehouse = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 
 export const fetchVendorsForInventory = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireSessionUser();
     const { data: vendors } = await supabaseServer
@@ -1283,7 +1283,7 @@ function toCSV(rows: Record<string, any>[], headers?: string[]): string {
 }
 
 export const exportStockRegisterCSV = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const user = await requireSessionUser();
     if (!isAdmin(user.role)) return { success: false, error: "Only administrators can export" };
@@ -1357,7 +1357,7 @@ export const exportItemLedgerCSV = createServerFn({ method: "GET" })
   });
 
 export const exportLowStockCSV = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const user = await requireSessionUser();
     if (!isAdmin(user.role)) return { success: false, error: "Only administrators can export" };

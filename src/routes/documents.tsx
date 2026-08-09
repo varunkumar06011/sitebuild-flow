@@ -147,7 +147,7 @@ function extractFromOcrText(text: string): {
 
   // Extract expiry date — look for "Valid Until", "Expiry", "Expires On", date patterns
   const expiryRegexes = [
-    /(?:valid\s*(?:until|upto|to)|expir(?:y|es)\s*(?:on|date)?|expiry)\s*[:.]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+    /(?:valid\s*(?:until|upto|to)|expir(?:y|es)\s*(?:on|date)?|expiry)\s*[:.]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i,
     /(?:valid\s*(?:until|upto|to)|expir(?:y|es)\s*(?:on|date)?|expiry)\s*[:.]?\s*(\d{4}-\d{2}-\d{2})/i,
   ];
   for (const re of expiryRegexes) {
@@ -163,7 +163,7 @@ function extractFromOcrText(text: string): {
 
   // Extract licence number — look for "Licence No", "License Number", "Reg No"
   const licRegex =
-    /(?:licen[cs]e|lic\.?|reg(?:istration)?\.?)\s*(?:no\.?|number|#)\s*[:.]?\s*([A-Z0-9\-\/]{4,20})/i;
+    /(?:licen[cs]e|lic\.?|reg(?:istration)?\.?)\s*(?:no\.?|number|#)\s*[:.]?\s*([A-Z0-9/-]{4,20})/i;
   const licMatch = text.match(licRegex);
   if (licMatch?.[1]) result.licenceNumber = licMatch[1];
 
@@ -384,7 +384,7 @@ function DocumentsPage() {
           reader.readAsDataURL(selectedFile);
         });
 
-        const path = `documents/${Date.now()}-${selectedFile.name.replace(/[^a-zA-Z0-9.\-]/g, "_")}`;
+        const path = `documents/${Date.now()}-${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
         const uploadResult = await uploadFile({
           data: {
             bucket: "documents",
@@ -472,10 +472,18 @@ function DocumentsPage() {
   // Preview / Download
   // -------------------------------------------------------------------------
   async function handlePreview(doc: DocumentRow) {
+    const tab = window.open("", "_blank");
     const result = await getDocumentUrl({ data: { id: doc.id } });
     if (result.success && result.url) {
-      window.open(result.url, "_blank");
+      if (tab) {
+        tab.location.href = result.url;
+      } else {
+        toast.error("Popup blocked — tap to open", {
+          action: { label: "Open", onClick: () => window.open(result.url!, "_blank") },
+        });
+      }
     } else {
+      if (tab) tab.close();
       toast.error(result.error ?? "Failed to open document");
     }
   }

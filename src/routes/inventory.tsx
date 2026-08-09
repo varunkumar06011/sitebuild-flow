@@ -43,6 +43,7 @@ import {
 } from "@/lib/api/inventory";
 import { useRole } from "@/lib/role-context";
 import { requireAuth } from "@/lib/auth-guards";
+import { SectionTour, type TourStep } from "@/components/SectionTour";
 import { toast } from "sonner";
 import { inr } from "@/lib/erp-data";
 import {
@@ -205,6 +206,108 @@ function InventoryPage() {
     "tree" | "items" | "stock" | "ledger" | "alerts" | "wastage" | "projections" | "budgets"
   >("tree");
   const isAdminRole = ["Administrator", "A1", "A1+"].includes(role);
+
+  const tourSteps: TourStep[] = isAdminRole
+    ? [
+        {
+          selector: '[data-tour="inv-items-count"]',
+          title: "Item Count",
+          description:
+            "Total inventory items registered across all categories — use this to check if your catalog is complete.",
+        },
+        {
+          selector: '[data-tour="inv-low-stock"]',
+          title: "Low Stock Count",
+          description:
+            "Items at or below their reorder level — each one needs a purchase requisition raised soon.",
+        },
+        {
+          selector: '[data-tour="inv-open-alerts"]',
+          title: "Open Alerts",
+          description:
+            "Persistent low-stock alerts that haven't been resolved yet — resolve them once you've reordered.",
+        },
+        {
+          selector: '[data-tour="inv-vendor-outstanding"]',
+          title: "Vendor Outstanding",
+          description:
+            "Total unpaid vendor invoices for inventory purchases — track this against your budget.",
+        },
+        {
+          selector: '[data-tour="inv-tab-tree"]',
+          title: "Category Tree Tab",
+          description:
+            "Switch here to organize your material hierarchy — categories, types, subcategories, and subtypes.",
+        },
+        {
+          selector: '[data-tour="inv-tab-items"]',
+          title: "Items Tab",
+          description:
+            "Switch here to view, search, and add individual inventory items with units and reorder levels.",
+        },
+        {
+          selector: '[data-tour="inv-tab-stock"]',
+          title: "Stock Register Tab",
+          description:
+            "Switch here to see current stock levels computed from all transactions — opening + in − out ± adjustments.",
+        },
+        {
+          selector: '[data-tour="inv-tab-alerts"]',
+          title: "Alerts Tab",
+          description:
+            "Switch here to review and resolve persistent low-stock alerts that need attention.",
+        },
+        {
+          selector: '[data-tour="add-root-category"]',
+          title: "+ Add Root Category",
+          description:
+            "Create a top-level material category (e.g. Cement, Electrical) before adding items under it.",
+        },
+        {
+          selector: '[data-tour="inv-item-search"]',
+          title: "Search Items",
+          description: "Type an item name to find it quickly in the items table.",
+        },
+        {
+          selector: '[data-tour="add-item"]',
+          title: "+ Add Item",
+          description:
+            "Add a new stock item under this category — set its unit and reorder threshold so low-stock alerts trigger automatically.",
+        },
+        {
+          selector: '[data-tour="inv-alert-resolve"]',
+          title: "Resolve Alert",
+          description:
+            "Click Resolve once you've raised a purchase requisition for the low-stock item — this clears the persistent alert.",
+        },
+      ]
+    : [
+        {
+          selector: '[data-tour="inv-items-count"]',
+          title: "Item Count",
+          description: "Total inventory items registered across all categories.",
+        },
+        {
+          selector: '[data-tour="inv-low-stock"]',
+          title: "Low Stock Count",
+          description: "Items at or below their reorder level — these need attention.",
+        },
+        {
+          selector: '[data-tour="inv-tab-items"]',
+          title: "Items Tab",
+          description: "Switch here to view and search inventory items with current stock levels.",
+        },
+        {
+          selector: '[data-tour="inv-tab-stock"]',
+          title: "Stock Register Tab",
+          description: "Switch here to see current stock levels for all items.",
+        },
+        {
+          selector: '[data-tour="inv-item-search"]',
+          title: "Search Items",
+          description: "Type an item name to find it quickly in the items table.",
+        },
+      ];
 
   // Category tree
   const { data: treeData } = useQuery({
@@ -490,24 +593,27 @@ function InventoryPage() {
       title="Inventory"
       subtitle="Category tree, items, stock register & transaction ledger"
     >
+      <div className="mb-4 flex items-center justify-between">
+        <SectionTour sectionKey="inventory" steps={tourSteps} />
+      </div>
       {/* B4: Instant consolidated report ΓÇö summary cards */}
       {report && (
         <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <Card className="p-4">
+          <Card className="p-4" data-tour="inv-items-count">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Boxes className="size-4" />
               <span className="text-xs font-medium uppercase tracking-wide">Items</span>
             </div>
             <p className="mt-1 text-2xl font-bold">{report.item_count}</p>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4" data-tour="inv-low-stock">
             <div className="flex items-center gap-2 text-muted-foreground">
               <AlertTriangle className="size-4" />
               <span className="text-xs font-medium uppercase tracking-wide">Low Stock</span>
             </div>
             <p className="mt-1 text-2xl font-bold text-destructive">{report.low_stock_count}</p>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4" data-tour="inv-open-alerts">
             <div className="flex items-center gap-2 text-muted-foreground">
               <AlertTriangle className="size-4" />
               <span className="text-xs font-medium uppercase tracking-wide">Open Alerts</span>
@@ -523,7 +629,7 @@ function InventoryPage() {
             </div>
             <p className="mt-1 text-2xl font-bold">{report.wastage_total_30d}</p>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4" data-tour="inv-vendor-outstanding">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Wallet className="size-4" />
               <span className="text-xs font-medium uppercase tracking-wide">
@@ -565,6 +671,7 @@ function InventoryPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
+              data-tour={`inv-tab-${t.key}`}
               className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                 tab === t.key
                   ? "border-primary text-primary"
@@ -588,7 +695,7 @@ function InventoryPage() {
         <Card className="p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold">Category hierarchy</h2>
-            <Button size="sm" onClick={openAddRoot}>
+            <Button size="sm" onClick={openAddRoot} data-tour="add-root-category">
               <Plus className="mr-1.5 size-4" /> Add root category
             </Button>
           </div>
@@ -624,6 +731,7 @@ function InventoryPage() {
                   value={itemSearch}
                   onChange={(e) => setItemSearch(e.target.value)}
                   className="w-64 pl-9"
+                  data-tour="inv-item-search"
                 />
               </div>
               <WorkCategorySelect
@@ -633,7 +741,7 @@ function InventoryPage() {
                 className="w-48"
               />
             </div>
-            <Button size="sm" onClick={openCreateItem}>
+            <Button size="sm" onClick={openCreateItem} data-tour="add-item">
               <Plus className="mr-1.5 size-4" /> Add item
             </Button>
           </div>
@@ -1055,7 +1163,7 @@ function InventoryPage() {
 
       {/* --- Alerts tab (A2) --- */}
       {tab === "alerts" && (
-        <Card className="p-5">
+        <Card className="p-5" data-tour="inv-alerts">
           <h2 className="text-sm font-bold">Inventory alerts</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Persistent low-stock alerts. Click "Resolve" once you've reordered.
@@ -1075,13 +1183,18 @@ function InventoryPage() {
                     <div className="flex-1">
                       <p className="text-sm font-semibold">{a.item_name}</p>
                       <p className="text-xs text-muted-foreground">
-                        Stock at alert: {a.stock_at_alert} ┬╖ Reorder level:{" "}
-                        {a.reorder_level_at_alert}
-                        ┬╖ Alerted: {new Date(a.created_at).toLocaleDateString("en-IN")}
+                        Stock at alert: {a.stock_at_alert} · Reorder level:{" "}
+                        {a.reorder_level_at_alert} · Alerted:{" "}
+                        {new Date(a.created_at).toLocaleDateString("en-IN")}
                       </p>
                     </div>
                     {isAdminRole && (
-                      <Button variant="outline" size="sm" onClick={() => handleResolveAlert(a.id)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleResolveAlert(a.id)}
+                        data-tour="inv-alert-resolve"
+                      >
                         <CheckCircle className="mr-1 size-3.5" /> Resolve
                       </Button>
                     )}

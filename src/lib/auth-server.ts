@@ -109,7 +109,7 @@ async function readSessionCookie(): Promise<string | undefined> {
 
   // Method 4: vinxi/http fallback
   try {
-    // @ts-ignore — vinxi/http is available at runtime via Nitro
+    // @ts-expect-error — vinxi/http is available at runtime via Nitro
     const vinxiHttp: any = await import("vinxi/http");
     const event = vinxiHttp.getEvent?.();
     if (event) {
@@ -236,8 +236,7 @@ export const loginUser = createServerFn({ method: "POST" })
     await setSessionCookie(token, Math.floor(expiryMs / 1000));
 
     return { success: true, user: authUser, maxAge: Math.floor(expiryMs / 1000) };
-  },
-);
+  });
 
 // Server function that checks the session cookie and returns the current auth state.
 export const verifySession = createServerFn({ method: "GET" }).handler(
@@ -315,7 +314,7 @@ async function setSessionCookie(token: string, maxAgeSeconds: number): Promise<v
 
   // Method 2: vinxi/http fallback (Nitro-injected globals)
   try {
-    // @ts-ignore — vinxi/http is available at runtime via Nitro
+    // @ts-expect-error — vinxi/http is available at runtime via Nitro
     const vinxiHttp: any = await import("vinxi/http");
     const event = vinxiHttp.getEvent?.();
     if (event) {
@@ -353,7 +352,7 @@ async function clearSessionCookie(): Promise<void> {
 
   // Method 2: vinxi/http fallback (Nitro-injected globals)
   try {
-    // @ts-ignore — vinxi/http is available at runtime via Nitro
+    // @ts-expect-error — vinxi/http is available at runtime via Nitro
     const vinxiHttp: any = await import("vinxi/http");
     const event = vinxiHttp.getEvent?.();
     if (event) {
@@ -451,66 +450,64 @@ const changePasswordSchema = z.object({
 // and revokes all existing sessions for that user on success.
 export const changePassword = createServerFn({ method: "POST" })
   .validator(changePasswordSchema)
-  .handler(
-    async ({ data }): Promise<{ success: boolean; error?: string }> => {
-      // Read the session cookie to identify the current user
-      const token = await readSessionCookie();
-      if (!token) {
-        return { success: false, error: "Not authenticated" };
-      }
+  .handler(async ({ data }): Promise<{ success: boolean; error?: string }> => {
+    // Read the session cookie to identify the current user
+    const token = await readSessionCookie();
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
+    }
 
-      let userId: string;
-      try {
-        const decoded = jwt.verify(token, getJwtSecret()) as { id: string };
-        userId = decoded.id;
-      } catch {
-        return { success: false, error: "Not authenticated" };
-      }
+    let userId: string;
+    try {
+      const decoded = jwt.verify(token, getJwtSecret()) as { id: string };
+      userId = decoded.id;
+    } catch {
+      return { success: false, error: "Not authenticated" };
+    }
 
-      // Fetch the user's current password hash
-      const { data: user, error } = await supabaseServer
-        .from("users")
-        .select("id, password_hash")
-        .eq("id", userId)
-        .single();
+    // Fetch the user's current password hash
+    const { data: user, error } = await supabaseServer
+      .from("users")
+      .select("id, password_hash")
+      .eq("id", userId)
+      .single();
 
-      if (error || !user) {
-        return { success: false, error: "User not found" };
-      }
+    if (error || !user) {
+      return { success: false, error: "User not found" };
+    }
 
-      // Verify current password
-      const passwordMatch = await bcrypt.compare(data.currentPassword, user.password_hash);
-      if (!passwordMatch) {
-        return { success: false, error: "Current password is incorrect" };
-      }
+    // Verify current password
+    const passwordMatch = await bcrypt.compare(data.currentPassword, user.password_hash);
+    if (!passwordMatch) {
+      return { success: false, error: "Current password is incorrect" };
+    }
 
-      // Enforce password policy on new password
-      const policyError = validatePasswordPolicy(data.newPassword);
-      if (policyError) {
-        return { success: false, error: policyError };
-      }
+    // Enforce password policy on new password
+    const policyError = validatePasswordPolicy(data.newPassword);
+    if (policyError) {
+      return { success: false, error: policyError };
+    }
 
-      // Hash new password and update
-      const newHash = await bcrypt.hash(data.newPassword, 12);
-      const { error: updateError } = await supabaseServer
-        .from("users")
-        .update({ password_hash: newHash, failed_login_attempts: 0, locked_until: null })
-        .eq("id", userId);
+    // Hash new password and update
+    const newHash = await bcrypt.hash(data.newPassword, 12);
+    const { error: updateError } = await supabaseServer
+      .from("users")
+      .update({ password_hash: newHash, failed_login_attempts: 0, locked_until: null })
+      .eq("id", userId);
 
-      if (updateError) {
-        return { success: false, error: "Failed to update password" };
-      }
+    if (updateError) {
+      return { success: false, error: "Failed to update password" };
+    }
 
-      // Revoke all existing sessions for this user
-      await supabaseServer
-        .from("sessions")
-        .update({ revoked: true })
-        .eq("user_id", userId)
-        .eq("revoked", false);
+    // Revoke all existing sessions for this user
+    await supabaseServer
+      .from("sessions")
+      .update({ revoked: true })
+      .eq("user_id", userId)
+      .eq("revoked", false);
 
-      // Clear the current session cookie so the user is redirected to login
-      await clearSessionCookie();
+    // Clear the current session cookie so the user is redirected to login
+    await clearSessionCookie();
 
-      return { success: true };
-    },
-  );
+    return { success: true };
+  });

@@ -81,7 +81,7 @@ async function readSessionCookie(): Promise<string | undefined> {
 
   // Method 4: vinxi/http fallback
   try {
-    // @ts-ignore — vinxi/http is available at runtime via Nitro
+    // @ts-expect-error — vinxi/http is available at runtime via Nitro
     const vinxiHttp = await import("vinxi/http");
     const event = vinxiHttp.getEvent?.();
     if (event) {
@@ -161,14 +161,21 @@ export async function requireSessionUser(): Promise<SessionUser> {
       }
 
       const ip = getClientIp();
-      const result = checkRateLimit(`mutation:${ip}`, API_RATE_LIMIT.maxRequests, API_RATE_LIMIT.windowMs);
+      const result = checkRateLimit(
+        `mutation:${ip}`,
+        API_RATE_LIMIT.maxRequests,
+        API_RATE_LIMIT.windowMs,
+      );
       if (!result.allowed) {
         throw new Error("Rate limit exceeded — too many requests");
       }
     }
   } catch (e) {
     // If the error is our rate-limit or CSRF rejection, re-throw it.
-    if (e instanceof Error && (e.message.startsWith("Rate limit exceeded") || e.message.startsWith("Cross-origin"))) {
+    if (
+      e instanceof Error &&
+      (e.message.startsWith("Rate limit exceeded") || e.message.startsWith("Cross-origin"))
+    ) {
       throw e;
     }
     // Otherwise, rate-limit check failed (no request context) — continue.

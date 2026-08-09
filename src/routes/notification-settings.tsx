@@ -13,12 +13,23 @@ import {
   updateNotificationPreference,
   fetchNotificationQueue,
   processPendingNotifications,
+  fetchProviderStatus,
   NOTIFICATION_EVENTS,
 } from "@/lib/api/notification-system";
 import { useRole } from "@/lib/role-context";
 import { requireAuth } from "@/lib/auth-guards";
 import { toast } from "sonner";
-import { Bell, MessageSquare, Mail, Smartphone, Loader2, Send, Zap } from "lucide-react";
+import {
+  Bell,
+  MessageSquare,
+  Mail,
+  Smartphone,
+  Loader2,
+  Send,
+  Zap,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 
 export const Route = createFileRoute("/notification-settings")({
   head: () => ({
@@ -70,6 +81,13 @@ function NotificationSettingsPage() {
   });
   const queue = queueData?.data ?? [];
 
+  const { data: providerStatusData } = useQuery({
+    queryKey: ["notification-provider-status"],
+    queryFn: () => fetchProviderStatus({ data: {} }),
+    enabled: isAdmin,
+  });
+  const providerStatus = providerStatusData?.data;
+
   const handleToggle = async (eventType: string, channel: string, value: boolean) => {
     try {
       const result = await updateNotificationPreference({
@@ -119,6 +137,58 @@ function NotificationSettingsPage() {
         </TabsList>
 
         <TabsContent value="preferences">
+          {isAdmin && providerStatus && (
+            <Card className="mb-4 p-4">
+              <p className="text-sm font-bold">Channel Connection Status</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Shows whether external notification providers are configured. Unconfigured channels
+                will fail to deliver.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-4">
+                {(
+                  [
+                    { key: "sms", label: "SMS", icon: Smartphone, status: providerStatus.sms },
+                    {
+                      key: "whatsapp",
+                      label: "WhatsApp",
+                      icon: MessageSquare,
+                      status: providerStatus.whatsapp,
+                    },
+                    { key: "email", label: "Email", icon: Mail, status: providerStatus.email },
+                  ] as const
+                ).map(({ key, label, icon: Icon, status }) => (
+                  <div
+                    key={key}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                      status?.configured
+                        ? "border-success/30 bg-success/5"
+                        : "border-destructive/30 bg-destructive/5"
+                    }`}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <div>
+                      <span className="font-medium">{label}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{status?.provider}</span>
+                    </div>
+                    {status?.configured ? (
+                      <CheckCircle2 className="ml-1 size-4 text-success" />
+                    ) : (
+                      <XCircle className="ml-1 size-4 text-destructive" />
+                    )}
+                  </div>
+                ))}
+              </div>
+              {!providerStatus.sms?.configured &&
+                !providerStatus.whatsapp?.configured &&
+                !providerStatus.email?.configured && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    No external providers are configured. Only in-app notifications will be
+                    delivered. Set the required env vars (TWILIO_*, GUPSHUP_*, AWS_SES_*) to enable
+                    SMS, WhatsApp, and email delivery.
+                  </p>
+                )}
+            </Card>
+          )}
           <Card className="p-5">
             <p className="text-sm font-bold">Notification Preferences</p>
             <p className="mt-1 text-xs text-muted-foreground">

@@ -22,7 +22,7 @@ export type WorkCategory = {
 // Fetch all work categories (any authenticated user)
 // ---------------------------------------------------------------------------
 export const fetchWorkCategories = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     await requireSessionUser();
 

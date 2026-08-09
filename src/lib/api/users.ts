@@ -158,7 +158,7 @@ export const unlockUser = createServerFn({ method: "POST" })
 
 // Fetches active (non-expired, non-revoked) sessions with user names (admin only).
 export const fetchActiveSessions = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const user = await requireSessionUser();
     if (user.role !== "A1+" && user.role !== "Administrator") {

@@ -27,15 +27,22 @@ import {
   UserCog,
   Database,
   Brain,
+  ShieldAlert,
+  Award,
+  RefreshCw,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { useRouter } from "@tanstack/react-router";
 import { useRole } from "@/lib/role-context";
 import { ROLE_NAV, ROLE_SUMMARY } from "@/lib/erp-data";
 import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logoutUser } from "@/lib/auth-server";
 import { fetchNotifications, markAllNotificationsRead } from "@/lib/api/notifications";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { GlobalSearchTrigger } from "@/components/GlobalSearch";
+import { initClickDiagnostics } from "@/lib/click-diagnostics";
+import { useOfflineSync } from "@/lib/useOfflineSync";
 import { toast } from "sonner";
 
 // Maps navigation icon string names to their corresponding lucide-react components.
@@ -63,6 +70,8 @@ const ICON_MAP: Record<string, typeof HardHat> = {
   UserCog,
   Database,
   Brain,
+  ShieldAlert,
+  Award,
 };
 
 // Top-level layout shell with sidebar navigation, header, notifications, and logout.
@@ -77,7 +86,43 @@ export function AppShell({
 }) {
   const { role, name, logout } = useRole();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const navItems = ROLE_NAV[role] ?? [];
+  const { pendingCount, isOnline, triggerSync } = useOfflineSync();
+
+  // Initialize click-diagnostics listener (no-op unless window.__debugClicks = true)
+  useEffect(() => {
+    initClickDiagnostics();
+  }, []);
+
+  // Defensive fix: Radix UI can leave `pointer-events: none` on <body> after a
+  // Dialog/Popover/Sheet closes abnormally (fast interaction, nested overlays).
+  // Once stuck, ALL clicks on the page are silently swallowed until a hard refresh.
+  // This effect resets stray pointer-events on route change and periodically.
+  useEffect(() => {
+    const resetPointerEvents = () => {
+      if (document.body.style.pointerEvents === "none") {
+        // Only reset if no Radix overlay is actually open
+        const hasOpenOverlay =
+          document.querySelector("[data-state=open][role=dialog]") ||
+          document.querySelector("[data-state=open][data-radix-popper-content-wrapper]") ||
+          document.querySelector("[data-state=open][role=menu]") ||
+          document.querySelector("[data-state=open][role=listbox]");
+        if (!hasOpenOverlay) {
+          document.body.style.pointerEvents = "";
+        }
+      }
+    };
+
+    // Run on route change
+    resetPointerEvents();
+
+    // Also check periodically — covers cases where the overlay closes
+    // without a route change (e.g. Esc key, outside click)
+    const interval = setInterval(resetPointerEvents, 1000);
+
+    return () => clearInterval(interval);
+  }, [router.state.location.pathname]);
 
   const { data: notifData } = useQuery({
     queryKey: ["notifications", "unread"],
@@ -180,6 +225,28 @@ export function AppShell({
             </div>
             <div className="flex items-center gap-3">
               <GlobalSearchTrigger />
+              {(pendingCount > 0 || !isOnline) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="relative"
+                  aria-label={`${pendingCount} pending sync item${pendingCount > 1 ? "s" : ""}${!isOnline ? " (offline)" : ""}`}
+                  onClick={() => triggerSync()}
+                  disabled={!isOnline}
+                >
+                  <RefreshCw
+                    className={`size-4 ${!isOnline ? "text-warning-foreground" : "text-muted-foreground"}`}
+                  />
+                  {pendingCount > 0 && (
+                    <span
+                      className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-warning text-[10px] font-bold text-warning-foreground"
+                      aria-hidden="true"
+                    >
+                      {pendingCount > 9 ? "9+" : pendingCount}
+                    </span>
+                  )}
+                </Button>
+              )}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -263,7 +330,7 @@ export function AppShell({
           </nav>
         </header>
         <main id="main-content" className="flex-1 px-5 py-6 md:px-8" role="main">
-          {children}
+          <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </div>
     </div>

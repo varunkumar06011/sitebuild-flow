@@ -88,7 +88,7 @@ function Approvals() {
     queryFn: () => fetchRequisitions({ data: {} }),
     refetchInterval: 15000, // poll every 15 seconds for near-real-time updates
   });
-  const requisitions: RequisitionRow[] = reqData?.data ?? [];
+  const requisitions: RequisitionRow[] = useMemo(() => reqData?.data ?? [], [reqData]);
 
   // Pending queue: requisitions in an approval stage, filtered and sorted.
   const queue = useMemo(() => {

@@ -153,7 +153,7 @@ const SLA_HOURS = 48; // Auto-escalate after 48 hours
 
 // Fetches pending requisitions with SLA timer info.
 export const fetchPendingWithSLA = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const user = await requireSessionUser();
 
@@ -427,7 +427,7 @@ export const recordDocumentVersion = createServerFn({ method: "POST" })
 
 // Fetches row counts for all major tables (for backup overview).
 export const fetchBackupOverview = createServerFn({ method: "GET" })
-  .validator((input: {}) => input)
+  .validator((input: Record<string, never>) => input)
   .handler(async () => {
     const user = await requireSessionUser();
     if (user.role !== "A1+" && user.role !== "Administrator") {

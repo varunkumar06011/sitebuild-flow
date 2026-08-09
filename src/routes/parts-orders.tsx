@@ -320,6 +320,9 @@ function PartsOrdersPage() {
       toast.error(validationError);
       return;
     }
+    // Pre-open tab synchronously if WhatsApp send is requested — must be
+    // in the user-gesture call stack to avoid popup blocking on strict browsers.
+    const waTab = sendWhatsApp ? window.open("", "_blank") : null;
     setSaving(true);
     try {
       const payload = {
@@ -356,6 +359,7 @@ function PartsOrdersPage() {
       }
 
       if (!result.success) {
+        if (waTab) waTab.close();
         toast.error(result.error ?? "Failed to save parts order");
         setSaving(false);
         return;
@@ -418,16 +422,24 @@ function PartsOrdersPage() {
         const message = buildPartsOrderWhatsAppMessage(orderRow);
         const phone = selectedVendor?.phone?.replace(/[^0-9]/g, "") ?? "";
         if (!phone) {
+          if (waTab) waTab.close();
           toast.warning("Order saved, but no vendor phone number to send WhatsApp.");
         } else {
           const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-          window.open(waUrl, "_blank");
+          if (waTab) {
+            waTab.location.href = waUrl;
+          } else {
+            toast.error("Popup blocked — tap to open", {
+              action: { label: "Open", onClick: () => window.open(waUrl, "_blank") },
+            });
+          }
         }
       }
 
       setDialogOpen(false);
       setSaving(false);
     } catch (err) {
+      if (waTab) waTab.close();
       toast.error("Unable to save parts order. Please try again.");
       setSaving(false);
     }
@@ -463,7 +475,12 @@ function PartsOrdersPage() {
     }
     const message = buildPartsOrderWhatsAppMessage(order);
     const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(waUrl, "_blank");
+    const tab = window.open(waUrl, "_blank");
+    if (!tab) {
+      toast.error("Popup blocked — tap to open", {
+        action: { label: "Open", onClick: () => window.open(waUrl, "_blank") },
+      });
+    }
   }
 
   return (
