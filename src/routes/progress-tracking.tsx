@@ -1,6 +1,6 @@
 // Progress tracking page for supervisors to update status, completion and photos of assigned cells.
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -31,6 +31,7 @@ import {
   fetchCellHistory,
 } from "@/lib/api/progress-tracking";
 import { getSignedUrl } from "@/lib/api/storage";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { TrendingUp, Camera, History } from "lucide-react";
 
@@ -64,6 +65,24 @@ function ProgressTrackingPage() {
   const [editingCell, setEditingCell] = useState<any | null>(null);
   const [historyCell, setHistoryCell] = useState<any | null>(null);
   const queryClient = useQueryClient();
+
+  // Realtime: invalidate myCells query when any cell changes.
+  useEffect(() => {
+    const channel = supabase
+      .channel("progress-tracking-cells")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "progress_cells" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["myCells"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const { data: cellsData } = useQuery({
     queryKey: ["myCells", statusFilter],
@@ -321,10 +340,35 @@ export function CellEditDialog({
 
 // Dialog showing the change history and uploaded photos for a single cell.
 function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }) {
+  const queryClient = useQueryClient();
   const { data: histData } = useQuery({
     queryKey: ["cellHistory", cell.id],
     queryFn: () => fetchCellHistory({ cell_id: cell.id }),
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`cell-history-${cell.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "progress_cell_history", filter: `cell_id=eq.${cell.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["cellHistory", cell.id] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "progress_cell_photos", filter: `cell_id=eq.${cell.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["cellHistory", cell.id] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [cell.id, queryClient]);
 
   const history = histData?.history ?? [];
   const photos = histData?.photos ?? [];

@@ -13,13 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as A1RouteImport } from './routes/a1'
 import { Route as A1plusRouteImport } from './routes/a1plus'
 import { Route as AdministratorRouteImport } from './routes/administrator'
-import { Route as AnomalyDetectionRouteImport } from './routes/anomaly-detection'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as AuditLogRouteImport } from './routes/audit-log'
-import { Route as BackupVerificationRouteImport } from './routes/backup-verification'
 import { Route as BudgetRouteImport } from './routes/budget'
 import { Route as CashFlowRouteImport } from './routes/cash-flow'
-import { Route as DataExportRouteImport } from './routes/data-export'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as DrawingsRouteImport } from './routes/drawings'
 import { Route as GatePassRouteImport } from './routes/gate-pass'
@@ -27,22 +24,18 @@ import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as InventorySupervisorRouteImport } from './routes/inventory-supervisor'
 import { Route as LabourRouteImport } from './routes/labour'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as MedicalEquipmentRouteImport } from './routes/medical-equipment'
 import { Route as NotificationSettingsRouteImport } from './routes/notification-settings'
-import { Route as OfflineSyncRouteImport } from './routes/offline-sync'
 import { Route as PartsOrdersRouteImport } from './routes/parts-orders'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as ProcurementRouteImport } from './routes/procurement'
 import { Route as ProgressConfigRouteImport } from './routes/progress-config'
 import { Route as ProgressDashboardRouteImport } from './routes/progress-dashboard'
 import { Route as ProgressTrackingRouteImport } from './routes/progress-tracking'
-import { Route as PunchListRouteImport } from './routes/punch-list'
 import { Route as QualityRouteImport } from './routes/quality'
 import { Route as RegistersRouteImport } from './routes/registers'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RetentionRouteImport } from './routes/retention'
 import { Route as RoleAuditRouteImport } from './routes/role-audit'
-import { Route as SafetyRouteImport } from './routes/safety'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SupervisorRouteImport } from './routes/supervisor'
 import { Route as SystemRobustnessRouteImport } from './routes/system-robustness'
@@ -86,11 +79,6 @@ const AdministratorRoute = AdministratorRouteImport.update({
   path: '/administrator',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnomalyDetectionRoute = AnomalyDetectionRouteImport.update({
-  id: '/anomaly-detection',
-  path: '/anomaly-detection',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApprovalsRoute = ApprovalsRouteImport.update({
   id: '/approvals',
   path: '/approvals',
@@ -101,11 +89,6 @@ const AuditLogRoute = AuditLogRouteImport.update({
   path: '/audit-log',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BackupVerificationRoute = BackupVerificationRouteImport.update({
-  id: '/backup-verification',
-  path: '/backup-verification',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const BudgetRoute = BudgetRouteImport.update({
   id: '/budget',
   path: '/budget',
@@ -114,11 +97,6 @@ const BudgetRoute = BudgetRouteImport.update({
 const CashFlowRoute = CashFlowRouteImport.update({
   id: '/cash-flow',
   path: '/cash-flow',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DataExportRoute = DataExportRouteImport.update({
-  id: '/data-export',
-  path: '/data-export',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsRoute = DocumentsRouteImport.update({
@@ -156,19 +134,9 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MedicalEquipmentRoute = MedicalEquipmentRouteImport.update({
-  id: '/medical-equipment',
-  path: '/medical-equipment',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const NotificationSettingsRoute = NotificationSettingsRouteImport.update({
   id: '/notification-settings',
   path: '/notification-settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OfflineSyncRoute = OfflineSyncRouteImport.update({
-  id: '/offline-sync',
-  path: '/offline-sync',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PartsOrdersRoute = PartsOrdersRouteImport.update({
@@ -201,11 +169,6 @@ const ProgressTrackingRoute = ProgressTrackingRouteImport.update({
   path: '/progress-tracking',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PunchListRoute = PunchListRouteImport.update({
-  id: '/punch-list',
-  path: '/punch-list',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const QualityRoute = QualityRouteImport.update({
   id: '/quality',
   path: '/quality',
@@ -229,11 +192,6 @@ const RetentionRoute = RetentionRouteImport.update({
 const RoleAuditRoute = RoleAuditRouteImport.update({
   id: '/role-audit',
   path: '/role-audit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SafetyRoute = SafetyRouteImport.update({
-  id: '/safety',
-  path: '/safety',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -352,13 +310,10 @@ export interface FileRoutesByFullPath {
   '/a1': typeof A1Route
   '/a1plus': typeof A1plusRoute
   '/administrator': typeof AdministratorRoute
-  '/anomaly-detection': typeof AnomalyDetectionRoute
   '/approvals': typeof ApprovalsRoute
   '/audit-log': typeof AuditLogRoute
-  '/backup-verification': typeof BackupVerificationRoute
   '/budget': typeof BudgetRoute
   '/cash-flow': typeof CashFlowRoute
-  '/data-export': typeof DataExportRoute
   '/documents': typeof DocumentsRoute
   '/drawings': typeof DrawingsRoute
   '/gate-pass': typeof GatePassRoute
@@ -366,22 +321,18 @@ export interface FileRoutesByFullPath {
   '/inventory-supervisor': typeof InventorySupervisorRoute
   '/labour': typeof LabourRoute
   '/login': typeof LoginRouteWithChildren
-  '/medical-equipment': typeof MedicalEquipmentRoute
   '/notification-settings': typeof NotificationSettingsRoute
-  '/offline-sync': typeof OfflineSyncRoute
   '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/progress-config': typeof ProgressConfigRoute
   '/progress-dashboard': typeof ProgressDashboardRoute
   '/progress-tracking': typeof ProgressTrackingRoute
-  '/punch-list': typeof PunchListRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/reports': typeof ReportsRoute
   '/retention': typeof RetentionRoute
   '/role-audit': typeof RoleAuditRoute
-  '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
   '/system-robustness': typeof SystemRobustnessRoute
@@ -410,35 +361,28 @@ export interface FileRoutesByTo {
   '/a1': typeof A1Route
   '/a1plus': typeof A1plusRoute
   '/administrator': typeof AdministratorRoute
-  '/anomaly-detection': typeof AnomalyDetectionRoute
   '/approvals': typeof ApprovalsRoute
   '/audit-log': typeof AuditLogRoute
-  '/backup-verification': typeof BackupVerificationRoute
   '/budget': typeof BudgetRoute
   '/cash-flow': typeof CashFlowRoute
-  '/data-export': typeof DataExportRoute
   '/documents': typeof DocumentsRoute
   '/drawings': typeof DrawingsRoute
   '/gate-pass': typeof GatePassRoute
   '/inventory': typeof InventoryRoute
   '/inventory-supervisor': typeof InventorySupervisorRoute
   '/labour': typeof LabourRoute
-  '/medical-equipment': typeof MedicalEquipmentRoute
   '/notification-settings': typeof NotificationSettingsRoute
-  '/offline-sync': typeof OfflineSyncRoute
   '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/progress-config': typeof ProgressConfigRoute
   '/progress-dashboard': typeof ProgressDashboardRoute
   '/progress-tracking': typeof ProgressTrackingRoute
-  '/punch-list': typeof PunchListRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/reports': typeof ReportsRoute
   '/retention': typeof RetentionRoute
   '/role-audit': typeof RoleAuditRoute
-  '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
   '/system-robustness': typeof SystemRobustnessRoute
@@ -468,13 +412,10 @@ export interface FileRoutesById {
   '/a1': typeof A1Route
   '/a1plus': typeof A1plusRoute
   '/administrator': typeof AdministratorRoute
-  '/anomaly-detection': typeof AnomalyDetectionRoute
   '/approvals': typeof ApprovalsRoute
   '/audit-log': typeof AuditLogRoute
-  '/backup-verification': typeof BackupVerificationRoute
   '/budget': typeof BudgetRoute
   '/cash-flow': typeof CashFlowRoute
-  '/data-export': typeof DataExportRoute
   '/documents': typeof DocumentsRoute
   '/drawings': typeof DrawingsRoute
   '/gate-pass': typeof GatePassRoute
@@ -482,22 +423,18 @@ export interface FileRoutesById {
   '/inventory-supervisor': typeof InventorySupervisorRoute
   '/labour': typeof LabourRoute
   '/login': typeof LoginRouteWithChildren
-  '/medical-equipment': typeof MedicalEquipmentRoute
   '/notification-settings': typeof NotificationSettingsRoute
-  '/offline-sync': typeof OfflineSyncRoute
   '/parts-orders': typeof PartsOrdersRoute
   '/portal': typeof PortalRouteWithChildren
   '/procurement': typeof ProcurementRoute
   '/progress-config': typeof ProgressConfigRoute
   '/progress-dashboard': typeof ProgressDashboardRoute
   '/progress-tracking': typeof ProgressTrackingRoute
-  '/punch-list': typeof PunchListRoute
   '/quality': typeof QualityRoute
   '/registers': typeof RegistersRoute
   '/reports': typeof ReportsRoute
   '/retention': typeof RetentionRoute
   '/role-audit': typeof RoleAuditRoute
-  '/safety': typeof SafetyRoute
   '/settings': typeof SettingsRoute
   '/supervisor': typeof SupervisorRoute
   '/system-robustness': typeof SystemRobustnessRoute
@@ -528,13 +465,10 @@ export interface FileRouteTypes {
     | '/a1'
     | '/a1plus'
     | '/administrator'
-    | '/anomaly-detection'
     | '/approvals'
     | '/audit-log'
-    | '/backup-verification'
     | '/budget'
     | '/cash-flow'
-    | '/data-export'
     | '/documents'
     | '/drawings'
     | '/gate-pass'
@@ -542,22 +476,18 @@ export interface FileRouteTypes {
     | '/inventory-supervisor'
     | '/labour'
     | '/login'
-    | '/medical-equipment'
     | '/notification-settings'
-    | '/offline-sync'
     | '/parts-orders'
     | '/portal'
     | '/procurement'
     | '/progress-config'
     | '/progress-dashboard'
     | '/progress-tracking'
-    | '/punch-list'
     | '/quality'
     | '/registers'
     | '/reports'
     | '/retention'
     | '/role-audit'
-    | '/safety'
     | '/settings'
     | '/supervisor'
     | '/system-robustness'
@@ -586,35 +516,28 @@ export interface FileRouteTypes {
     | '/a1'
     | '/a1plus'
     | '/administrator'
-    | '/anomaly-detection'
     | '/approvals'
     | '/audit-log'
-    | '/backup-verification'
     | '/budget'
     | '/cash-flow'
-    | '/data-export'
     | '/documents'
     | '/drawings'
     | '/gate-pass'
     | '/inventory'
     | '/inventory-supervisor'
     | '/labour'
-    | '/medical-equipment'
     | '/notification-settings'
-    | '/offline-sync'
     | '/parts-orders'
     | '/portal'
     | '/procurement'
     | '/progress-config'
     | '/progress-dashboard'
     | '/progress-tracking'
-    | '/punch-list'
     | '/quality'
     | '/registers'
     | '/reports'
     | '/retention'
     | '/role-audit'
-    | '/safety'
     | '/settings'
     | '/supervisor'
     | '/system-robustness'
@@ -643,13 +566,10 @@ export interface FileRouteTypes {
     | '/a1'
     | '/a1plus'
     | '/administrator'
-    | '/anomaly-detection'
     | '/approvals'
     | '/audit-log'
-    | '/backup-verification'
     | '/budget'
     | '/cash-flow'
-    | '/data-export'
     | '/documents'
     | '/drawings'
     | '/gate-pass'
@@ -657,22 +577,18 @@ export interface FileRouteTypes {
     | '/inventory-supervisor'
     | '/labour'
     | '/login'
-    | '/medical-equipment'
     | '/notification-settings'
-    | '/offline-sync'
     | '/parts-orders'
     | '/portal'
     | '/procurement'
     | '/progress-config'
     | '/progress-dashboard'
     | '/progress-tracking'
-    | '/punch-list'
     | '/quality'
     | '/registers'
     | '/reports'
     | '/retention'
     | '/role-audit'
-    | '/safety'
     | '/settings'
     | '/supervisor'
     | '/system-robustness'
@@ -702,13 +618,10 @@ export interface RootRouteChildren {
   A1Route: typeof A1Route
   A1plusRoute: typeof A1plusRoute
   AdministratorRoute: typeof AdministratorRoute
-  AnomalyDetectionRoute: typeof AnomalyDetectionRoute
   ApprovalsRoute: typeof ApprovalsRoute
   AuditLogRoute: typeof AuditLogRoute
-  BackupVerificationRoute: typeof BackupVerificationRoute
   BudgetRoute: typeof BudgetRoute
   CashFlowRoute: typeof CashFlowRoute
-  DataExportRoute: typeof DataExportRoute
   DocumentsRoute: typeof DocumentsRoute
   DrawingsRoute: typeof DrawingsRoute
   GatePassRoute: typeof GatePassRoute
@@ -716,22 +629,18 @@ export interface RootRouteChildren {
   InventorySupervisorRoute: typeof InventorySupervisorRoute
   LabourRoute: typeof LabourRoute
   LoginRoute: typeof LoginRouteWithChildren
-  MedicalEquipmentRoute: typeof MedicalEquipmentRoute
   NotificationSettingsRoute: typeof NotificationSettingsRoute
-  OfflineSyncRoute: typeof OfflineSyncRoute
   PartsOrdersRoute: typeof PartsOrdersRoute
   PortalRoute: typeof PortalRouteWithChildren
   ProcurementRoute: typeof ProcurementRoute
   ProgressConfigRoute: typeof ProgressConfigRoute
   ProgressDashboardRoute: typeof ProgressDashboardRoute
   ProgressTrackingRoute: typeof ProgressTrackingRoute
-  PunchListRoute: typeof PunchListRoute
   QualityRoute: typeof QualityRoute
   RegistersRoute: typeof RegistersRoute
   ReportsRoute: typeof ReportsRoute
   RetentionRoute: typeof RetentionRoute
   RoleAuditRoute: typeof RoleAuditRoute
-  SafetyRoute: typeof SafetyRoute
   SettingsRoute: typeof SettingsRoute
   SupervisorRoute: typeof SupervisorRoute
   SystemRobustnessRoute: typeof SystemRobustnessRoute
@@ -773,13 +682,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdministratorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/anomaly-detection': {
-      id: '/anomaly-detection'
-      path: '/anomaly-detection'
-      fullPath: '/anomaly-detection'
-      preLoaderRoute: typeof AnomalyDetectionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/approvals': {
       id: '/approvals'
       path: '/approvals'
@@ -794,13 +696,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditLogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/backup-verification': {
-      id: '/backup-verification'
-      path: '/backup-verification'
-      fullPath: '/backup-verification'
-      preLoaderRoute: typeof BackupVerificationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/budget': {
       id: '/budget'
       path: '/budget'
@@ -813,13 +708,6 @@ declare module '@tanstack/react-router' {
       path: '/cash-flow'
       fullPath: '/cash-flow'
       preLoaderRoute: typeof CashFlowRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/data-export': {
-      id: '/data-export'
-      path: '/data-export'
-      fullPath: '/data-export'
-      preLoaderRoute: typeof DataExportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents': {
@@ -871,25 +759,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/medical-equipment': {
-      id: '/medical-equipment'
-      path: '/medical-equipment'
-      fullPath: '/medical-equipment'
-      preLoaderRoute: typeof MedicalEquipmentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/notification-settings': {
       id: '/notification-settings'
       path: '/notification-settings'
       fullPath: '/notification-settings'
       preLoaderRoute: typeof NotificationSettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/offline-sync': {
-      id: '/offline-sync'
-      path: '/offline-sync'
-      fullPath: '/offline-sync'
-      preLoaderRoute: typeof OfflineSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/parts-orders': {
@@ -934,13 +808,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProgressTrackingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/punch-list': {
-      id: '/punch-list'
-      path: '/punch-list'
-      fullPath: '/punch-list'
-      preLoaderRoute: typeof PunchListRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/quality': {
       id: '/quality'
       path: '/quality'
@@ -974,13 +841,6 @@ declare module '@tanstack/react-router' {
       path: '/role-audit'
       fullPath: '/role-audit'
       preLoaderRoute: typeof RoleAuditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/safety': {
-      id: '/safety'
-      path: '/safety'
-      fullPath: '/safety'
-      preLoaderRoute: typeof SafetyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -1188,13 +1048,10 @@ const rootRouteChildren: RootRouteChildren = {
   A1Route: A1Route,
   A1plusRoute: A1plusRoute,
   AdministratorRoute: AdministratorRoute,
-  AnomalyDetectionRoute: AnomalyDetectionRoute,
   ApprovalsRoute: ApprovalsRoute,
   AuditLogRoute: AuditLogRoute,
-  BackupVerificationRoute: BackupVerificationRoute,
   BudgetRoute: BudgetRoute,
   CashFlowRoute: CashFlowRoute,
-  DataExportRoute: DataExportRoute,
   DocumentsRoute: DocumentsRoute,
   DrawingsRoute: DrawingsRoute,
   GatePassRoute: GatePassRoute,
@@ -1202,22 +1059,18 @@ const rootRouteChildren: RootRouteChildren = {
   InventorySupervisorRoute: InventorySupervisorRoute,
   LabourRoute: LabourRoute,
   LoginRoute: LoginRouteWithChildren,
-  MedicalEquipmentRoute: MedicalEquipmentRoute,
   NotificationSettingsRoute: NotificationSettingsRoute,
-  OfflineSyncRoute: OfflineSyncRoute,
   PartsOrdersRoute: PartsOrdersRoute,
   PortalRoute: PortalRouteWithChildren,
   ProcurementRoute: ProcurementRoute,
   ProgressConfigRoute: ProgressConfigRoute,
   ProgressDashboardRoute: ProgressDashboardRoute,
   ProgressTrackingRoute: ProgressTrackingRoute,
-  PunchListRoute: PunchListRoute,
   QualityRoute: QualityRoute,
   RegistersRoute: RegistersRoute,
   ReportsRoute: ReportsRoute,
   RetentionRoute: RetentionRoute,
   RoleAuditRoute: RoleAuditRoute,
-  SafetyRoute: SafetyRoute,
   SettingsRoute: SettingsRoute,
   SupervisorRoute: SupervisorRoute,
   SystemRobustnessRoute: SystemRobustnessRoute,

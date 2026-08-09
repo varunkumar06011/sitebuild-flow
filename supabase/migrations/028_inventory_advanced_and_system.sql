@@ -62,34 +62,30 @@ ALTER TABLE inventory_transactions ADD COLUMN IF NOT EXISTS unit_cost numeric NO
 -- ============================================================================
 -- INVENTORY: Update stock levels view to handle transfers and reversals
 -- ============================================================================
+DROP VIEW IF EXISTS inventory_stock_levels;
 CREATE OR REPLACE VIEW inventory_stock_levels AS
 SELECT
   i.id AS item_id,
   i.name AS item_name,
   i.unit_of_measure,
   i.reorder_level,
-  i.reorder_qty,
   i.unit_cost,
-  i.supplier_id,
   i.default_warehouse_id,
   i.opening_stock,
   i.category_id,
-  i.archived,
   i.opening_stock
     + COALESCE(SUM(CASE WHEN t.type = 'in'          AND NOT t.reversed THEN t.quantity ELSE 0 END), 0)
     - COALESCE(SUM(CASE WHEN t.type = 'out'         AND NOT t.reversed THEN t.quantity ELSE 0 END), 0)
-    + COALESCE(SUM(CASE WHEN t.type = 'adjustment'  AND (t.adjustment_direction = 'up' OR t.adjustment_direction IS NULL) AND NOT t.reversed THEN t.quantity ELSE 0 END), 0)
-    - COALESCE(SUM(CASE WHEN t.type = 'adjustment'  AND t.adjustment_direction = 'down' AND NOT t.reversed THEN t.quantity ELSE 0 END), 0)
+    + COALESCE(SUM(CASE WHEN t.type = 'adjustment'  AND NOT t.reversed THEN t.quantity ELSE 0 END), 0)
     AS current_stock,
   (i.opening_stock
     + COALESCE(SUM(CASE WHEN t.type = 'in'          AND NOT t.reversed THEN t.quantity ELSE 0 END), 0)
     - COALESCE(SUM(CASE WHEN t.type = 'out'         AND NOT t.reversed THEN t.quantity ELSE 0 END), 0)
-    + COALESCE(SUM(CASE WHEN t.type = 'adjustment'  AND (t.adjustment_direction = 'up' OR t.adjustment_direction IS NULL) AND NOT t.reversed THEN t.quantity ELSE 0 END), 0)
-    - COALESCE(SUM(CASE WHEN t.type = 'adjustment'  AND t.adjustment_direction = 'down' AND NOT t.reversed THEN t.quantity ELSE 0 END), 0)
+    + COALESCE(SUM(CASE WHEN t.type = 'adjustment'  AND NOT t.reversed THEN t.quantity ELSE 0 END), 0)
   ) * i.unit_cost AS stock_value
 FROM inventory_items i
 LEFT JOIN inventory_transactions t ON t.item_id = i.id
-GROUP BY i.id, i.name, i.unit_of_measure, i.reorder_level, i.reorder_qty, i.unit_cost, i.supplier_id, i.default_warehouse_id, i.opening_stock, i.category_id, i.archived;
+GROUP BY i.id, i.name, i.unit_of_measure, i.reorder_level, i.unit_cost, i.default_warehouse_id, i.opening_stock, i.category_id;
 
 -- ============================================================================
 -- SYSTEM: Notification queue (for SMS / WhatsApp / Email delivery)

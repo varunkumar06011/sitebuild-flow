@@ -27,6 +27,12 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
     },
+    resolve: {
+      dedupe: ["react", "react-dom"],
+    },
+    optimizeDeps: {
+      include: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
+    },
     build: {
       outDir: "dist",
       rolldownOptions: {

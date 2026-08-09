@@ -1,13 +1,13 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import type { Role } from "./erp-data";
-import { authStore } from "./auth-store";
+import { authStore, type AuthState } from "./auth-store";
 
 // Context value exposing the current role and auth actions to consuming components.
 type RoleCtx = {
@@ -28,15 +28,14 @@ const Ctx = createContext<RoleCtx>({
   logout: () => {},
 });
 
-const DEFAULT_AUTH_STATE = { role: null, name: null, isAuthenticated: false } as const;
-
 // React context provider that exposes the current role and auth actions via the auth store.
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const authState = useSyncExternalStore(
-    (cb) => authStore.subscribe(cb),
-    () => authStore.getState(),
-    () => DEFAULT_AUTH_STATE,
-  );
+  const [authState, setAuthState] = useState<AuthState>(() => authStore.getState());
+
+  useEffect(() => {
+    const unsub = authStore.subscribe(() => setAuthState(authStore.getState()));
+    return unsub;
+  }, []);
 
   const [overrideRole, setOverrideRole] = useState<Role | null>(null);
   // Default to Supervisor (least privilege) when unauthenticated.

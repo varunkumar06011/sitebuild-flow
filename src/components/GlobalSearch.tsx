@@ -114,7 +114,9 @@ export function GlobalSearch() {
     entityGroups[r.type]!.push(r);
   });
 
-  const navItems = ROLE_NAV[role as Role] ?? [];
+  const navItems = (ROLE_NAV[role as Role] ?? []).filter(
+    (item): item is { to: string; label: string; icon: string } => "to" in item,
+  );
 
   // Group nav items by category for the command palette
   const groups: Record<string, typeof navItems> = {};

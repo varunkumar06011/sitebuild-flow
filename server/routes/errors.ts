@@ -7,7 +7,7 @@ export const errorsRouter = Router();
 
 // POST /api/errors/log — logs a production error to the error_log table.
 const logErrorSchema = z.object({
-  message: z.string(),
+  message: z.string().optional(),
   stack: z.string().optional(),
   source: z.string().optional(),
   route: z.string().optional(),
@@ -29,7 +29,7 @@ errorsRouter.post("/log", async (req: Request, res: Response) => {
     }
 
     await supabaseServer.from("error_log").insert({
-      message: data.message,
+      message: data.message ?? "Unknown error",
       stack: data.stack ?? null,
       source: data.source ?? "unknown",
       route: data.route ?? null,

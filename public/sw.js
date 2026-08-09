@@ -1,6 +1,6 @@
 // Service worker for Meditrust ERP — provides offline app shell caching.
 // Master data (vendors, items, blocks) is cached on first fetch and served from cache when offline.
-const CACHE_NAME = "meditrust-erp-v1";
+const CACHE_NAME = "meditrust-erp-v2";
 const APP_SHELL = [
   "/",
   "/favicon.ico",
@@ -52,7 +52,27 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets: cache-first
+  // Static assets: network-first for JS modules (prevents stale Vite deps),
+  // cache-first for other assets (images, fonts, etc.)
+  const isJsModule = url.pathname.endsWith(".js") || url.pathname.endsWith(".ts") ||
+    url.pathname.includes("/node_modules/.vite/") || url.pathname.includes("/@vite/") ||
+    url.pathname.includes("/@react-refresh");
+
+  if (isJsModule) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.status === 200 && response.type === "basic") {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || fetch(request))),
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

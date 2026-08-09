@@ -10,8 +10,13 @@ export type AuthUser = {
   phone: string | null;
 };
 
+export type SupabaseSession = {
+  access_token: string;
+  refresh_token: string;
+};
+
 export type LoginResult =
-  | { success: true; user: AuthUser; maxAge: number }
+  | { success: true; user: AuthUser; maxAge: number; supabaseSession?: SupabaseSession }
   | { success: false; error: string; locked?: boolean };
 
 // POST /api/auth/login

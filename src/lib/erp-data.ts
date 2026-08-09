@@ -92,7 +92,9 @@ export type NavRoute = {
   icon: string;
 };
 
-export const ROLE_NAV: Record<Role, NavRoute[]> = {
+export type NavItem = NavRoute | { section: string };
+
+export const ROLE_NAV: Record<Role, NavItem[]> = {
   Supervisor: [
     { to: "/supervisor", label: "My Dashboard", icon: "LayoutDashboard" },
     { to: "/procurement", label: "Procurement", icon: "ClipboardList" },
@@ -100,6 +102,7 @@ export const ROLE_NAV: Record<Role, NavRoute[]> = {
     { to: "/traceability", label: "Traceability", icon: "Boxes" },
     { to: "/quality", label: "Quality Control", icon: "BadgeCheck" },
     { to: "/registers", label: "Registers & Labour", icon: "Users" },
+    { section: "Progress" },
     { to: "/progress-tracking", label: "Progress Tracking", icon: "TrendingUp" },
     { to: "/progress-dashboard", label: "Progress Dashboard", icon: "TrendingUp" },
     { to: "/inventory-supervisor", label: "Log Material", icon: "Package" },
@@ -124,6 +127,7 @@ export const ROLE_NAV: Record<Role, NavRoute[]> = {
     { to: "/inventory", label: "Inventory", icon: "Package" },
     { to: "/parts-orders", label: "Parts Orders", icon: "Package" },
     { to: "/work-orders", label: "Work Orders", icon: "ClipboardList" },
+    { section: "Progress" },
     { to: "/progress-config", label: "Progress Config", icon: "Settings2" },
     { to: "/progress-dashboard", label: "Progress Dashboard", icon: "TrendingUp" },
     { to: "/users", label: "User Management", icon: "UserCog" },
@@ -150,6 +154,7 @@ export const ROLE_NAV: Record<Role, NavRoute[]> = {
     { to: "/inventory", label: "Inventory", icon: "Package" },
     { to: "/parts-orders", label: "Parts Orders", icon: "Package" },
     { to: "/work-orders", label: "Work Orders", icon: "ClipboardList" },
+    { section: "Progress" },
     { to: "/progress-config", label: "Progress Config", icon: "Settings2" },
     { to: "/progress-dashboard", label: "Progress Dashboard", icon: "TrendingUp" },
     { to: "/users", label: "User Management", icon: "UserCog" },
@@ -179,6 +184,7 @@ export const ROLE_NAV: Record<Role, NavRoute[]> = {
     { to: "/inventory", label: "Inventory", icon: "Package" },
     { to: "/parts-orders", label: "Parts Orders", icon: "Package" },
     { to: "/work-orders", label: "Work Orders", icon: "ClipboardList" },
+    { section: "Progress" },
     { to: "/progress-config", label: "Progress Config", icon: "Settings2" },
     { to: "/progress-dashboard", label: "Progress Dashboard", icon: "TrendingUp" },
     { to: "/users", label: "User Management", icon: "UserCog" },

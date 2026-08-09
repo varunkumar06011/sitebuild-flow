@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -6,7 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchWorkCategories } from "@/lib/api/work-categories";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { fetchWorkCategories, createWorkCategory } from "@/lib/api/work-categories";
+import { toast } from "sonner";
+import { Plus } from "lucide-react";
 
 export function WorkCategorySelect({
   value,
@@ -23,8 +28,71 @@ export function WorkCategorySelect({
     queryKey: ["workCategories"],
     queryFn: () => fetchWorkCategories(),
   });
+  const qc = useQueryClient();
+  const [creating, setCreating] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
 
   const categories = data?.data ?? [];
+
+  const handleCreate = async () => {
+    if (!newLabel.trim()) return;
+    const name = newLabel.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
+    if (!name) {
+      toast.error("Category name must contain at least one letter or number");
+      return;
+    }
+    try {
+      const result = await createWorkCategory({
+        name,
+        label: newLabel.trim(),
+        sort_order: 99,
+      });
+      if (result.success) {
+        toast.success("Category created");
+        qc.invalidateQueries({ queryKey: ["workCategories"] });
+        onChange(name);
+        setCreating(false);
+        setNewLabel("");
+      } else {
+        toast.error(result.error || "Failed to create category");
+      }
+    } catch {
+      toast.error("Failed to create category");
+    }
+  };
+
+  if (creating) {
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          autoFocus
+          value={newLabel}
+          onChange={(e) => setNewLabel(e.target.value)}
+          placeholder="Category label (e.g. MEP Work)"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleCreate();
+            if (e.key === "Escape") {
+              setCreating(false);
+              setNewLabel("");
+            }
+          }}
+        />
+        <Button size="sm" onClick={handleCreate} disabled={!newLabel.trim()}>
+          Add
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setCreating(false);
+            setNewLabel("");
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Select value={value} onValueChange={onChange}>
@@ -37,6 +105,20 @@ export function WorkCategorySelect({
             {cat.label}
           </SelectItem>
         ))}
+        <div className="border-t pt-1 mt-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-muted-foreground"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setCreating(true);
+            }}
+          >
+            <Plus className="mr-1 size-3.5" /> Create new category...
+          </Button>
+        </div>
       </SelectContent>
     </Select>
   );

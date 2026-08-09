@@ -61,10 +61,14 @@ export type ProgressCell = {
   assigned_supervisor_id: string | null;
   updated_by: string | null;
   updated_at: string | null;
+  block_id: string;
   block_name: string;
+  floor_id: string;
   floor_name: string;
+  work_item_id: string;
   work_item_name: string;
   category_name: string;
+  work_view_id: string;
   work_view_scope: string;
 };
 
@@ -228,9 +232,9 @@ export function fetchCellHistory(data: {
 }
 
 // GET /api/progress-tracking/dashboard
-export function fetchProgressDashboard(): Promise<{
+export function fetchProgressDashboard(workViewId?: string): Promise<{
   blocks: any[];
   cells: any[];
 }> {
-  return api.get("/api/progress-tracking/dashboard");
+  return api.get("/api/progress-tracking/dashboard", workViewId ? { work_view_id: workViewId } : undefined);
 }

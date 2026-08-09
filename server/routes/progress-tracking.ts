@@ -624,10 +624,14 @@ progressTrackingRouter.get("/my-cells", async (req: Request, res: Response) => {
         assigned_supervisor_id: null,
         updated_by: c.updated_by,
         updated_at: c.updated_at,
+        block_id: g?.block_id ?? "",
         block_name: g ? (blockMap.get(g.block_id) ?? "") : "",
+        floor_id: g?.floor_id ?? "",
         floor_name: g ? (floorMap.get(g.floor_id) ?? "") : "",
+        work_item_id: g?.work_item_id ?? "",
         work_item_name: wi?.name ?? "",
         category_name: cat?.name ?? "",
+        work_view_id: cat?.work_view_id ?? "",
         work_view_scope: cat?.progress_work_views?.scope ?? "flat",
       };
     });
@@ -843,6 +847,8 @@ progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => 
   try {
     const user = await requireSessionUser(req);
 
+    const workViewId = req.query["work_view_id"] as string | undefined;
+
     const { data: groups } = await supabaseServer
       .from("progress_cell_groups")
       .select(
@@ -859,12 +865,19 @@ progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => 
       )
       .order("id");
 
-    if (!groups || groups.length === 0) {
+    let filteredGroups = groups ?? [];
+    if (workViewId) {
+      filteredGroups = filteredGroups.filter(
+        (g: any) => g.progress_work_items?.progress_categories?.work_view_id === workViewId,
+      );
+    }
+
+    if (filteredGroups.length === 0) {
       res.json({ blocks: [], cells: [] });
       return;
     }
 
-    const groupIds = groups.map((g: any) => g.id);
+    const groupIds = filteredGroups.map((g: any) => g.id);
 
     const { data: cells } = await supabaseServer
       .from("progress_cells")
@@ -872,7 +885,7 @@ progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => 
       .in("cell_group_id", groupIds)
       .order("cell_number");
 
-    const groupMap = new Map(groups.map((g: any) => [g.id, g]));
+    const groupMap = new Map(filteredGroups.map((g: any) => [g.id, g]));
 
     // Compute is_editable per cell using the same logic as canSupervisorEditCell:
     //   Admin → always true; Supervisor → true only if assigned to the cell's block/floor; other → false.
@@ -964,10 +977,14 @@ progressTrackingRouter.get("/dashboard", async (req: Request, res: Response) => 
         status: c.status,
         completion_pct: Number(c.completion_pct),
         updated_at: c.updated_at,
+        block_id: g?.block_id ?? "",
         block_name: g?.progress_blocks?.name ?? "",
+        floor_id: g?.floor_id ?? "",
         floor_name: g?.progress_floors?.name ?? "",
+        work_item_id: g?.work_item_id ?? "",
         work_item_name: g?.progress_work_items?.name ?? "",
         category_name: g?.progress_work_items?.progress_categories?.name ?? "",
+        work_view_id: g?.progress_work_items?.progress_categories?.work_view_id ?? "",
         work_view_scope: g?.progress_work_items?.progress_categories?.progress_work_views?.scope ?? "flat",
         is_editable: isAdmin(user.role) ? true : (editableCellIds?.has(c.id) ?? false),
       };

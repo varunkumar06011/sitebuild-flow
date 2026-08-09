@@ -34,10 +34,11 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useRole } from "@/lib/role-context";
-import { ROLE_NAV, ROLE_SUMMARY } from "@/lib/erp-data";
+import { ROLE_NAV, ROLE_SUMMARY, type NavItem } from "@/lib/erp-data";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logoutUser } from "@/lib/auth-server";
+import { supabase } from "@/lib/supabase";
 import { fetchNotifications, markAllNotificationsRead } from "@/lib/api/notifications";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { GlobalSearchTrigger } from "@/components/GlobalSearch";
@@ -138,6 +139,7 @@ export function AppShell({
     logoutUser().catch(() => {
       // server call may fail if session is already invalid — continue anyway
     });
+    supabase.auth.signOut().catch(() => {});
     logout();
     queryClient.clear();
     window.location.href = "/login";
@@ -176,7 +178,18 @@ export function AppShell({
           </div>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 px-3" aria-label="Primary">
-          {navItems.map(({ to, label, icon }) => {
+          {navItems.map((item, idx) => {
+            if ("section" in item) {
+              return (
+                <div
+                  key={`section-${idx}`}
+                  className="mt-3 px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60"
+                >
+                  {item.section}
+                </div>
+              );
+            }
+            const { to, label, icon } = item;
             const Icon = ICON_MAP[icon] ?? LayoutDashboard;
             return (
               <Link
@@ -313,20 +326,22 @@ export function AppShell({
             className="flex gap-1 overflow-x-auto border-t border-border px-3 py-2 lg:hidden"
             aria-label="Mobile navigation"
           >
-            {navItems.map(({ to, label }) => (
-              <Link
-                key={to}
-                to={to}
-                activeOptions={{
-                  exact: to === "/" || to === `/${role.toLowerCase().replace("+", "plus")}`,
-                }}
-                className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground"
-                activeProps={{ className: "bg-accent text-accent-foreground font-semibold" }}
-                aria-current="page"
-              >
-                {label}
-              </Link>
-            ))}
+            {navItems
+              .filter((item): item is { to: string; label: string; icon: string } => "to" in item)
+              .map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  activeOptions={{
+                    exact: to === "/" || to === `/${role.toLowerCase().replace("+", "plus")}`,
+                  }}
+                  className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground"
+                  activeProps={{ className: "bg-accent text-accent-foreground font-semibold" }}
+                  aria-current="page"
+                >
+                  {label}
+                </Link>
+              ))}
           </nav>
         </header>
         <main id="main-content" className="flex-1 px-5 py-6 md:px-8" role="main">
