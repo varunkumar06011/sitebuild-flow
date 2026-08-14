@@ -22,13 +22,10 @@ import {
   HeartPulse,
   Wallet,
   TrendingDown,
-  Receipt,
-  Lock,
   UserCog,
   Database,
   Brain,
   ShieldAlert,
-  Award,
   RefreshCw,
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
@@ -66,13 +63,10 @@ const ICON_MAP: Record<string, typeof HardHat> = {
   HeartPulse,
   Wallet,
   TrendingDown,
-  Receipt,
-  Lock,
   UserCog,
   Database,
   Brain,
   ShieldAlert,
-  Award,
 };
 
 // Top-level layout shell with sidebar navigation, header, notifications, and logout.

@@ -126,7 +126,7 @@ export function WorkCategorySelect({
 
 const CATEGORY_TONES: Record<string, string> = {
   civil: "bg-blue-100 text-blue-700",
-  structural: "bg-purple-100 text-purple-700",
+  medical: "bg-emerald-100 text-emerald-700",
   uncategorized: "bg-muted text-muted-foreground",
 };
 

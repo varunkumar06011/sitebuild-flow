@@ -56,8 +56,8 @@ export const Route = createFileRoute("/quality")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: Quality,
 });

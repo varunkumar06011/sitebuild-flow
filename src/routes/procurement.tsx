@@ -88,8 +88,8 @@ export const Route = createFileRoute("/procurement")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: Procurement,
   errorComponent: ({ error, reset }) => (

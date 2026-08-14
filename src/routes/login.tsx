@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRole } from "@/lib/role-context";
 import { authStore } from "@/lib/auth-store";
-import { loginUser, verifySession } from "@/lib/auth-server";
+import { loginUser } from "@/lib/auth-server";
 import { supabase } from "@/lib/supabase";
 import { HardHat, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,27 +21,17 @@ export const Route = createFileRoute("/login")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    // On the client, if authStore says not authenticated (e.g. user just
-    // logged out), skip the server-side session check to avoid a redirect
-    // loop between /login and the dashboard route guards.
-    if (typeof window !== "undefined") {
-      const state = authStore.getState();
-      if (!state.isAuthenticated) return;
-    }
-    try {
-      const session = await verifySession();
-      if (session.authenticated && session.user) {
-        const routes = {
-          Supervisor: "/supervisor",
-          Administrator: "/administrator",
-          A1: "/a1",
-          "A1+": "/a1plus",
-        } as const;
-        throw redirect({ to: routes[session.user.role] });
-      }
-    } catch (e: any) {
-      if (e && typeof e === "object" && "status" in e) throw e;
+  beforeLoad: () => {
+    if (typeof window === "undefined") return;
+    const state = authStore.getState();
+    if (state.isAuthenticated && state.role) {
+      const routes = {
+        Supervisor: "/supervisor",
+        Administrator: "/administrator",
+        A1: "/a1",
+        "A1+": "/a1plus",
+      } as const;
+      throw redirect({ to: routes[state.role] });
     }
   },
   component: LoginPage,

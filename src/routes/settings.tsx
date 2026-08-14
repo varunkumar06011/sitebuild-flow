@@ -23,8 +23,8 @@ export const Route = createFileRoute("/settings")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: SettingsPage,
 });

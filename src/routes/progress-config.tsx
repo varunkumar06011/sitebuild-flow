@@ -49,8 +49,8 @@ export const Route = createFileRoute("/progress-config")({
   head: () => ({
     meta: [{ title: "Progress Configuration — Meditrust ERP" }],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
     if (typeof window !== "undefined") {
       const role = authStore.getState().role;
       if (!role || !ADMIN_ROLES.includes(role)) {

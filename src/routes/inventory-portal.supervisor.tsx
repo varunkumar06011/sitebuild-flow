@@ -6,8 +6,8 @@ export const Route = createFileRoute("/inventory-portal/supervisor")({
   head: () => ({
     meta: [{ title: "Inventory Portal — Supervisor — Meditrust ERP" }],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: () => (
     <InventoryPortal

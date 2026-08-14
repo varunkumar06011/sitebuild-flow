@@ -40,8 +40,8 @@ export const Route = createFileRoute("/progress-dashboard")({
   head: () => ({
     meta: [{ title: "Progress Dashboard — Meditrust ERP" }],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: ProgressDashboardPage,
 });

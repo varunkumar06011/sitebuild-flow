@@ -9,8 +9,8 @@ import { fetchRequisitions } from "@/lib/api/requisitions";
 import { fetchProgress } from "@/lib/api/progress";
 import { fetchGatePasses } from "@/lib/api/gate-passes";
 import { fetchInspections } from "@/lib/api/inspections";
-import { fetchLabour } from "@/lib/api/registers";
 import { useRole } from "@/lib/role-context";
+import { authStore } from "@/lib/auth-store";
 import { ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -20,35 +20,27 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "ERP for hospital construction: procurement approvals, gate pass OTP, material traceability, quality control and site registers.",
+          "ERP for hospital construction: procurement approvals, gate pass OTP, quality control and site registers.",
       },
       { property: "og:title", content: "Meditrust ERP — Hospital Construction Control Centre" },
       {
         property: "og:description",
         content:
-          "Role-based procurement, approvals, gate pass, traceability, QC and labour registers in one system.",
+          "Role-based procurement, approvals, gate pass, QC and registers in one system.",
       },
     ],
   }),
   beforeLoad: () => {
-    // Only redirect on client — SSR has no localStorage
     if (typeof window === "undefined") return;
-    try {
-      const saved = localStorage.getItem("meditrust-auth-user");
-      if (saved) {
-        const state = JSON.parse(saved) as { role: string; isAuthenticated: boolean };
-        if (state.isAuthenticated && state.role) {
-          const routes: Record<string, string> = {
-            Supervisor: "/supervisor",
-            Administrator: "/administrator",
-            A1: "/a1",
-            "A1+": "/a1plus",
-          };
-          throw redirect({ to: routes[state.role] ?? "/login" });
-        }
-      }
-    } catch (e) {
-      if (e && typeof e === "object" && "status" in e) throw e;
+    const state = authStore.getState();
+    if (state.isAuthenticated && state.role) {
+      const routes: Record<string, string> = {
+        Supervisor: "/supervisor",
+        Administrator: "/administrator",
+        A1: "/a1",
+        "A1+": "/a1plus",
+      };
+      throw redirect({ to: routes[state.role] ?? "/login" });
     }
     throw redirect({ to: "/login" });
   },
@@ -70,16 +62,11 @@ function Overview() {
     queryKey: ["inspections"],
     queryFn: () => fetchInspections({}),
   });
-  const { data: labData } = useQuery({
-    queryKey: ["labour"],
-    queryFn: () => fetchLabour({}),
-  });
 
   const requisitions = reqData?.data ?? [];
   const progress = progData?.data ?? [];
   const gatePasses = gpData?.data ?? [];
   const inspections = inspData?.data ?? [];
-  const labour = labData?.data ?? [];
 
   const pending = requisitions.filter((r: any) => r.stage === "Admin" || r.stage === "A1");
   const committed = requisitions.reduce((s: number, r: any) => s + r.amount, 0);
@@ -192,14 +179,12 @@ function Overview() {
         </Card>
 
         <Card className="p-5">
-          <h2 className="text-sm font-bold">Labour on site today</h2>
+          <h2 className="text-sm font-bold">Gate passes</h2>
           <div className="mt-4 space-y-3">
-            {labour.map((l: any) => (
-              <div key={l.trade} className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{l.trade}</span>
-                <span className="font-mono font-semibold">
-                  {l.present}/{l.planned}
-                </span>
+            {gatePasses.map((g: any) => (
+              <div key={g.id} className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{g.gp_number}</span>
+                <span className="font-mono font-semibold">{g.status}</span>
               </div>
             ))}
           </div>

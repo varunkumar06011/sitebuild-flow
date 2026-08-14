@@ -7,25 +7,9 @@ import { isSafePath } from "../lib/sanitize.js";
 
 export const storageRouter = Router();
 
-const DOCUMENT_MIMES = [
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/tiff",
-  "image/bmp",
-  "image/heic",
-  "image/heif",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "text/csv",
-  "text/plain",
-  "application/zip",
-  "application/x-zip-compressed",
-  "application/octet-stream",
-];
+// Any file type is allowed for documents — the MIME type is accepted as-is.
+// application/octet-stream is the fallback for unknown/binary types.
+const DOCUMENT_MIMES: string[] | null = null;
 const PHOTO_MIMES = [
   "image/jpeg",
   "image/png",
@@ -35,7 +19,7 @@ const PHOTO_MIMES = [
   "image/bmp",
   "image/tiff",
 ];
-const MAX_DOC_SIZE = 10 * 1024 * 1024;
+const MAX_DOC_SIZE = 100 * 1024 * 1024;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 
 // POST /api/storage/upload — uploads a base64-encoded file to Supabase storage.
@@ -56,10 +40,10 @@ storageRouter.post("/upload", async (req: Request, res: Response) => {
       return;
     }
 
-    const allowedMimes = data.bucket === "documents" ? DOCUMENT_MIMES : PHOTO_MIMES;
     const maxSize = data.bucket === "documents" ? MAX_DOC_SIZE : MAX_PHOTO_SIZE;
 
-    if (!allowedMimes.includes(data.contentType)) {
+    // Documents bucket accepts any file type; photos bucket still restricts to image MIME types.
+    if (data.bucket === "photos" && !PHOTO_MIMES.includes(data.contentType)) {
       res.json({
         success: false,
         error: `File type ${data.contentType} not allowed for ${data.bucket}`,

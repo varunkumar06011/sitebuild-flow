@@ -8,9 +8,7 @@ import { requireRole } from "@/lib/auth-guards";
 import { fetchRequisitions, type RequisitionRow } from "@/lib/api/requisitions";
 import { fetchInspections } from "@/lib/api/inspections";
 import { fetchProgress } from "@/lib/api/progress";
-import { fetchBatches } from "@/lib/api/batches";
 import { fetchGatePasses } from "@/lib/api/gate-passes";
-import { fetchLabour } from "@/lib/api/registers";
 import { useApprovalActions } from "@/hooks/use-approval-actions";
 import { ApprovalQueueItem } from "@/components/approval/ApprovalQueueItem";
 import { DecisionHistory } from "@/components/approval/DecisionHistory";
@@ -22,8 +20,6 @@ import {
   ArrowUpRight,
   TrendingUp,
   ShieldCheck,
-  Boxes,
-  Users,
   AlertCircle,
   Package,
   ClipboardList,
@@ -34,8 +30,8 @@ export const Route = createFileRoute("/a1plus")({
   head: () => ({
     meta: [{ title: "A1+ Dashboard — Meditrust ERP" }],
   }),
-  beforeLoad: async () => {
-    await requireRole("A1+");
+  beforeLoad: () => {
+    requireRole("A1+");
   },
   component: A1PlusDashboard,
 });
@@ -58,17 +54,9 @@ function A1PlusDashboard() {
     queryFn: () => fetchInspections({}),
   });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
-  const { data: batchData } = useQuery({
-    queryKey: ["batches"],
-    queryFn: () => fetchBatches({}),
-  });
   const { data: gpData } = useQuery({
     queryKey: ["gatePasses"],
     queryFn: () => fetchGatePasses({}),
-  });
-  const { data: labourData } = useQuery({
-    queryKey: ["labour"],
-    queryFn: () => fetchLabour({}),
   });
   const { data: partsData } = useQuery({
     queryKey: ["partsOrders", "a1plus"],
@@ -86,9 +74,7 @@ function A1PlusDashboard() {
   const requisitions: RequisitionRow[] = reqData?.data ?? [];
   const inspections = inspData?.data ?? [];
   const progress = progData?.data ?? [];
-  const batches = batchData?.data ?? [];
   const gatePasses = gpData?.data ?? [];
-  const labour = labourData?.data ?? [];
   const partsOrders = partsData?.data ?? [];
   const workOrders = workData?.data ?? [];
   const documents = docsData?.data ?? [];
@@ -103,9 +89,7 @@ function A1PlusDashboard() {
   const completedValue = requisitions
     .filter((r) => r.stage === "Completed")
     .reduce((s, r) => s + r.amount, 0);
-  const pendingBatches = batches.filter((b: any) => b.status !== "Verified");
   const activeGatePasses = gatePasses.filter((g: any) => g.status !== "Exited");
-  const totalLabour = labour.reduce((s: number, l: any) => s + l.present, 0);
 
   return (
     <AppShell
@@ -137,20 +121,6 @@ function A1PlusDashboard() {
           value={inr(totalCommitted)}
           note={`${inr(completedValue)} completed`}
           tone="info"
-        />
-        <StatCard
-          icon={Boxes}
-          label="Traceability Issues"
-          value={String(pendingBatches.length)}
-          note="MTC or lab pending"
-          tone="danger"
-        />
-        <StatCard
-          icon={Users}
-          label="Labour On Site"
-          value={String(totalLabour)}
-          note="Across all trades"
-          tone="success"
         />
       </div>
 
@@ -304,14 +274,6 @@ function A1PlusDashboard() {
             <div className="flex items-center justify-between gap-2 text-sm">
               <span className="text-muted-foreground">Active gate passes</span>
               <span className="font-mono font-semibold">{activeGatePasses.length}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span className="text-muted-foreground">Pending traceability</span>
-              <span className="font-mono font-semibold">{pendingBatches.length}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span className="text-muted-foreground">Total labour on site</span>
-              <span className="font-mono font-semibold">{totalLabour}</span>
             </div>
             <div className="flex items-center justify-between gap-2 text-sm">
               <span className="text-muted-foreground">Total vendors</span>

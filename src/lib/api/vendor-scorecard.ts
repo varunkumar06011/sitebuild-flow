@@ -1,1 +1,0 @@
-export { getVendorScorecard } from './vendor-scorecard-client';

@@ -89,8 +89,8 @@ export const Route = createFileRoute("/gate-pass")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: GatePassPage,
 });

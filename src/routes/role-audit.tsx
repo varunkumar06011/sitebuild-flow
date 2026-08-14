@@ -17,8 +17,8 @@ export const Route = createFileRoute("/role-audit")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: RoleAuditPage,
 });

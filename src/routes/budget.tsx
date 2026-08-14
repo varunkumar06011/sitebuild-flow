@@ -42,8 +42,8 @@ export const Route = createFileRoute("/budget")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: BudgetPage,
 });
@@ -345,7 +345,7 @@ function BudgetPage() {
                   id="b-cat"
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  placeholder="e.g. Civil, MEP"
+                  placeholder="e.g. Civil, Medical, MEP"
                 />
               </div>
             </div>

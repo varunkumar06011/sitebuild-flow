@@ -19,8 +19,8 @@ export const Route = createFileRoute("/cash-flow")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: CashFlowPage,
 });
