@@ -1,5 +1,7 @@
 import { api } from "../api-client";
 
+export const PORTAL_COOKIE = "meditrust_portal_session";
+
 export type PortalAccountType = "vendor" | "client";
 
 export type PortalAccount = {

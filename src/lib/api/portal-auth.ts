@@ -1,1 +1,1 @@
-export { loginPortalAccount, verifyPortalSession, logoutPortal } from './portal-auth-client'; export type { PortalAccountType, PortalAccount, PortalLoginResult } from './portal-auth-client';
+export { loginPortalAccount, verifyPortalSession, logoutPortal, PORTAL_COOKIE } from './portal-auth-client'; export type { PortalAccountType, PortalAccount, PortalLoginResult } from './portal-auth-client';
