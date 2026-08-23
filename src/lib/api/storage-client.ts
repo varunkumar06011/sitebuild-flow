@@ -6,7 +6,7 @@ export function uploadFile(data: {
   contentType: string;
   fileData: string;
 }) {
-  return api.post("/storage/upload", data);
+  return api.post("/api/storage/upload", data);
 }
 
 export function getSignedUrl(params: {
@@ -14,5 +14,5 @@ export function getSignedUrl(params: {
   path: string;
   expirySec?: number;
 }) {
-  return api.get("/storage/signed-url", params);
+  return api.get("/api/storage/signed-url", params);
 }

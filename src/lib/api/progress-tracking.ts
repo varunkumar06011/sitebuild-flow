@@ -8,6 +8,7 @@ export type ProgressBlock = {
   name: string;
   sort_order: number;
   work_category: string;
+  work_view_id: string | null;
 };
 
 export type ProgressFloor = {
@@ -15,19 +16,7 @@ export type ProgressFloor = {
   block_id: string;
   name: string;
   sort_order: number;
-};
-
-export type ProgressCategory = {
-  id: string;
-  name: string;
-  sort_order: number;
-};
-
-export type ProgressWorkItem = {
-  id: string;
-  category_id: string;
-  name: string;
-  sort_order: number;
+  default_cell_count: number;
 };
 
 export type ProgressCellGroup = {
@@ -42,20 +31,47 @@ export type ProgressCellGroup = {
   cell_count: number;
 };
 
+export type ProgressCategory = {
+  id: string;
+  name: string;
+  work_view_id: string;
+  sort_order: number;
+};
+
+export type ProgressWorkItem = {
+  id: string;
+  category_id: string;
+  name: string;
+  sort_order: number;
+};
+
+export type ProgressWorkView = {
+  id: string;
+  name: string;
+  scope: "flat" | "floor" | "block";
+  sort_order: number;
+};
+
 export type ProgressCell = {
   id: string;
   cell_group_id: string;
   cell_number: number;
+  unit_number: string | null;
   status: string;
   completion_pct: number;
   remarks: string | null;
   assigned_supervisor_id: string | null;
   updated_by: string | null;
   updated_at: string | null;
+  block_id: string;
   block_name: string;
+  floor_id: string;
   floor_name: string;
+  work_item_id: string;
   work_item_name: string;
   category_name: string;
+  work_view_id: string;
+  work_view_scope: string;
 };
 
 export type ProgressCellHistoryEntry = {
@@ -85,8 +101,20 @@ export function createBlock(data: {
   name: string;
   sort_order?: number;
   work_category?: string;
+  work_view_id?: string;
 }): Promise<{ success: boolean; error?: string; data?: ProgressBlock }> {
   return api.post("/api/progress-tracking/blocks/create", data);
+}
+
+// POST /api/progress-tracking/blocks/update
+export function updateBlock(data: {
+  id: string;
+  name?: string;
+  sort_order?: number;
+  work_category?: string;
+  work_view_id?: string | null;
+}): Promise<{ success: boolean; error?: string; data?: ProgressBlock }> {
+  return api.post("/api/progress-tracking/blocks/update", data);
 }
 
 // POST /api/progress-tracking/floors/create
@@ -94,16 +122,68 @@ export function createFloor(data: {
   block_id: string;
   name: string;
   sort_order: number;
+  default_cell_count?: number;
 }): Promise<{ success: boolean; error?: string; data?: ProgressFloor }> {
   return api.post("/api/progress-tracking/floors/create", data);
+}
+
+// POST /api/progress-tracking/floors/update
+export function updateFloor(data: {
+  id: string;
+  name?: string;
+  sort_order?: number;
+  default_cell_count?: number;
+}): Promise<{ success: boolean; error?: string; data?: ProgressFloor }> {
+  return api.post("/api/progress-tracking/floors/update", data);
+}
+
+// POST /api/progress-tracking/work-views/create
+export function createWorkView(data: {
+  name: string;
+  scope: "flat" | "floor" | "block";
+  sort_order?: number;
+}): Promise<{ success: boolean; error?: string; data?: ProgressWorkView }> {
+  return api.post("/api/progress-tracking/work-views/create", data);
+}
+
+// GET /api/progress-tracking/work-views
+export function fetchWorkViews(): Promise<{ data: ProgressWorkView[] }> {
+  return api.get("/api/progress-tracking/work-views");
+}
+
+// POST /api/progress-tracking/work-views/update
+export function updateWorkView(data: {
+  id: string;
+  name?: string;
+  scope?: "flat" | "floor" | "block";
+  sort_order?: number;
+}): Promise<{ success: boolean; error?: string; data?: ProgressWorkView }> {
+  return api.post("/api/progress-tracking/work-views/update", data);
+}
+
+// POST /api/progress-tracking/work-views/delete
+export function deleteWorkView(data: {
+  id: string;
+}): Promise<{ success: boolean; error?: string }> {
+  return api.post("/api/progress-tracking/work-views/delete", data);
 }
 
 // POST /api/progress-tracking/categories/create
 export function createCategory(data: {
   name: string;
+  work_view_id: string;
   sort_order: number;
 }): Promise<{ success: boolean; error?: string; data?: ProgressCategory }> {
   return api.post("/api/progress-tracking/categories/create", data);
+}
+
+// POST /api/progress-tracking/categories/update
+export function updateCategory(data: {
+  id: string;
+  name?: string;
+  sort_order?: number;
+}): Promise<{ success: boolean; error?: string; data?: ProgressCategory }> {
+  return api.post("/api/progress-tracking/categories/update", data);
 }
 
 // POST /api/progress-tracking/work-items/create
@@ -115,12 +195,22 @@ export function createWorkItem(data: {
   return api.post("/api/progress-tracking/work-items/create", data);
 }
 
+// POST /api/progress-tracking/work-items/update
+export function updateWorkItem(data: {
+  id: string;
+  name?: string;
+  sort_order?: number;
+}): Promise<{ success: boolean; error?: string; data?: ProgressWorkItem }> {
+  return api.post("/api/progress-tracking/work-items/update", data);
+}
+
 // POST /api/progress-tracking/cell-groups/create
 export function createCellGroup(data: {
   block_id: string;
   floor_id: string;
   work_item_id: string;
   cell_count: number;
+  unit_numbers?: string[];
 }): Promise<{ success: boolean; error?: string; id?: string }> {
   return api.post("/api/progress-tracking/cell-groups/create", data);
 }
@@ -138,6 +228,7 @@ export function assignSupervisor(data: {
 export function fetchHierarchy(): Promise<{
   blocks: ProgressBlock[];
   floors: ProgressFloor[];
+  workViews: ProgressWorkView[];
   categories: ProgressCategory[];
   workItems: ProgressWorkItem[];
 }> {
@@ -184,9 +275,9 @@ export function fetchCellHistory(data: {
 }
 
 // GET /api/progress-tracking/dashboard
-export function fetchProgressDashboard(): Promise<{
+export function fetchProgressDashboard(workViewId?: string): Promise<{
   blocks: any[];
   cells: any[];
 }> {
-  return api.get("/api/progress-tracking/dashboard");
+  return api.get("/api/progress-tracking/dashboard", workViewId ? { work_view_id: workViewId } : undefined);
 }

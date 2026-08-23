@@ -90,8 +90,8 @@ export const Route = createFileRoute("/work-orders")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: WorkOrdersPage,
 });

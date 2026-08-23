@@ -130,11 +130,11 @@ function RootComponent() {
 
   useEffect(() => {
     authStore.init();
-    // Register service worker for PWA + offline support
+    // Unregister any existing service worker in dev mode to prevent stale cache issues
     if ("serviceWorker" in navigator && typeof window !== "undefined") {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        // SW registration failure is non-fatal
-      });
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        for (const reg of regs) reg.unregister();
+      }).catch(() => {});
     }
   }, []);
 

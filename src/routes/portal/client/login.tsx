@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginPortalAccount, PORTAL_COOKIE } from "@/lib/api/portal-auth";
+import { loginPortalAccount } from "@/lib/api/portal-auth";
 import { Eye, Lock, User, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
@@ -38,7 +38,6 @@ function ClientLoginPage() {
       });
       if (result.success) {
         toast.success(`Welcome, ${result.account.name}`);
-        document.cookie = `${PORTAL_COOKIE}=${encodeURIComponent(result.token)}; path=/; max-age=${result.maxAge}; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
         window.location.href = "/portal/client";
       } else {
         toast.error(result.error);

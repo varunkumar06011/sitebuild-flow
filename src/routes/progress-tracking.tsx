@@ -1,6 +1,6 @@
 // Progress tracking page for supervisors to update status, completion and photos of assigned cells.
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -31,32 +31,20 @@ import {
   fetchCellHistory,
 } from "@/lib/api/progress-tracking";
 import { getSignedUrl } from "@/lib/api/storage";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { TrendingUp, Camera, History } from "lucide-react";
+import { PROGRESS_STATUS_KEYS, statusLabel, statusClasses } from "@/lib/progress-status";
 
 export const Route = createFileRoute("/progress-tracking")({
   head: () => ({
     meta: [{ title: "Progress Tracking — Meditrust ERP" }],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: ProgressTrackingPage,
 });
-
-const STATUS_COLORS: Record<string, string> = {
-  not_started: "bg-gray-100 text-gray-600",
-  in_progress: "bg-blue-100 text-blue-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  on_hold: "bg-amber-100 text-amber-700",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  not_started: "Not Started",
-  in_progress: "In Progress",
-  completed: "Completed",
-  on_hold: "On Hold",
-};
 
 // Main progress tracking page showing assigned cells with filter, edit and history actions.
 function ProgressTrackingPage() {
@@ -64,6 +52,24 @@ function ProgressTrackingPage() {
   const [editingCell, setEditingCell] = useState<any | null>(null);
   const [historyCell, setHistoryCell] = useState<any | null>(null);
   const queryClient = useQueryClient();
+
+  // Realtime: invalidate myCells query when any cell changes.
+  useEffect(() => {
+    const channel = supabase
+      .channel("progress-tracking-cells")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "progress_cells" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["myCells"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const { data: cellsData } = useQuery({
     queryKey: ["myCells", statusFilter],
@@ -87,10 +93,9 @@ function ProgressTrackingPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="not_started">Not Started</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="on_hold">On Hold</SelectItem>
+              {PROGRESS_STATUS_KEYS.map((key) => (
+                <SelectItem key={key} value={key}>{statusLabel(key)}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <span className="text-sm text-muted-foreground ml-auto">{cells.length} cells</span>
@@ -110,14 +115,12 @@ function ProgressTrackingPage() {
                   <div>
                     <p className="text-sm font-bold">{cell.work_item_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {cell.block_name} · {cell.floor_name} · Cell #{cell.cell_number}
+                      {cell.block_name} · {cell.floor_name} · {cell.work_view_scope === "flat" ? (cell.unit_number ?? `Unit ${cell.cell_number}`) : cell.work_view_scope === "floor" ? "Floor" : "Block"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">{cell.category_name}</p>
                   </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[cell.status] ?? ""}`}
-                  >
-                    {STATUS_LABELS[cell.status] ?? cell.status}
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusClasses(cell.status)}`}>
+                    {statusLabel(cell.status)}
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -163,7 +166,7 @@ function ProgressTrackingPage() {
 }
 
 // Dialog for editing a cell's status, completion percentage, remarks and photo upload.
-function CellEditDialog({
+export function CellEditDialog({
   cell,
   onClose,
   onSaved,
@@ -240,7 +243,7 @@ function CellEditDialog({
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Update Cell #{cell.cell_number}</DialogTitle>
+          <DialogTitle>Update {cell.work_view_scope === "flat" ? (cell.unit_number ?? `Unit ${cell.cell_number}`) : cell.work_view_scope === "floor" ? "Floor" : "Block"}</DialogTitle>
           <DialogDescription>
             {cell.block_name} · {cell.floor_name} · {cell.work_item_name}
           </DialogDescription>
@@ -254,10 +257,9 @@ function CellEditDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="not_started">Not Started</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="on_hold">On Hold</SelectItem>
+                {PROGRESS_STATUS_KEYS.map((key) => (
+                  <SelectItem key={key} value={key}>{statusLabel(key)}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -321,10 +323,35 @@ function CellEditDialog({
 
 // Dialog showing the change history and uploaded photos for a single cell.
 function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }) {
+  const queryClient = useQueryClient();
   const { data: histData } = useQuery({
     queryKey: ["cellHistory", cell.id],
     queryFn: () => fetchCellHistory({ cell_id: cell.id }),
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`cell-history-${cell.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "progress_cell_history", filter: `cell_id=eq.${cell.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["cellHistory", cell.id] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "progress_cell_photos", filter: `cell_id=eq.${cell.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["cellHistory", cell.id] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [cell.id, queryClient]);
 
   const history = histData?.history ?? [];
   const photos = histData?.photos ?? [];
@@ -338,7 +365,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
     >
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Cell #{cell.cell_number} History</DialogTitle>
+          <DialogTitle>{cell.work_view_scope === "flat" ? `${cell.unit_number ?? `Unit ${cell.cell_number}`} History` : cell.work_view_scope === "floor" ? "Floor History" : "Block History"}</DialogTitle>
           <DialogDescription>
             {cell.block_name} · {cell.floor_name} · {cell.work_item_name}
           </DialogDescription>
@@ -359,14 +386,7 @@ function CellHistoryDialog({ cell, onClose }: { cell: any; onClose: () => void }
                     </span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {h.previous_status && STATUS_LABELS[h.previous_status]
-                      ? STATUS_LABELS[h.previous_status]
-                      : h.previous_status}{" "}
-                    ({h.previous_pct}%) →{" "}
-                    {h.new_status && STATUS_LABELS[h.new_status]
-                      ? STATUS_LABELS[h.new_status]
-                      : h.new_status}{" "}
-                    ({h.new_pct}%)
+                    {statusLabel(h.previous_status)} ({h.previous_pct}%) → {statusLabel(h.new_status)} ({h.new_pct}%)
                   </div>
                   {h.remarks && <p className="mt-1 text-xs">{h.remarks}</p>}
                 </div>

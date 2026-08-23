@@ -12,27 +12,12 @@ import { batchesRouter } from "./routes/batches.js";
 import { inspectionsRouter } from "./routes/inspections.js";
 import { budgetRouter } from "./routes/budget.js";
 import { cashFlowRouter } from "./routes/cash-flow.js";
-import { digitalTwinRouter } from "./routes/digital-twin.js";
-import { medicalEquipmentRouter } from "./routes/medical-equipment.js";
-import { medicalGasRouter } from "./routes/medical-gas.js";
 import { progressRouter } from "./routes/progress.js";
-import { retentionRouter } from "./routes/retention.js";
-import { tdsGstRouter } from "./routes/tds-gst.js";
-import { nabhChecklistRouter } from "./routes/nabh-checklist.js";
-import { aerbComplianceRouter } from "./routes/aerb-compliance.js";
-import { cleanroomValidationRouter } from "./routes/cleanroom-validation.js";
 import { workCategoriesRouter } from "./routes/work-categories.js";
-import { reportsRouter } from "./routes/reports.js";
 import { systemRobustnessRouter } from "./routes/system-robustness.js";
-import { offlineSyncRouter } from "./routes/offline-sync.js";
 import { usersRouter } from "./routes/users.js";
 import { drawingsRouter } from "./routes/drawings.js";
-import { punchListRouter } from "./routes/punch-list.js";
-import { safetyRouter } from "./routes/safety.js";
-import { labourRouter } from "./routes/labour.js";
 import { documentsRouter } from "./routes/documents.js";
-import { anomalyDetectionRouter } from "./routes/anomaly-detection.js";
-import { backupRouter } from "./routes/backup.js";
 import { notificationSystemRouter } from "./routes/notification-system.js";
 import { globalSearchRouter } from "./routes/global-search.js";
 import { requisitionsRouter } from "./routes/requisitions.js";
@@ -45,7 +30,6 @@ import { inventoryRouter } from "./routes/inventory.js";
 import { progressTrackingRouter } from "./routes/progress-tracking.js";
 import { workOrdersRouter } from "./routes/work-orders.js";
 import { partsOrdersRouter } from "./routes/parts-orders.js";
-import { vendorScorecardRouter } from "./routes/vendor-scorecard.js";
 import { vendorPortalRouter } from "./routes/vendor-portal.js";
 import { clientPortalRouter } from "./routes/client-portal.js";
 import { portalAuthRouter } from "./routes/portal-auth.js";
@@ -56,17 +40,25 @@ checkServerEnv();
 const app = express();
 const PORT = parseInt(process.env["PORT"] ?? "3001", 10);
 
-// Allowed origin for CORS — the frontend URL.
-// In production, this must be set to the exact Vercel URL (not "*").
-// In development, allow localhost on any port.
-const allowedOrigin =
-  process.env["CORS_ORIGIN"] ??
-  (process.env["NODE_ENV"] === "production" ? "" : "http://localhost:5173");
-
 // CORS configuration: credentials are required for cross-origin cookies.
 // The origin must be explicit (not "*") when credentials are true.
+// In production, set CORS_ORIGIN to the exact frontend URL.
+// In development, allow any localhost port.
 const corsOptions: cors.CorsOptions = {
-  origin: allowedOrigin || true,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    // In development, always allow localhost / 127.0.0.1 so Vite's default URLs work with credentials.
+    if (process.env["NODE_ENV"] !== "production" && /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+      return callback(null, true);
+    }
+    if (process.env["CORS_ORIGIN"]) {
+      return callback(null, origin === process.env["CORS_ORIGIN"]);
+    }
+    if (process.env["NODE_ENV"] === "production") {
+      return callback(null, false);
+    }
+    callback(null, false);
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -92,27 +84,12 @@ app.use("/api/batches", batchesRouter);
 app.use("/api/inspections", inspectionsRouter);
 app.use("/api/budget", budgetRouter);
 app.use("/api/cash-flow", cashFlowRouter);
-app.use("/api/digital-twin", digitalTwinRouter);
-app.use("/api/medical-equipment", medicalEquipmentRouter);
-app.use("/api/medical-gas", medicalGasRouter);
 app.use("/api/progress", progressRouter);
-app.use("/api/retention", retentionRouter);
-app.use("/api/tds-gst", tdsGstRouter);
-app.use("/api/nabh-checklist", nabhChecklistRouter);
-app.use("/api/aerb-compliance", aerbComplianceRouter);
-app.use("/api/cleanroom-validation", cleanroomValidationRouter);
 app.use("/api/work-categories", workCategoriesRouter);
-app.use("/api/reports", reportsRouter);
 app.use("/api/system-robustness", systemRobustnessRouter);
-app.use("/api/offline-sync", offlineSyncRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/drawings", drawingsRouter);
-app.use("/api/punch-list", punchListRouter);
-app.use("/api/safety", safetyRouter);
-app.use("/api/labour", labourRouter);
 app.use("/api/documents", documentsRouter);
-app.use("/api/anomaly-detection", anomalyDetectionRouter);
-app.use("/api/backup", backupRouter);
 app.use("/api/notification-system", notificationSystemRouter);
 app.use("/api/global-search", globalSearchRouter);
 app.use("/api/requisitions", requisitionsRouter);
@@ -125,7 +102,6 @@ app.use("/api/inventory", inventoryRouter);
 app.use("/api/progress-tracking", progressTrackingRouter);
 app.use("/api/work-orders", workOrdersRouter);
 app.use("/api/parts-orders", partsOrdersRouter);
-app.use("/api/vendor-scorecard", vendorScorecardRouter);
 app.use("/api/vendor-portal", vendorPortalRouter);
 app.use("/api/client-portal", clientPortalRouter);
 app.use("/api/portal-auth", portalAuthRouter);
@@ -138,7 +114,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 app.listen(PORT, () => {
   console.log(`Meditrust ERP API server running on port ${PORT}`);
-  console.log(`CORS origin: ${allowedOrigin || "(any)"}`);
+  console.log(`CORS origin: ${process.env["NODE_ENV"] === "production" ? process.env["CORS_ORIGIN"] || "(not set)" : "localhost / 127.0.0.1 (dev)"}`);
 });
 
 export default app;

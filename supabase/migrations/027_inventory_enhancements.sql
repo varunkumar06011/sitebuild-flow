@@ -38,6 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_inventory_tx_batch ON inventory_transactions(link
 -- ============================================================================
 -- Update the stock levels view to handle adjustment direction
 -- ============================================================================
+DROP VIEW IF EXISTS inventory_stock_levels;
 CREATE OR REPLACE VIEW inventory_stock_levels AS
 SELECT
   i.id AS item_id,

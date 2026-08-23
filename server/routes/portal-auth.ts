@@ -6,6 +6,7 @@ import { createHmac } from "crypto";
 import { supabaseServer } from "../lib/supabase-server.js";
 import { checkServerEnv } from "../lib/env-check.js";
 import { readPortalCookie, getPortalAccount } from "../lib/portal-session.js";
+import { checkRateLimit, getClientIpFromReq, LOGIN_RATE_LIMIT } from "../lib/rate-limiter.js";
 
 export const portalAuthRouter = Router();
 
@@ -13,6 +14,17 @@ const PORTAL_COOKIE_NAME = "meditrust_portal_session";
 const MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
+
+function getPortalCookieOptions(maxAgeSeconds: number) {
+  const isProduction = process.env["NODE_ENV"] === "production";
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    path: "/",
+    maxAge: maxAgeSeconds,
+  };
+}
 
 function getJwtSecret(): string {
   const secret = process.env["APP_JWT_SECRET"];
@@ -37,6 +49,21 @@ const loginSchema = z.object({
 portalAuthRouter.post("/login", async (req: Request, res: Response) => {
   try {
     const data = loginSchema.parse(req.body);
+
+    // IP-based rate limiting to prevent brute-force attacks
+    const ip = getClientIpFromReq(req);
+    const rateLimit = checkRateLimit(
+      `portal-login:${ip}`,
+      LOGIN_RATE_LIMIT.maxRequests,
+      LOGIN_RATE_LIMIT.windowMs,
+    );
+    if (!rateLimit.allowed) {
+      res.json({
+        success: false,
+        error: "Too many login attempts. Try again later.",
+      });
+      return;
+    }
 
     const { data: account, error } = await supabaseServer
       .from("portal_accounts")
@@ -107,6 +134,9 @@ portalAuthRouter.post("/login", async (req: Request, res: Response) => {
       created_at: new Date().toISOString(),
     });
 
+    // Set the session cookie server-side so the client never sees the token value.
+    res.cookie(PORTAL_COOKIE_NAME, token, getPortalCookieOptions(MAX_AGE_SECONDS));
+
     res.json({
       success: true,
       account: {
@@ -117,7 +147,6 @@ portalAuthRouter.post("/login", async (req: Request, res: Response) => {
         email: (account as any).email,
         phone: (account as any).phone,
       },
-      token,
       maxAge: MAX_AGE_SECONDS,
     });
   } catch (err) {
@@ -166,9 +195,11 @@ portalAuthRouter.post("/logout", async (req: Request, res: Response) => {
         .update({ revoked: true })
         .eq("token_hash", tokenHash);
     }
+    res.clearCookie(PORTAL_COOKIE_NAME, getPortalCookieOptions(0));
     res.json({ success: true });
   } catch (err) {
     console.error("portal logout error:", err);
+    res.clearCookie(PORTAL_COOKIE_NAME, getPortalCookieOptions(0));
     res.json({ success: true });
   }
 });

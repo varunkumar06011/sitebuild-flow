@@ -67,8 +67,8 @@ export const Route = createFileRoute("/documents")({
   head: () => ({
     meta: [{ title: "Documents — Meditrust ERP" }],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: DocumentsPage,
 });
@@ -758,7 +758,7 @@ function DocumentsPage() {
                       <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                       <p className="text-sm text-muted-foreground">Click to select a file</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        PDF, images, docs up to 10MB
+                        Any file type up to 100MB
                       </p>
                     </div>
                   )}
@@ -766,7 +766,6 @@ function DocumentsPage() {
                     ref={fileInputRef}
                     type="file"
                     className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tiff,.heic,.heif,.xls,.xlsx,.doc,.docx,.csv,.txt,.zip"
                     onChange={handleFileSelect}
                   />
                 </div>

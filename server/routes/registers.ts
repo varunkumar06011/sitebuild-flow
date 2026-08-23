@@ -56,36 +56,6 @@ registersRouter.get("/vehicles", async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/registers/labour
-registersRouter.get("/labour", async (req: Request, res: Response) => {
-  try {
-    await requireSessionUser(req);
-    const page = Number(req.query["page"] ?? 1);
-    const limit = Number(req.query["limit"] ?? 50);
-    const offset = (page - 1) * limit;
-    const date = req.query["date"] as string | undefined;
-
-    let query = supabaseServer
-      .from("labour")
-      .select("id, trade, contractor, planned, present, block, date", { count: "exact" })
-      .order("date", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (date) query = query.eq("date", date);
-
-    const { data: labour, count } = await query;
-
-    res.json({ data: labour ?? [], total: count ?? 0, page, limit });
-  } catch (err) {
-    if (err instanceof Error && err.message.startsWith("Unauthorized")) {
-      res.status(401).json({ success: false, error: err.message });
-      return;
-    }
-    console.error("fetchLabour error:", err);
-    res.status(500).json({ success: false, error: "Failed to fetch labour" });
-  }
-});
-
 // POST /api/registers/visitors/create
 const visitorSchema = z.object({
   name: z.string().min(1),
@@ -163,48 +133,6 @@ registersRouter.post("/vehicles/create", async (req: Request, res: Response) => 
     }
     console.error("createVehicle error:", err);
     res.status(500).json({ success: false, error: "Failed to log vehicle entry" });
-  }
-});
-
-// POST /api/registers/labour/create
-const labourSchema = z.object({
-  trade: z.string().min(1),
-  contractor: z.string().optional(),
-  planned: z.number().int().min(0).default(0),
-  present: z.number().int().min(0).default(0),
-  block: z.string().optional(),
-  date: z.string().optional(),
-});
-
-registersRouter.post("/labour/create", async (req: Request, res: Response) => {
-  try {
-    const user = await requireSessionUser(req);
-    const data = labourSchema.parse(req.body);
-
-    const { data: labour, error } = await supabaseServer
-      .from("labour")
-      .insert(data)
-      .select("id, trade")
-      .single();
-
-    if (error || !labour) {
-      res.json({ success: false, error: "Failed to record labour attendance" });
-      return;
-    }
-
-    await logAction(user, "create_labour", "labour", labour.id, { trade: labour.trade });
-    res.json({ success: true, id: labour.id });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({ success: false, error: "Invalid input" });
-      return;
-    }
-    if (err instanceof Error && err.message.startsWith("Unauthorized")) {
-      res.status(401).json({ success: false, error: err.message });
-      return;
-    }
-    console.error("createLabour error:", err);
-    res.status(500).json({ success: false, error: "Failed to record labour attendance" });
   }
 });
 

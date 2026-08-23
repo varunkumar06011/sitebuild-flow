@@ -41,8 +41,8 @@ export const Route = createFileRoute("/notification-settings")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: NotificationSettingsPage,
 });

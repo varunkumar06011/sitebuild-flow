@@ -48,8 +48,8 @@ export const Route = createFileRoute("/inventory-supervisor")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: InventorySupervisorPage,
 });

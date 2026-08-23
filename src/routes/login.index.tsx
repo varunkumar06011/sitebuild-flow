@@ -36,7 +36,7 @@ export const Route = createFileRoute("/login/")({
     if (typeof window === "undefined") return;
     const state = authStore.getState();
     if (state.isAuthenticated && state.role) {
-      throw redirect({ to: ROLE_DASHBOARD[state.role] });
+      throw redirect({ to: ROLE_DASHBOARD[state.role as Role] });
     }
   },
   component: LoginPage,

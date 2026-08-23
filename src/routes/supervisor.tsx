@@ -10,11 +10,9 @@ import { fetchRequisitions } from "@/lib/api/requisitions";
 import { fetchGatePasses } from "@/lib/api/gate-passes";
 import { fetchInspections } from "@/lib/api/inspections";
 import { fetchProgress } from "@/lib/api/progress";
-import { fetchLabour } from "@/lib/api/registers";
 import {
   ClipboardList,
   ScanLine,
-  Boxes,
   BadgeCheck,
   Users,
   ArrowUpRight,
@@ -28,8 +26,8 @@ export const Route = createFileRoute("/supervisor")({
   head: () => ({
     meta: [{ title: "Supervisor Dashboard — Meditrust ERP" }],
   }),
-  beforeLoad: async () => {
-    await requireRole("Supervisor");
+  beforeLoad: () => {
+    requireRole("Supervisor");
   },
   component: SupervisorDashboard,
 });
@@ -50,16 +48,11 @@ function SupervisorDashboard() {
     queryFn: () => fetchInspections({}),
   });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
-  const { data: labourData } = useQuery({
-    queryKey: ["labour"],
-    queryFn: () => fetchLabour({}),
-  });
 
   const requisitions = reqData?.data ?? [];
   const gatePasses = gpData?.data ?? [];
   const inspections = inspData?.data ?? [];
   const progress = progData?.data ?? [];
-  const labour = labourData?.data ?? [];
 
   const dashboardError = reqError ? (reqErr?.message ?? "Failed to load data") : null;
 
@@ -143,12 +136,6 @@ function SupervisorDashboard() {
             desc="OTP + QR material exit"
           />
           <QuickAction
-            to="/traceability"
-            icon={Boxes}
-            title="Update Traceability"
-            desc="Batch, MTC, lab reports"
-          />
-          <QuickAction
             to="/quality"
             icon={BadgeCheck}
             title="Quality Inspection"
@@ -158,7 +145,7 @@ function SupervisorDashboard() {
             to="/registers"
             icon={Users}
             title="Site Registers"
-            desc="Visitors, vehicles, labour"
+            desc="Visitors, vehicles"
           />
           <QuickAction
             to="/procurement"
@@ -309,7 +296,7 @@ function SupervisorDashboard() {
           </div>
         </Card>
 
-        {/* Block progress + labour */}
+        {/* Block progress */}
         <div className="space-y-6">
           <Card className="p-5">
             <h2 className="text-sm font-bold">Block progress</h2>
@@ -321,20 +308,6 @@ function SupervisorDashboard() {
                     <span className="text-muted-foreground">{p.pct}%</span>
                   </div>
                   <Progress value={p.pct} className="mt-1.5 h-2" />
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="p-5">
-            <h2 className="text-sm font-bold">Labour on site today</h2>
-            <div className="mt-4 space-y-3">
-              {labour.map((l: any) => (
-                <div key={l.trade} className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{l.trade}</span>
-                  <span className="font-mono font-semibold">
-                    {l.present}/{l.planned}
-                  </span>
                 </div>
               ))}
             </div>

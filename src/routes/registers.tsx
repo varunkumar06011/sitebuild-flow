@@ -1,4 +1,4 @@
-// Site registers page with tabbed visitor, vehicle and labour logs for daily gate-level tracking.
+// Site registers page with tabbed visitor and vehicle logs for daily gate-level tracking.
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -20,36 +19,34 @@ import {
 import {
   fetchVisitors,
   fetchVehicles,
-  fetchLabour,
   createVisitor,
   createVehicle,
-  createLabour,
   checkOutVisitor,
   checkOutVehicle,
 } from "@/lib/api/registers";
 import { requireAuth } from "@/lib/auth-guards";
 import { toast } from "sonner";
-import { Plus, LogOut, Loader2, UserPlus, CarFront, HardHat } from "lucide-react";
+import { Plus, LogOut, Loader2, UserPlus, CarFront } from "lucide-react";
 
 export const Route = createFileRoute("/registers")({
   head: () => ({
     meta: [
-      { title: "Visitor, Vehicle & Labour Registers — Meditrust ERP" },
+      { title: "Visitor & Vehicle Registers — Meditrust ERP" },
       {
         name: "description",
         content:
-          "Daily site registers: visitor in/out log, vehicle movement with material carried, and contractor labour headcount.",
+          "Daily site registers: visitor in/out log and vehicle movement with material carried.",
       },
-      { property: "og:title", content: "Visitor, Vehicle & Labour Registers" },
+      { property: "og:title", content: "Visitor & Vehicle Registers" },
       {
         property: "og:description",
         content:
-          "Gate-level visitor and vehicle logs plus trade-wise labour attendance for the day.",
+          "Gate-level visitor and vehicle logs for the day.",
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: Registers,
 });
@@ -71,13 +68,8 @@ function Registers() {
     queryKey: ["vehicles"],
     queryFn: () => fetchVehicles({}),
   });
-  const { data: labData } = useQuery({
-    queryKey: ["labour"],
-    queryFn: () => fetchLabour({}),
-  });
   const visitors = visData?.data ?? [];
   const vehicles = vehData?.data ?? [];
-  const labour = labData?.data ?? [];
 
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
@@ -87,12 +79,11 @@ function Registers() {
   });
 
   return (
-    <AppShell title="Registers & labour" subtitle={`${today} · Main gate`}>
+    <AppShell title="Registers" subtitle={`${today} · Main gate`}>
       <Tabs defaultValue="visitors">
         <TabsList>
           <TabsTrigger value="visitors">Visitors</TabsTrigger>
           <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
-          <TabsTrigger value="labour">Labour</TabsTrigger>
         </TabsList>
 
         <TabsContent value="visitors">
@@ -127,15 +118,6 @@ function Registers() {
             }}
             onCreated={() => {
               queryClient.invalidateQueries({ queryKey: ["vehicles"] });
-            }}
-          />
-        </TabsContent>
-
-        <TabsContent value="labour">
-          <LabourTab
-            labour={labour}
-            onCreated={() => {
-              queryClient.invalidateQueries({ queryKey: ["labour"] });
             }}
           />
         </TabsContent>
@@ -529,166 +511,6 @@ function VehicleTab({
         </DialogContent>
       </Dialog>
     </Card>
-  );
-}
-
-// --- Labour tab with attendance entry dialog ---
-
-function LabourTab({ labour, onCreated }: { labour: any[]; onCreated: () => void }) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    trade: "",
-    contractor: "",
-    planned: "",
-    present: "",
-    block: "",
-  });
-
-  const handleSave = async () => {
-    if (!form.trade.trim()) {
-      toast.error("Trade is required");
-      return;
-    }
-    setSaving(true);
-    try {
-      const result = await createLabour({
-        trade: form.trade.trim(),
-        contractor: form.contractor.trim() || undefined,
-        planned: form.planned ? Number(form.planned) : 0,
-        present: form.present ? Number(form.present) : 0,
-        block: form.block.trim() || undefined,
-      });
-      if (result.success) {
-        toast.success("Labour attendance recorded");
-        setDialogOpen(false);
-        setForm({ trade: "", contractor: "", planned: "", present: "", block: "" });
-        onCreated();
-      } else {
-        toast.error(result.error ?? "Failed to record labour attendance");
-      }
-    } catch {
-      toast.error("Failed to record labour attendance");
-    }
-    setSaving(false);
-  };
-
-  const totalPresent = labour.reduce((s: number, l: any) => s + (l.present ?? 0), 0);
-  const totalPlanned = labour.reduce((s: number, l: any) => s + (l.planned ?? 0), 0);
-
-  return (
-    <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {labour.length} trade{labour.length !== 1 ? "s" : ""} · {totalPresent}/{totalPlanned}{" "}
-          present
-        </p>
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <HardHat className="mr-1.5 size-4" /> Add attendance
-        </Button>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        {labour.length === 0 && (
-          <Card className="col-span-full p-8 text-center text-sm text-muted-foreground">
-            No labour attendance recorded for today.
-          </Card>
-        )}
-        {labour.map((l: any) => (
-          <Card key={l.id} className="p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="font-semibold">{l.trade}</p>
-                <p className="text-xs text-muted-foreground">
-                  {l.contractor ?? "—"} · {l.block ?? "—"}
-                </p>
-              </div>
-              <span className="font-mono text-sm font-semibold">
-                {l.present}/{l.planned}
-              </span>
-            </div>
-            <Progress
-              value={l.planned > 0 ? (l.present / l.planned) * 100 : 0}
-              className="mt-3 h-2"
-            />
-          </Card>
-        ))}
-      </div>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Record labour attendance</DialogTitle>
-            <DialogDescription>Log trade-wise labour headcount for today.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="ltrade">Trade *</Label>
-              <Input
-                id="ltrade"
-                value={form.trade}
-                onChange={(e) => setForm({ ...form, trade: e.target.value })}
-                placeholder="e.g. Masonry, Carpentry, Plumbing"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="lcontractor">Contractor</Label>
-                <Input
-                  id="lcontractor"
-                  value={form.contractor}
-                  onChange={(e) => setForm({ ...form, contractor: e.target.value })}
-                  placeholder="Contractor name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lblock">Block</Label>
-                <Input
-                  id="lblock"
-                  value={form.block}
-                  onChange={(e) => setForm({ ...form, block: e.target.value })}
-                  placeholder="e.g. OT Block"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="lplanned">Planned count</Label>
-                <Input
-                  id="lplanned"
-                  type="number"
-                  value={form.planned}
-                  onChange={(e) => setForm({ ...form, planned: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lpresent">Present count</Label>
-                <Input
-                  id="lpresent"
-                  type="number"
-                  value={form.present}
-                  onChange={(e) => setForm({ ...form, present: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              ) : (
-                <Plus className="mr-2 size-4" />
-              )}
-              Record
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
   );
 }
 

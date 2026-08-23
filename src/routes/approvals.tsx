@@ -39,8 +39,8 @@ export const Route = createFileRoute("/approvals")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: Approvals,
   errorComponent: ({ error, reset }) => (

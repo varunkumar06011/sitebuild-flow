@@ -60,8 +60,8 @@ export const Route = createFileRoute("/drawings")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: DrawingsPage,
 });
@@ -102,7 +102,7 @@ function DrawingsPage() {
       selector: '[data-tour="drw-discipline-filter"]',
       title: "Filter by Discipline",
       description:
-        "Narrow drawings to Civil, Structural, MEP, Architectural, or Medical Gas to focus on your discipline.",
+        "Narrow drawings to Civil, Medical, MEP, Architectural, or Medical Gas to focus on your discipline.",
     },
     {
       selector: '[data-tour="drw-upload"]',
@@ -332,7 +332,7 @@ function DrawingsPage() {
           <SelectContent>
             <SelectItem value="all">All disciplines</SelectItem>
             <SelectItem value="Civil">Civil</SelectItem>
-            <SelectItem value="Structural">Structural</SelectItem>
+            <SelectItem value="Medical">Medical</SelectItem>
             <SelectItem value="MEP">MEP</SelectItem>
             <SelectItem value="Architectural">Architectural</SelectItem>
             <SelectItem value="Medical Gas">Medical Gas</SelectItem>
@@ -524,7 +524,7 @@ function DrawingsPage() {
                 id="dwg-disc"
                 value={drawForm.discipline}
                 onChange={(e) => setDrawForm({ ...drawForm, discipline: e.target.value })}
-                placeholder="Civil, Structural, MEP..."
+                placeholder="Civil, Medical, MEP..."
               />
             </div>
             <div className="space-y-2">

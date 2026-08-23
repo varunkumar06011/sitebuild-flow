@@ -2504,3 +2504,524 @@ inventoryRouter.get("/export/low-stock", async (req: Request, res: Response) => 
     handleErr(res, err, "exportLowStockCSV");
   }
 });
+
+// ---------------------------------------------------------------------------
+// Inventory Portal — new UX endpoints
+// ---------------------------------------------------------------------------
+
+// GET /api/inventory/portal/items
+// Lists materials with purchased / used / balance totals, filtered by warehouse,
+// category tree, search, and date range.
+const portalItemsSchema = z.object({
+  warehouse_id: z.string().uuid().optional(),
+  category_id: z.string().uuid().optional(),
+  search: z.string().optional(),
+  from_date: z.string().optional(),
+  to_date: z.string().optional(),
+  page: z.coerce.number().optional(),
+  page_size: z.coerce.number().optional(),
+});
+
+inventoryRouter.get("/portal/items", async (req: Request, res: Response) => {
+  try {
+    await requireSessionUser(req);
+    const data = portalItemsSchema.parse(req.query);
+    const page = data.page ?? 1;
+    const pageSize = data.page_size ?? 50;
+    const offset = (page - 1) * pageSize;
+
+    let itemQuery = supabaseServer
+      .from("inventory_items")
+      .select(
+        "id, name, unit_of_measure, reorder_level, opening_stock, category_id, default_warehouse_id, archived",
+        { count: "exact" },
+      )
+      .eq("archived", false)
+      .order("name", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+
+    if (data.warehouse_id) itemQuery = itemQuery.eq("default_warehouse_id", data.warehouse_id);
+    if (data.category_id) itemQuery = itemQuery.eq("category_id", data.category_id);
+    if (data.search) itemQuery = itemQuery.ilike("name", `%${data.search.trim()}%`);
+
+    const { data: items, count, error: itemsErr } = await itemQuery;
+    if (itemsErr) {
+      res.json({ success: false, error: itemsErr.message });
+      return;
+    }
+
+    const itemIds = (items ?? []).map((i: any) => i.id);
+    if (itemIds.length === 0) {
+      res.json({ data: [], total: 0, page, pageSize, totalPages: 0 });
+      return;
+    }
+
+    // Build category path for each item
+    const categoryIds = [...new Set((items ?? []).map((i: any) => i.category_id))];
+    const { data: cats } = await supabaseServer
+      .from("inventory_categories")
+      .select("id, name, parent_id")
+      .in("id", categoryIds);
+    const catMap = new Map((cats ?? []).map((c: any) => [c.id, c]));
+    function buildPath(catId: string): string {
+      const parts: string[] = [];
+      let current = catMap.get(catId);
+      const visited = new Set<string>();
+      while (current && !visited.has(current.id)) {
+        visited.add(current.id);
+        parts.unshift(current.name);
+        current = current.parent_id ? catMap.get(current.parent_id) : undefined;
+      }
+      return parts.join(" › ");
+    }
+
+    // Aggregate transactions
+    let txQuery = supabaseServer
+      .from("inventory_transactions")
+      .select("item_id, type, quantity, transaction_date")
+      .in("item_id", itemIds)
+      .eq("reversed", false);
+    if (data.from_date) txQuery = txQuery.gte("transaction_date", data.from_date);
+    if (data.to_date) txQuery = txQuery.lte("transaction_date", data.to_date);
+    const { data: txns } = await txQuery;
+
+    const totalsByItem = new Map<string, { purchased: number; used: number }>();
+    for (const t of txns ?? []) {
+      const cur = totalsByItem.get(t.item_id) ?? { purchased: 0, used: 0 };
+      if (t.type === "in") cur.purchased += Number(t.quantity);
+      else if (t.type === "out") cur.used += Number(t.quantity);
+      totalsByItem.set(t.item_id, cur);
+    }
+
+    const { data: stockRows } = await supabaseServer
+      .from("inventory_stock_levels")
+      .select("item_id, current_stock")
+      .in("item_id", itemIds);
+    const stockMap = new Map((stockRows ?? []).map((s: any) => [s.item_id, Number(s.current_stock)]));
+
+    const resData = (items ?? []).map((i: any) => {
+      const totals = totalsByItem.get(i.id) ?? { purchased: 0, used: 0 };
+      const balance = stockMap.get(i.id) ?? Number(i.opening_stock);
+      const low = Number(i.reorder_level) > 0 && balance <= Number(i.reorder_level);
+      return {
+        item_id: i.id,
+        item_name: i.name,
+        unit_of_measure: i.unit_of_measure,
+        reorder_level: Number(i.reorder_level),
+        category_id: i.category_id,
+        category_path: buildPath(i.category_id),
+        warehouse_id: i.default_warehouse_id,
+        total_purchased: totals.purchased,
+        total_used: totals.used,
+        current_balance: balance,
+        status: low ? "Low" : balance === 0 ? "Out" : "OK",
+      };
+    });
+
+    res.json({
+      data: resData,
+      total: count ?? 0,
+      page,
+      pageSize,
+      totalPages: Math.ceil((count ?? 0) / pageSize),
+    });
+  } catch (err) {
+    handleErr(res, err, "fetchPortalItems");
+  }
+});
+
+// GET /api/inventory/portal/ledger
+// Returns a daily chronological ledger with opening, purchase, total, usage, closing.
+const portalLedgerSchema = z.object({
+  item_id: z.string().uuid(),
+  from_date: z.string().optional(),
+  to_date: z.string().optional(),
+});
+
+inventoryRouter.get("/portal/ledger", async (req: Request, res: Response) => {
+  try {
+    await requireSessionUser(req);
+    const data = portalLedgerSchema.parse(req.query);
+
+    const { data: item } = await supabaseServer
+      .from("inventory_items")
+      .select("id, name, unit_of_measure, opening_stock")
+      .eq("id", data.item_id)
+      .single();
+    if (!item) {
+      res.json({ success: false, error: "Item not found" });
+      return;
+    }
+
+    let txQuery = supabaseServer
+      .from("inventory_transactions")
+      .select(
+        "id, type, quantity, unit_cost, transaction_date, vendor_id, invoice_number, flat_no, purpose, remarks, reference, created_at",
+      )
+      .eq("item_id", data.item_id)
+      .eq("reversed", false)
+      .order("transaction_date", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (data.from_date) txQuery = txQuery.gte("transaction_date", data.from_date);
+    if (data.to_date) txQuery = txQuery.lte("transaction_date", data.to_date);
+    const { data: txns, error: txErr } = await txQuery;
+    if (txErr) {
+      res.json({ success: false, error: txErr.message });
+      return;
+    }
+
+    const vendorIds = [...new Set((txns ?? []).filter((t: any) => t.vendor_id).map((t: any) => t.vendor_id))];
+    let vendorMap = new Map<string, string>();
+    if (vendorIds.length > 0) {
+      const { data: vendors } = await supabaseServer
+        .from("vendors")
+        .select("id, name")
+        .in("id", vendorIds);
+      vendorMap = new Map((vendors ?? []).map((v: any) => [v.id, v.name]));
+    }
+
+    // Group by date and compute running balances
+    const dayGroups = new Map<string, any[]>();
+    for (const t of txns ?? []) {
+      const d = t.transaction_date;
+      const list = dayGroups.get(d) ?? [];
+      list.push(t);
+      dayGroups.set(d, list);
+    }
+
+    const sortedDates = [...dayGroups.keys()].sort();
+    let runningBalance = Number(item.opening_stock);
+    const rows = [];
+    for (const date of sortedDates) {
+      const dayTx = dayGroups.get(date)!;
+      const opening = runningBalance;
+      const purchase = dayTx
+        .filter((t: any) => t.type === "in")
+        .reduce((sum: number, t: any) => sum + Number(t.quantity), 0);
+      const usage = dayTx
+        .filter((t: any) => t.type === "out")
+        .reduce((sum: number, t: any) => sum + Number(t.quantity), 0);
+      const total = opening + purchase;
+      const closing = total - usage;
+      runningBalance = closing;
+      rows.push({
+        date,
+        opening,
+        purchase,
+        total,
+        usage,
+        closing,
+        transactions: dayTx.map((t: any) => ({
+          id: t.id,
+          type: t.type,
+          quantity: Number(t.quantity),
+          rate_per_unit: Number(t.unit_cost) || null,
+          vendor_id: t.vendor_id,
+          vendor_name: t.vendor_id ? (vendorMap.get(t.vendor_id) ?? "—") : null,
+          invoice_number: t.invoice_number,
+          flat_no: t.flat_no,
+          purpose: t.purpose,
+          remarks: t.remarks,
+          reference: t.reference,
+        })),
+      });
+    }
+
+    const totalPurchased = (txns ?? [])
+      .filter((t: any) => t.type === "in")
+      .reduce((sum: number, t: any) => sum + Number(t.quantity), 0);
+    const totalUsed = (txns ?? [])
+      .filter((t: any) => t.type === "out")
+      .reduce((sum: number, t: any) => sum + Number(t.quantity), 0);
+
+    res.json({
+      item_id: item.id,
+      item_name: item.name,
+      unit_of_measure: item.unit_of_measure,
+      opening_stock: Number(item.opening_stock),
+      current_balance: runningBalance,
+      total_purchased: totalPurchased,
+      total_used: totalUsed,
+      rows,
+    });
+  } catch (err) {
+    handleErr(res, err, "fetchPortalLedger");
+  }
+});
+
+// GET /api/inventory/portal/opening-balance
+// Computes the balance that would be carried forward as the opening balance for
+// the given date (i.e. balance after all transactions strictly before that date).
+const openingBalanceSchema = z.object({
+  item_id: z.string().uuid(),
+  date: z.string(),
+});
+
+inventoryRouter.get("/portal/opening-balance", async (req: Request, res: Response) => {
+  try {
+    await requireSessionUser(req);
+    const data = openingBalanceSchema.parse(req.query);
+
+    const { data: item } = await supabaseServer
+      .from("inventory_items")
+      .select("opening_stock")
+      .eq("id", data.item_id)
+      .single();
+    if (!item) {
+      res.json({ success: false, error: "Item not found" });
+      return;
+    }
+
+    const { data: txns } = await supabaseServer
+      .from("inventory_transactions")
+      .select("type, quantity")
+      .eq("item_id", data.item_id)
+      .eq("reversed", false)
+      .lt("transaction_date", data.date);
+
+    let balance = Number(item.opening_stock);
+    for (const t of txns ?? []) {
+      if (t.type === "in") balance += Number(t.quantity);
+      else if (t.type === "out") balance -= Number(t.quantity);
+      else if (t.type === "adjustment") balance += Number(t.quantity);
+    }
+
+    res.json({ success: true, opening_balance: balance });
+  } catch (err) {
+    handleErr(res, err, "fetchPortalOpeningBalance");
+  }
+});
+
+// POST /api/inventory/portal/entry
+// Records one "Next Entry": purchase (in) and/or usage (out) on the same date.
+const portalEntrySchema = z.object({
+  item_id: z.string().uuid(),
+  transaction_date: z.string(),
+  opening_balance: z.number().optional(), // informational only, not stored
+  purchase_qty: z.number().min(0).optional(),
+  usage_qty: z.number().min(0).optional(),
+  vendor_id: z.string().uuid().nullable().optional(),
+  rate_per_unit: z.number().min(0).optional(),
+  invoice_number: z.string().optional(),
+  warehouse_id: z.string().uuid().nullable().optional(),
+  flat_no: z.string().optional(),
+  purpose: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+inventoryRouter.post("/portal/entry", async (req: Request, res: Response) => {
+  try {
+    const user = await requireSessionUser(req);
+    const data = portalEntrySchema.parse(req.body);
+
+    if ((!data.purchase_qty || data.purchase_qty <= 0) && (!data.usage_qty || data.usage_qty <= 0)) {
+      res.json({ success: false, error: "Enter purchase quantity or usage quantity" });
+      return;
+    }
+
+    const { data: item } = await supabaseServer
+      .from("inventory_items")
+      .select("id, name")
+      .eq("id", data.item_id)
+      .single();
+    if (!item) {
+      res.json({ success: false, error: "Item not found" });
+      return;
+    }
+
+    const common = {
+      item_id: data.item_id,
+      transaction_date: data.transaction_date,
+      vendor_id: data.vendor_id ?? null,
+      unit_cost: data.rate_per_unit ?? 0,
+      invoice_number: data.invoice_number?.trim() || null,
+      flat_no: data.flat_no?.trim() || null,
+      purpose: data.purpose?.trim() || null,
+      warehouse_id: data.warehouse_id ?? null,
+      created_by: user.id,
+    };
+
+    const inserted: string[] = [];
+
+    if (data.purchase_qty && data.purchase_qty > 0) {
+      const { data: tx, error } = await supabaseServer
+        .from("inventory_transactions")
+        .insert({
+          ...common,
+          type: "in",
+          quantity: data.purchase_qty,
+          reference: data.invoice_number?.trim() || null,
+          remarks: data.notes?.trim() || null,
+        })
+        .select("id")
+        .single();
+      if (error || !tx) {
+        res.json({ success: false, error: error?.message || "Failed to record purchase" });
+        return;
+      }
+      inserted.push(tx.id);
+    }
+
+    if (data.usage_qty && data.usage_qty > 0) {
+      // Check stock before usage
+      const { data: stockRow } = await supabaseServer
+        .from("inventory_stock_levels")
+        .select("current_stock")
+        .eq("item_id", data.item_id)
+        .single();
+      const currentStock = Number(stockRow?.current_stock ?? 0);
+      if (currentStock < data.usage_qty) {
+        res.json({
+          success: false,
+          error: `Insufficient stock. Current balance is ${currentStock}, attempted usage ${data.usage_qty}.`,
+        });
+        return;
+      }
+      const { data: tx, error } = await supabaseServer
+        .from("inventory_transactions")
+        .insert({
+          ...common,
+          type: "out",
+          quantity: data.usage_qty,
+          remarks: data.notes?.trim() || null,
+        })
+        .select("id")
+        .single();
+      if (error || !tx) {
+        res.json({ success: false, error: error?.message || "Failed to record usage" });
+        return;
+      }
+      inserted.push(tx.id);
+    }
+
+    await logAction(user, "portal_inventory_entry", "inventory_transaction", item.id, {
+      item_id: data.item_id,
+      date: data.transaction_date,
+      purchase: data.purchase_qty ?? 0,
+      usage: data.usage_qty ?? 0,
+    });
+    res.json({ success: true, ids: inserted });
+  } catch (err) {
+    handleErr(res, err, "recordPortalEntry");
+  }
+});
+
+// POST /api/inventory/portal/items/create
+// Creates a material attached to a leaf category. If the category path does not
+// exist, it creates the missing nodes (admin only).
+const portalItemCreateSchema = z.object({
+  name: z.string().min(1),
+  unit: z.string().min(1),
+  reorder_level: z.number().min(0).default(0),
+  category: z.string().min(1),
+  type: z.string().optional(),
+  subcategory: z.string().optional(),
+  subtype: z.string().optional(),
+  warehouse_id: z.string().uuid().nullable().optional(),
+});
+
+inventoryRouter.post("/portal/items/create", async (req: Request, res: Response) => {
+  try {
+    const user = await requireSessionUser(req);
+    if (!isAdmin(user.role)) {
+      res.json({ success: false, error: "Only administrators can create materials" });
+      return;
+    }
+    const data = portalItemCreateSchema.parse(req.body);
+
+    // Fetch or create the category chain
+    async function findOrCreateNode(
+      name: string,
+      level: string,
+      parentId: string | null,
+    ): Promise<string> {
+      let query = supabaseServer
+        .from("inventory_categories")
+        .select("id")
+        .eq("name", name.trim())
+        .eq("level", level);
+      if (parentId) query = query.eq("parent_id", parentId);
+      else query = query.is("parent_id", null);
+      const { data: existing } = await query.single();
+      if (existing) return existing.id;
+
+      const { data: created, error } = await supabaseServer
+        .from("inventory_categories")
+        .insert({ name: name.trim(), level, parent_id: parentId, created_by: user.id })
+        .select("id")
+        .single();
+      if (error || !created) throw new Error(`Failed to create ${level}: ${error?.message}`);
+      return created.id;
+    }
+
+    let parentId: string | null = null;
+    parentId = await findOrCreateNode(data.category, "category", null);
+    if (data.type?.trim()) parentId = await findOrCreateNode(data.type, "type", parentId);
+    if (data.subcategory?.trim()) parentId = await findOrCreateNode(data.subcategory, "subcategory", parentId);
+    if (data.subtype?.trim()) parentId = await findOrCreateNode(data.subtype, "subtype", parentId);
+
+    const { data: item, error } = await supabaseServer
+      .from("inventory_items")
+      .insert({
+        name: data.name.trim(),
+        unit_of_measure: data.unit.trim(),
+        reorder_level: data.reorder_level,
+        category_id: parentId!,
+        default_warehouse_id: data.warehouse_id ?? null,
+        created_by: user.id,
+      })
+      .select("id, name")
+      .single();
+    if (error || !item) {
+      res.json({ success: false, error: error?.message || "Failed to create material" });
+      return;
+    }
+
+    await logAction(user, "create_portal_inventory_item", "inventory_item", item.id, {
+      name: item.name,
+      category_id: parentId,
+    });
+    res.json({ success: true, id: item.id });
+  } catch (err) {
+    handleErr(res, err, "createPortalItem");
+  }
+});
+
+// POST /api/inventory/portal/vendors/create
+// Quick vendor creation from inside the portal entry form.
+const portalVendorSchema = z.object({
+  name: z.string().min(1),
+  phone: z.string().optional(),
+});
+
+inventoryRouter.post("/portal/vendors/create", async (req: Request, res: Response) => {
+  try {
+    const user = await requireSessionUser(req);
+    if (user.role === "Supervisor") {
+      res.json({ success: false, error: "Supervisors cannot create vendors" });
+      return;
+    }
+    const data = portalVendorSchema.parse(req.body);
+    const { data: vendor, error } = await supabaseServer
+      .from("vendors")
+      .insert({
+        name: data.name.trim(),
+        phone: data.phone?.trim() || null,
+        total_amount: 0,
+        amount_paid: 0,
+        outstanding_amount: 0,
+      })
+      .select("id, name")
+      .single();
+    if (error || !vendor) {
+      res.json({ success: false, error: error?.message || "Failed to create vendor" });
+      return;
+    }
+    await logAction(user, "create_portal_vendor", "vendor", vendor.id, { name: vendor.name });
+    res.json({ success: true, id: vendor.id, name: vendor.name });
+  } catch (err) {
+    handleErr(res, err, "createPortalVendor");
+  }
+});
+
+export default inventoryRouter;

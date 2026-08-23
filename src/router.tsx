@@ -2,25 +2,51 @@ import { QueryClient, QueryCache } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { authStore } from "./lib/auth-store";
-import { logoutUser } from "./lib/auth-server";
+import { logoutUser, verifySession } from "./lib/auth-server";
+import { supabase } from "./lib/supabase";
+import { setLogoutInProgress, isLogoutInProgress } from "./lib/auth-guards";
 
+// Only treat HTTP 401 as an auth error — not string matching on messages,
+// which can match unrelated errors and cause false logouts.
 function isAuthError(error: unknown): boolean {
   if (error instanceof Error) {
-    return error.message.includes("Unauthorized") || error.message.includes("no valid session");
+    const status = (error as Error & { status?: number }).status;
+    return status === 401;
   }
   return false;
 }
 
+// Debounce logout so multiple simultaneous 401s don't trigger multiple redirects.
+let logoutStarted = false;
 function handleAuthError() {
-  authStore.logout();
-  // Cookie is httpOnly — can only be cleared server-side.
-  // Fire-and-forget: the session is already invalid, and we're redirecting.
-  logoutUser().catch(() => {
-    // ignore — session may already be invalid
-  });
-  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-    window.location.href = "/login";
-  }
+  if (logoutStarted || isLogoutInProgress()) return;
+  logoutStarted = true;
+  setLogoutInProgress();
+
+  // Verify with server before logging out — a single 401 could be
+  // transient (network hiccup, cookie timing). Only logout if the
+  // server confirms the session is actually invalid.
+  verifySession()
+    .then((session) => {
+      if (!session.authenticated) {
+        authStore.logout();
+        logoutUser().catch(() => {});
+        supabase.auth.signOut().catch(() => {});
+        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+      }
+      // If session IS valid, the 401 was transient — clear error state
+      // and let queries refetch naturally.
+    })
+    .catch(() => {
+      // Network error during verify — don't logout, might be transient.
+      // The user can retry; if the session is truly dead, the next
+      // API call will 401 and this will fire again.
+    })
+    .finally(() => {
+      setTimeout(() => { logoutStarted = false; }, 2000);
+    });
 }
 
 // Creates and configures the TanStack Router instance with a shared QueryClient.
@@ -60,7 +86,9 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
-    defaultPreloadStaleTime: 0,
+    defaultPreload: "intent",
+    defaultPreloadStaleTime: 10_000,
+    defaultPendingMs: 0,
   });
 
   return router;

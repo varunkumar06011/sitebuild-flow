@@ -2,11 +2,22 @@ import { Router, type Request, type Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 import { supabaseServer } from "../lib/supabase-server.js";
 import { checkServerEnv } from "../lib/env-check.js";
 import type { Role } from "../lib/erp-data.js";
 import { checkRateLimit, getClientIpFromReq, LOGIN_RATE_LIMIT } from "../lib/rate-limiter.js";
 import { hashToken, readSessionCookie, getSessionUser } from "../lib/session.js";
+
+// Separate Supabase client for auth.admin / auth.signIn operations.
+// signInWithPassword sets an in-memory session on the client, which would
+// replace the service-role key on supabaseServer and break all subsequent
+// DB queries (RLS would apply). This isolated client prevents that.
+const supabaseAuthAdmin = createClient(
+  process.env["SUPABASE_URL"] as string,
+  process.env["SUPABASE_SERVICE_ROLE_KEY"] as string,
+  { auth: { persistSession: false, autoRefreshToken: false } },
+);
 
 export const authRouter = Router();
 
@@ -21,8 +32,13 @@ export type AuthUser = {
 // Discriminated union describing the outcome of a login attempt.
 // The token is never sent to the client — it is set as an httpOnly cookie
 // in the server response itself.
+export type SupabaseSession = {
+  access_token: string;
+  refresh_token: string;
+};
+
 export type LoginResult =
-  | { success: true; user: AuthUser; maxAge: number }
+  | { success: true; user: AuthUser; maxAge: number; supabaseSession?: SupabaseSession }
   | { success: false; error: string; locked?: boolean };
 
 const COOKIE_NAME = "meditrust_session";
@@ -189,7 +205,43 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     // Set the session cookie server-side so the client never sees the token value.
     res.cookie(COOKIE_NAME, token, getCookieOptions(Math.floor(expiryMs / 1000)));
 
-    res.json({ success: true, user: authUser, maxAge: Math.floor(expiryMs / 1000) });
+    // Obtain a Supabase Auth session so the browser can use Realtime with RLS.
+    // Lazily create the Supabase Auth user (same UUID as the custom users table)
+    // on first login, then sign in to get access + refresh tokens.
+    let supabaseSession: SupabaseSession | undefined;
+    try {
+      const syntheticEmail = `${username}@meditrust.local`;
+
+      let authRes = await supabaseAuthAdmin.auth.signInWithPassword({
+        email: syntheticEmail,
+        password,
+      });
+
+      // If the user doesn't exist in Supabase Auth yet, create them and retry.
+      if (authRes.error) {
+        await supabaseAuthAdmin.auth.admin.createUser({
+          id: user.id,
+          email: syntheticEmail,
+          password,
+          email_confirm: true,
+        });
+        authRes = await supabaseAuthAdmin.auth.signInWithPassword({
+          email: syntheticEmail,
+          password,
+        });
+      }
+
+      if (authRes.data.session) {
+        supabaseSession = {
+          access_token: authRes.data.session.access_token,
+          refresh_token: authRes.data.session.refresh_token,
+        };
+      }
+    } catch (e) {
+      console.error("Supabase Auth sign-in failed:", e);
+    }
+
+    res.json({ success: true, user: authUser, maxAge: Math.floor(expiryMs / 1000), supabaseSession });
   } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(400).json({ success: false, error: "Invalid input" });
@@ -368,6 +420,13 @@ authRouter.post("/change-password", async (req: Request, res: Response) => {
       .update({ revoked: true })
       .eq("user_id", userId)
       .eq("revoked", false);
+
+    // Keep Supabase Auth password in sync so Realtime sessions stay valid.
+    try {
+      await supabaseAuthAdmin.auth.admin.updateUserById(userId, { password: data.newPassword });
+    } catch (e) {
+      console.error("Supabase Auth password update failed:", e);
+    }
 
     // Clear the current session cookie so the user is redirected to login
     res.clearCookie(COOKIE_NAME, getCookieOptions(0));

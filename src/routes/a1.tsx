@@ -8,7 +8,6 @@ import { requireRole } from "@/lib/auth-guards";
 import { fetchRequisitions, type RequisitionRow } from "@/lib/api/requisitions";
 import { fetchInspections } from "@/lib/api/inspections";
 import { fetchProgress } from "@/lib/api/progress";
-import { fetchBatches } from "@/lib/api/batches";
 import { useApprovalActions } from "@/hooks/use-approval-actions";
 import { ApprovalQueueItem } from "@/components/approval/ApprovalQueueItem";
 import { DecisionHistory } from "@/components/approval/DecisionHistory";
@@ -22,7 +21,6 @@ import {
   TrendingUp,
   ShieldCheck,
   AlertTriangle,
-  Boxes,
   AlertCircle,
   Package,
   ClipboardList,
@@ -33,8 +31,8 @@ export const Route = createFileRoute("/a1")({
   head: () => ({
     meta: [{ title: "A1 Dashboard — Meditrust ERP" }],
   }),
-  beforeLoad: async () => {
-    await requireRole("A1");
+  beforeLoad: () => {
+    requireRole("A1");
   },
   component: A1Dashboard,
 });
@@ -57,10 +55,6 @@ function A1Dashboard() {
     queryFn: () => fetchInspections({}),
   });
   const { data: progData } = useQuery({ queryKey: ["progress"], queryFn: () => fetchProgress() });
-  const { data: batchData } = useQuery({
-    queryKey: ["batches"],
-    queryFn: () => fetchBatches({}),
-  });
   const { data: partsData } = useQuery({
     queryKey: ["partsOrders", "a1"],
     queryFn: () => fetchPartsOrders({ limit: 5 } as any),
@@ -77,7 +71,6 @@ function A1Dashboard() {
   const requisitions: RequisitionRow[] = reqData?.data ?? [];
   const inspections = inspData?.data ?? [];
   const progress = progData?.data ?? [];
-  const batches = batchData?.data ?? [];
   const partsOrders = partsData?.data ?? [];
   const workOrders = workData?.data ?? [];
   const documents = docsData?.data ?? [];
@@ -92,7 +85,6 @@ function A1Dashboard() {
   const pendingA1 = a1Queue.filter((r) => r.stage === "A1" && !actions.decided[r.id]);
   const escalatedToA1Plus = requisitions.filter((r) => approverFor(r.amount) === "A1+");
   const totalPipeline = requisitions.reduce((s, r) => s + r.amount, 0);
-  const pendingBatches = batches.filter((b: any) => b.status !== "Verified");
 
   return (
     <AppShell
@@ -131,13 +123,6 @@ function A1Dashboard() {
           value={String(escalatedToA1Plus.length)}
           note="Above ₹5,00,000"
           tone="danger"
-        />
-        <StatCard
-          icon={Boxes}
-          label="Traceability Pending"
-          value={String(pendingBatches.length)}
-          note="MTC or lab test"
-          tone="warning"
         />
       </div>
 
@@ -212,7 +197,7 @@ function A1Dashboard() {
         </Card>
 
         <Card className="p-5">
-          <h2 className="text-sm font-bold">Quality & traceability status</h2>
+          <h2 className="text-sm font-bold">Quality status</h2>
           <div className="mt-4 space-y-3">
             {inspections.map((i: any) => (
               <div key={i.id} className="flex flex-wrap items-start justify-between gap-3">

@@ -1,25 +1,39 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { supabaseServer } from "../lib/supabase-server.js";
-import { getSessionUser, requireSessionUser } from "../lib/session.js";
+import { requireSessionUser, getSessionUser } from "../lib/session.js";
+import { checkRateLimit, getClientIpFromReq, API_RATE_LIMIT } from "../lib/rate-limiter.js";
 
 export const errorsRouter = Router();
 
 // POST /api/errors/log — logs a production error to the error_log table.
 const logErrorSchema = z.object({
-  message: z.string(),
-  stack: z.string().optional(),
-  source: z.string().optional(),
-  route: z.string().optional(),
+  message: z.string().max(2000).optional(),
+  stack: z.string().max(10000).optional(),
+  source: z.string().max(200).optional(),
+  route: z.string().max(500).optional(),
   severity: z.enum(["error", "warning", "info"]).optional(),
   context: z.record(z.unknown()).optional(),
 });
 
 errorsRouter.post("/log", async (req: Request, res: Response) => {
   try {
+    // Rate-limit unauthenticated error logging to prevent abuse
+    const ip = getClientIpFromReq(req);
+    const rateLimit = checkRateLimit(
+      `error-log:${ip}`,
+      10, // 10 per minute
+      60 * 1000,
+    );
+    if (!rateLimit.allowed) {
+      res.status(429).json({ success: false });
+      return;
+    }
+
     const data = logErrorSchema.parse(req.body);
 
-    // Best-effort: get user ID if session exists (don't require it)
+    // Best-effort: get user ID if session exists (don't require it —
+    // errors can happen before login completes)
     let userId: string | null = null;
     try {
       const user = await getSessionUser(req);
@@ -29,7 +43,7 @@ errorsRouter.post("/log", async (req: Request, res: Response) => {
     }
 
     await supabaseServer.from("error_log").insert({
-      message: data.message,
+      message: data.message ?? "Unknown error",
       stack: data.stack ?? null,
       source: data.source ?? "unknown",
       route: data.route ?? null,

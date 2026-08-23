@@ -1,8 +1,8 @@
 -- ============================================================================
--- Meditrust ERP — Work Categories (Civil Work / Structural Work)
+-- Meditrust ERP — Work Categories (Civil Work / Medical Work)
 -- ============================================================================
 -- Creates a centralized work_categories lookup table and adds a work_category
--- column to every relevant table so that Civil vs Structural classification
+-- column to every relevant table so that Civil vs Medical classification
 -- is consistent across all modules (inventory, vendors, work orders, parts
 -- orders, documents, progress blocks).
 --
@@ -26,8 +26,8 @@ REVOKE ALL ON work_categories FROM anon, authenticated;
 
 -- Seed the two mandatory categories
 INSERT INTO work_categories (name, label, description, sort_order) VALUES
-  ('civil',      'Civil Work',      'Construction-related materials and activities (bricks, cement, sand, rods, concrete, pipes, tiles, etc.)', 1),
-  ('structural', 'Structural Work', 'Hospital/infrastructure-related equipment, assets, and structural requirements (hospital beds, MRI scanners, medical equipment, major installed assets, etc.)', 2),
+  ('civil',   'Civil Work',   'Construction-related materials and activities used to build the hospital (bricks, cement, sand, rods, concrete, pipes, tiles, etc.)', 1),
+  ('medical', 'Medical Work', 'Hospital equipment, furniture, and machinery used inside the hospital (beds, MRI scanners, chairs, medical equipment, machinery, etc.)', 2),
   ('uncategorized', 'Uncategorized', 'Default category for legacy records where the work category is not yet assigned.', 3)
 ON CONFLICT (name) DO NOTHING;
 

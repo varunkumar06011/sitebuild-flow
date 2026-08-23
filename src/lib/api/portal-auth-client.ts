@@ -1,5 +1,7 @@
 import { api } from "../api-client";
 
+export const PORTAL_COOKIE = "meditrust_portal_session";
+
 export type PortalAccountType = "vendor" | "client";
 
 export type PortalAccount = {
@@ -12,10 +14,8 @@ export type PortalAccount = {
 };
 
 export type PortalLoginResult =
-  | { success: true; account: PortalAccount; token: string; maxAge: number }
+  | { success: true; account: PortalAccount; maxAge: number }
   | { success: false; error: string; locked?: boolean };
-
-export const PORTAL_COOKIE = "meditrust_portal_session";
 
 export function loginPortalAccount(data: {
   username: string;

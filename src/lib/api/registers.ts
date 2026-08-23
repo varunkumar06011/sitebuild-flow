@@ -1,4 +1,4 @@
-// Frontend API wrapper for register calls (visitors, vehicles, labour).
+// Frontend API wrapper for register calls (visitors, vehicles).
 // These functions call the Express API server instead of TanStack server functions.
 import { api } from "../api-client";
 
@@ -16,15 +16,6 @@ export function fetchVehicles(data: {
   limit?: number;
 }): Promise<{ data: any[]; total: number; page: number; limit: number }> {
   return api.get("/api/registers/vehicles", data);
-}
-
-// GET /api/registers/labour
-export function fetchLabour(data: {
-  page?: number;
-  limit?: number;
-  date?: string;
-}): Promise<{ data: any[]; total: number; page: number; limit: number }> {
-  return api.get("/api/registers/labour", data);
 }
 
 // POST /api/registers/visitors/create
@@ -45,18 +36,6 @@ export function createVehicle(data: {
   material?: string;
 }): Promise<{ success: boolean; error?: string; id?: string }> {
   return api.post("/api/registers/vehicles/create", data);
-}
-
-// POST /api/registers/labour/create
-export function createLabour(data: {
-  trade: string;
-  contractor?: string;
-  planned?: number;
-  present?: number;
-  block?: string;
-  date?: string;
-}): Promise<{ success: boolean; error?: string; id?: string }> {
-  return api.post("/api/registers/labour/create", data);
 }
 
 // POST /api/registers/visitors/checkout

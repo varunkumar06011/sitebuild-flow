@@ -85,8 +85,9 @@ export function SectionTour({
   const driverRef = useRef<Driver | null>(null);
   const stepsRef = useRef(steps);
   stepsRef.current = steps;
+  const locallyCompletedRef = useRef(false);
 
-  const isCompleted = completedSections.includes(sectionKey);
+  const isCompleted = completedSections.includes(sectionKey) || locallyCompletedRef.current;
 
   const cleanupDriver = useCallback(() => {
     if (driverRef.current) {
@@ -129,6 +130,7 @@ export function SectionTour({
       prevBtnText: "← Back",
       progressText: "{{current}} of {{total}}",
       onCloseClick: () => {
+        locallyCompletedRef.current = true;
         markComplete(sectionKey);
         cleanupDriver();
       },
@@ -137,6 +139,7 @@ export function SectionTour({
         setTourActive(false);
       },
       onDoneClick: () => {
+        locallyCompletedRef.current = true;
         markComplete(sectionKey);
         cleanupDriver();
         toast.success("Tour complete! You can replay it anytime with the help icon.");
@@ -197,12 +200,14 @@ export function SectionTour({
     if (!tourActive) return;
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        locallyCompletedRef.current = true;
+        markComplete(sectionKey);
         cleanupDriver();
       }
     };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, [tourActive, cleanupDriver]);
+  }, [tourActive, cleanupDriver, markComplete, sectionKey]);
 
   return (
     <Button

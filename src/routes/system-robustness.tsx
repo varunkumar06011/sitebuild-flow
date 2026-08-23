@@ -63,8 +63,8 @@ export const Route = createFileRoute("/system-robustness")({
       },
     ],
   }),
-  beforeLoad: async () => {
-    await requireAuth();
+  beforeLoad: () => {
+    requireAuth();
   },
   component: SystemRobustnessPage,
 });

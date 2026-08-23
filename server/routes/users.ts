@@ -105,6 +105,15 @@ usersRouter.post("/create", async (req: Request, res: Response) => {
 });
 
 // POST /api/users/update
+const updateUserSchema = z.object({
+  id: z.string().uuid(),
+  username: z.string().min(2).optional(),
+  password: z.string().min(6).optional(),
+  role: z.enum(["Supervisor", "Administrator", "A1", "A1+"]).optional(),
+  name: z.string().min(1).optional(),
+  phone: z.string().optional(),
+});
+
 usersRouter.post("/update", async (req: Request, res: Response) => {
   try {
     const user = await requireSessionUser(req);
@@ -112,14 +121,24 @@ usersRouter.post("/update", async (req: Request, res: Response) => {
       res.json({ success: false, error: "Insufficient permissions" });
       return;
     }
-    const { id, password, ...updates } = req.body as Record<string, any>;
+    const data = updateUserSchema.parse(req.body);
 
-    const dbUpdates: Record<string, any> = { ...updates };
-    if (password) {
-      dbUpdates["password_hash"] = await bcrypt.hash(password, 12);
+    // Only A1+ can assign A1+ role — Administrators cannot escalate privileges
+    if (data.role === "A1+" && user.role !== "A1+") {
+      res.json({ success: false, error: "Only A1+ can assign A1+ role" });
+      return;
     }
 
-    const { error } = await supabaseServer.from("users").update(dbUpdates).eq("id", id);
+    const dbUpdates: Record<string, any> = {};
+    if (data.username !== undefined) dbUpdates["username"] = data.username;
+    if (data.role !== undefined) dbUpdates["role"] = data.role;
+    if (data.name !== undefined) dbUpdates["name"] = data.name;
+    if (data.phone !== undefined) dbUpdates["phone"] = data.phone || null;
+    if (data.password) {
+      dbUpdates["password_hash"] = await bcrypt.hash(data.password, 12);
+    }
+
+    const { error } = await supabaseServer.from("users").update(dbUpdates).eq("id", data.id);
     if (error) {
       if (error.code === "23505") {
         res.json({ success: false, error: "Username already exists" });
@@ -129,7 +148,7 @@ usersRouter.post("/update", async (req: Request, res: Response) => {
       return;
     }
 
-    await logAction(user, "update_user", "users", id, updates);
+    await logAction(user, "update_user", "users", data.id, dbUpdates);
     res.json({ success: true });
   } catch (err) {
     if (err instanceof Error && err.message.startsWith("Unauthorized")) {
