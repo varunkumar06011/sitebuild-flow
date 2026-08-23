@@ -87,6 +87,7 @@ export function updateRequisitionStage(data: {
   newStage: string;
   expectedStage: string;
   inventoryItemId?: string | null;
+  orderedQuantity?: number;
   quantityReceived?: number;
   deliveryDate?: string;
   invoiceNumber?: string;
@@ -107,16 +108,12 @@ export function updateRequisitionStage(data: {
 }
 
 // GET /api/requisitions/history
-export function fetchRequisitionHistory(data: {
-  requisitionId: string;
-}): Promise<any[]> {
+export function fetchRequisitionHistory(data: { requisitionId: string }): Promise<any[]> {
   return api.get("/api/requisitions/history", data);
 }
 
 // GET /api/requisitions/payments
-export function fetchRequisitionPayments(data: {
-  requisitionId: string;
-}): Promise<any[]> {
+export function fetchRequisitionPayments(data: { requisitionId: string }): Promise<any[]> {
   return api.get("/api/requisitions/payments", data);
 }
 
@@ -133,9 +130,7 @@ export function addRequisitionPayment(data: {
 }
 
 // GET /api/requisitions/items
-export function fetchRequisitionItems(data: {
-  requisitionId: string;
-}): Promise<any[]> {
+export function fetchRequisitionItems(data: { requisitionId: string }): Promise<any[]> {
   return api.get("/api/requisitions/items", data);
 }
 
@@ -144,6 +139,7 @@ export function saveRequisitionItems(data: {
   requisitionId: string;
   items: Array<{
     description: string;
+    inventory_item_id?: string | null;
     quantity?: number;
     unit?: string | null;
     unit_price?: number;

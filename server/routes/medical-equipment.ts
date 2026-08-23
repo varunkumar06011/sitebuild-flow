@@ -26,7 +26,7 @@ medicalEquipmentRouter.get("/fetch", async (req: Request, res: Response) => {
     let query = supabaseServer
       .from("medical_equipment")
       .select(
-        "id, eq_number, name, model, serial_number, manufacturer, category, location, vendor_id, requisition_id, status, warranty_start, warranty_end, amc_expiry, handover_date, handover_department, commissioning_checklist, certificates, photos, notes, created_at",
+        "id, eq_number, name, model, serial_number, manufacturer, category, location, vendor_id, requisition_id, inventory_asset_id, status, warranty_start, warranty_end, amc_expiry, handover_date, handover_department, commissioning_checklist, certificates, photos, notes, created_at",
         { count: "exact" },
       )
       .order("created_at", { ascending: false })
@@ -70,6 +70,7 @@ const equipmentSchema = z.object({
   location: z.string().optional(),
   vendor_id: z.string().uuid().optional(),
   requisition_id: z.string().uuid().optional(),
+  inventory_asset_id: z.string().uuid().nullable().optional(),
   status: z
     .enum(["Ordered", "Delivered", "Installed", "Testing", "Commissioned", "Handed Over"])
     .default("Ordered"),

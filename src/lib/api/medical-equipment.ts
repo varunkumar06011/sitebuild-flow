@@ -23,6 +23,7 @@ export function createEquipment(data: {
   location?: string;
   vendor_id?: string;
   requisition_id?: string;
+  inventory_asset_id?: string | null;
   status?: "Ordered" | "Delivered" | "Installed" | "Testing" | "Commissioned" | "Handed Over";
   warranty_start?: string;
   warranty_end?: string;
@@ -54,6 +55,7 @@ export function updateEquipment(data: {
   location?: string;
   vendor_id?: string;
   requisition_id?: string;
+  inventory_asset_id?: string | null;
   status?: "Ordered" | "Delivered" | "Installed" | "Testing" | "Commissioned" | "Handed Over";
   warranty_start?: string;
   warranty_end?: string;

@@ -16,6 +16,10 @@ export function fetchBatches(data: {
 export function createBatch(data: {
   batch_number: string;
   material: string;
+  inventory_item_id?: string | null;
+  manufacture_date?: string;
+  expiry_date?: string;
+  quantity_received?: number;
   supplier?: string;
   manufacturer?: string;
   purchase_date?: string;
@@ -34,6 +38,10 @@ export function updateBatch(data: {
   id: string;
   batch_number?: string;
   material?: string;
+  inventory_item_id?: string | null;
+  manufacture_date?: string;
+  expiry_date?: string;
+  quantity_received?: number;
   supplier?: string;
   manufacturer?: string;
   purchase_date?: string;

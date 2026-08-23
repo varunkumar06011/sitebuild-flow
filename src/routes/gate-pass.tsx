@@ -49,6 +49,7 @@ import { fetchBatches } from "@/lib/api/batches";
 import { fetchRequisitions } from "@/lib/api/requisitions";
 import { sendPhoneOtp, confirmPhoneOtp, type PhoneConfirmationResult } from "@/lib/firebase";
 import { uploadFile } from "@/lib/api/storage";
+import { downloadGatePassPdf } from "@/lib/gate-pass-pdf";
 import { requireAuth } from "@/lib/auth-guards";
 import { useRole } from "@/lib/role-context";
 import { SectionTour, type TourStep } from "@/components/SectionTour";
@@ -681,6 +682,7 @@ function CreateGatePassDialog({
   const [otp, setOtp] = useState("");
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // form fields
   const today = new Date();
@@ -766,10 +768,6 @@ function CreateGatePassDialog({
 
   // Submits the gate pass form, uploads photo proof and advances to the OTP step.
   const handleSubmit = async () => {
-    if (!personName.trim()) {
-      toast.error("Person/Visitor name is required");
-      return;
-    }
     if (!approverPhone.trim()) {
       toast.error("Admin mobile number is required for OTP approval");
       return;
@@ -839,6 +837,24 @@ function CreateGatePassDialog({
       toast.error("Failed to create gate pass");
     }
     setSubmitting(false);
+  };
+
+  // Downloads the gate pass PDF immediately after creation, before OTP approval.
+  const handleDownloadPdf = async () => {
+    if (!gatePassId) return;
+    setDownloadingPdf(true);
+    try {
+      const result = await fetchGatePassById({ gatePassId });
+      if (result.success && result.data) {
+        downloadGatePassPdf(result.data);
+        toast.success("Gate pass PDF downloaded");
+      } else {
+        toast.error(result.error ?? "Failed to load gate pass details");
+      }
+    } catch {
+      toast.error("Failed to download gate pass PDF");
+    }
+    setDownloadingPdf(false);
   };
 
   // Sends an OTP SMS to the approver via Firebase Phone Auth (rate-limited server-side).
@@ -932,7 +948,7 @@ function CreateGatePassDialog({
 
             <div>
               <Label className="text-xs">
-                Visitor / Person Name <span className="text-destructive">*</span>
+                Visitor / Person Name <span className="text-muted-foreground">(optional)</span>
               </Label>
               <Input
                 value={personName}
@@ -1061,7 +1077,7 @@ function CreateGatePassDialog({
             {/* Photo Proof */}
             <div>
               <Label className="text-xs">
-                Photo Proof {materialMovement && <span className="text-destructive">*</span>}
+                Photo Proof <span className="text-muted-foreground">(optional)</span>
               </Label>
               <div className="mt-1 flex items-center gap-3">
                 <input
@@ -1138,7 +1154,7 @@ function CreateGatePassDialog({
 
             <Button
               className="w-full"
-              disabled={submitting || (materialMovement && !photoFile)}
+              disabled={submitting}
               onClick={handleSubmit}
             >
               {submitting ? (
@@ -1167,6 +1183,16 @@ function CreateGatePassDialog({
               <p className="text-sm text-muted-foreground">Send OTP to approver</p>
               <p className="font-bold">{approverPhone}</p>
             </div>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={downloadingPdf}
+              onClick={handleDownloadPdf}
+            >
+              <FileText className="mr-2 size-4" />
+              {downloadingPdf ? "Preparing PDF..." : "Download Gate Pass PDF"}
+            </Button>
 
             <Button
               variant="outline"
@@ -1228,8 +1254,9 @@ function CreateGatePassDialog({
               >
                 Close
               </Button>
-              <Button className="flex-1" onClick={() => window.print()}>
-                <Printer className="mr-2 size-4" /> Print
+              <Button className="flex-1" disabled={downloadingPdf} onClick={handleDownloadPdf}>
+                <FileText className="mr-2 size-4" />
+                {downloadingPdf ? "Preparing..." : "Download PDF"}
               </Button>
             </div>
           </div>

@@ -7,15 +7,57 @@ import { logAction } from "../lib/audit.js";
 export const backupRouter = Router();
 
 const BACKUP_TABLES = [
-  "users", "sessions", "organization_settings", "vendors", "requisitions",
-  "requisition_items", "approvals", "gate_passes", "batches", "material_tests",
-  "inspections", "registers_visitor", "registers_vehicle", "registers_labour",
-  "inventory_categories", "inventory_items", "inventory_transactions", "inventory_warehouses",
-  "progress_blocks", "progress_floors", "progress_work_items", "progress_cells", "progress_cell_history",
-  "budgets", "cash_flow_forecast", "tds_gst_records", "retention_money", "notifications",
-  "audit_log", "error_log", "approval_delegations", "escalation_log", "document_versions",
-  "portal_accounts", "portal_sessions", "anomaly_flags", "block_layout",
-  "notification_queue", "notification_preferences", "backup_log",
+  "users",
+  "sessions",
+  "organization_settings",
+  "vendors",
+  "requisitions",
+  "requisition_items",
+  "approvals",
+  "gate_passes",
+  "batches",
+  "material_tests",
+  "inspections",
+  "registers_visitor",
+  "registers_vehicle",
+  "registers_labour",
+  "inventory_categories",
+  "inventory_items",
+  "inventory_transactions",
+  "inventory_warehouses",
+  "inventory_locations",
+  "inventory_alerts",
+  "inventory_budgets",
+  "inventory_receipts",
+  "inventory_consumptions",
+  "inventory_consumption_reversals",
+  "inventory_transaction_reversals",
+  "inventory_assets",
+  "inventory_serials",
+  "inventory_structural_returns",
+  "inventory_wastage_reasons",
+  "progress_blocks",
+  "progress_floors",
+  "progress_work_items",
+  "progress_cells",
+  "progress_cell_history",
+  "budgets",
+  "cash_flow_forecast",
+  "tds_gst_records",
+  "retention_money",
+  "notifications",
+  "audit_log",
+  "error_log",
+  "approval_delegations",
+  "escalation_log",
+  "document_versions",
+  "portal_accounts",
+  "portal_sessions",
+  "anomaly_flags",
+  "block_layout",
+  "notification_queue",
+  "notification_preferences",
+  "backup_log",
 ];
 
 // GET /api/backup/log
@@ -30,7 +72,9 @@ backupRouter.get("/log", async (req: Request, res: Response) => {
     const limit = parseInt((req.query["limit"] as string) ?? "50", 10);
     const { data: entries } = await supabaseServer
       .from("backup_log")
-      .select("id, backup_type, tables_count, total_rows, file_size_bytes, status, triggered_by, notes, created_at")
+      .select(
+        "id, backup_type, tables_count, total_rows, file_size_bytes, status, triggered_by, notes, created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -70,7 +114,9 @@ backupRouter.post("/run-verification", async (req: Request, res: Response) => {
 
     for (const table of BACKUP_TABLES) {
       try {
-        const { count, error } = await supabaseServer.from(table).select("*", { count: "exact", head: true });
+        const { count, error } = await supabaseServer
+          .from(table)
+          .select("*", { count: "exact", head: true });
         if (error) {
           failedTables.push(table);
         } else {
@@ -86,7 +132,9 @@ backupRouter.post("/run-verification", async (req: Request, res: Response) => {
     const notesStr = [
       notes?.trim(),
       failedTables.length > 0 ? `Failed tables: ${failedTables.join(", ")}` : "All tables verified",
-    ].filter(Boolean).join(" — ");
+    ]
+      .filter(Boolean)
+      .join(" — ");
 
     const { data: logEntry, error: logErr } = await supabaseServer
       .from("backup_log")

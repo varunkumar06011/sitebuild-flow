@@ -138,7 +138,7 @@ const createSchema = z.object({
   invoice_number: z.string().optional(),
   invoice_value: z.number().optional(),
   purpose: z.string().optional(),
-  person_name: z.string().min(1),
+  person_name: z.string().optional(),
   vehicle_type: z.string().optional(),
   driver_name: z.string().optional(),
   driver_mobile: z.string().optional(),
@@ -163,18 +163,38 @@ gatePassesRouter.post("/create", async (req: Request, res: Response) => {
       return;
     }
     const gpNumber = seqResult as string;
+    const { data: requisition } = data.requisition_id
+      ? await supabaseServer
+          .from("requisitions")
+          .select("vendor_id, invoice_number, invoice_amount")
+          .eq("id", data.requisition_id)
+          .single()
+      : { data: null };
+    const { data: poItems } = data.requisition_id
+      ? await supabaseServer
+          .from("requisition_items")
+          .select("description, quantity, unit")
+          .eq("requisition_id", data.requisition_id)
+          .order("sort_order", { ascending: true })
+      : { data: [] };
+    const materialList =
+      poItems && poItems.length > 0
+        ? poItems.map((item: any) => ({
+            name: item.description,
+            qty: `${item.quantity}${item.unit ? ` ${item.unit}` : ""}`,
+          }))
+        : data.material_list;
+    const material =
+      data.material ??
+      (materialList.length > 0
+        ? materialList.map((item) => `${item.name} (${item.qty})`).join(", ")
+        : "—");
 
     const { data: gp, error } = await supabaseServer
       .from("gate_passes")
       .insert({
         gp_number: gpNumber,
-        material:
-          data.material ??
-          (data.material_list.length > 0
-            ? data.material_list
-                .map((m: { name: string; qty: string }) => `${m.name} (${m.qty})`)
-                .join(", ")
-            : "—"),
+        material,
         qty: data.qty ?? "—",
         carrier: data.carrier ?? null,
         vehicle: data.vehicle ?? null,
@@ -182,18 +202,18 @@ gatePassesRouter.post("/create", async (req: Request, res: Response) => {
         status: "Awaiting OTP",
         approver_phone: data.approver_phone,
         requested_by: user.id,
-        vendor_id: data.vendor_id ?? null,
+        vendor_id: data.vendor_id ?? requisition?.vendor_id ?? null,
         from_location: data.from_location ?? null,
         to_location: data.to_location ?? null,
-        invoice_number: data.invoice_number ?? null,
-        invoice_value: data.invoice_value ?? null,
+        invoice_number: data.invoice_number ?? requisition?.invoice_number ?? null,
+        invoice_value: data.invoice_value ?? requisition?.invoice_amount ?? null,
         purpose: data.purpose ?? null,
-        person_name: data.person_name,
+        person_name: data.person_name?.trim() || null,
         vehicle_type: data.vehicle_type ?? null,
         driver_name: data.driver_name ?? null,
         driver_mobile: data.driver_mobile ?? null,
-        material_movement: data.material_movement,
-        material_list: data.material_list,
+        material_movement: data.material_movement || materialList.length > 0,
+        material_list: materialList,
         remarks: data.remarks ?? null,
         photo_proof_path: data.photo_proof_path ?? null,
         gp_date: data.gp_date ?? new Date().toISOString().split("T")[0],
@@ -211,13 +231,13 @@ gatePassesRouter.post("/create", async (req: Request, res: Response) => {
 
     await logAction(user, "create_gate_pass", "gate_pass", gp.id, {
       gp_number: gp.gp_number,
-      material: data.material,
+      material,
     });
 
     await dispatchNotification({
       event: "gate_pass_created",
       title: "Gate pass awaiting approval",
-      body: `Gate pass ${gp.gp_number} for ${data.material} is awaiting OTP approval.`,
+      body: `Gate pass ${gp.gp_number} for ${material} is awaiting OTP approval.`,
       entityType: "gate_pass",
       entityId: gp.id,
       targetRoles: ["Administrator", "A1", "A1+"],
@@ -620,15 +640,10 @@ gatePassesRouter.get("/fetch-by-id", async (req: Request, res: Response) => {
     }
 
     const userIds = [gp.requested_by, gp.approved_by].filter(Boolean);
-    const vendorIds = gp.vendor_id ? [gp.vendor_id] : [];
-
-    const [{ data: users }, { data: vendors }, { data: batch }, { data: requisition }] =
+    const [{ data: users }, { data: batch }, { data: requisition }, { data: organization }] =
       await Promise.all([
         userIds.length > 0
           ? supabaseServer.from("users").select("id, name").in("id", userIds)
-          : Promise.resolve({ data: [], error: null }),
-        vendorIds.length > 0
-          ? supabaseServer.from("vendors").select("id, name").in("id", vendorIds)
           : Promise.resolve({ data: [], error: null }),
         gp.batch_id
           ? supabaseServer
@@ -642,14 +657,28 @@ gatePassesRouter.get("/fetch-by-id", async (req: Request, res: Response) => {
         gp.requisition_id
           ? supabaseServer
               .from("requisitions")
-              .select("id, pr_number, po_number, title, stage, vendor_id, amount")
+              .select(
+                "id, pr_number, po_number, title, block, stage, vendor_id, amount, invoice_number, invoice_date, invoice_amount",
+              )
               .eq("id", gp.requisition_id)
               .single()
           : Promise.resolve({ data: null, error: null }),
+        supabaseServer
+          .from("organization_settings")
+          .select("name, gst_number, address, city, state, pincode, phone, email")
+          .limit(1)
+          .maybeSingle(),
       ]);
 
+    const vendorId = gp.vendor_id ?? requisition?.vendor_id ?? null;
+    const { data: vendor } = vendorId
+      ? await supabaseServer
+          .from("vendors")
+          .select("id, name, gst_number, address, city, state, pincode, phone, email")
+          .eq("id", vendorId)
+          .single()
+      : { data: null };
     const userMap = new Map((users ?? []).map((u: any) => [u.id, u.name]));
-    const vendorMap = new Map((vendors ?? []).map((v: any) => [v.id, v.name]));
 
     let photoUrl: string | null = null;
     if (gp.photo_proof_path) {
@@ -678,8 +707,32 @@ gatePassesRouter.get("/fetch-by-id", async (req: Request, res: Response) => {
         exit_time: gp.exit_time,
         approved_by: gp.approved_by,
         approved_by_name: gp.approved_by ? (userMap.get(gp.approved_by) ?? null) : null,
-        vendor_id: gp.vendor_id,
-        vendor_name: gp.vendor_id ? (vendorMap.get(gp.vendor_id) ?? null) : null,
+        vendor_id: vendorId,
+        vendor_name: vendor?.name ?? null,
+        vendor: vendor
+          ? {
+              name: vendor.name,
+              gst_number: vendor.gst_number,
+              address: vendor.address,
+              city: vendor.city,
+              state: vendor.state,
+              pincode: vendor.pincode,
+              phone: vendor.phone,
+              email: vendor.email,
+            }
+          : null,
+        organization: organization
+          ? {
+              name: organization.name,
+              gst_number: organization.gst_number,
+              address: organization.address,
+              city: organization.city,
+              state: organization.state,
+              pincode: organization.pincode,
+              phone: organization.phone,
+              email: organization.email,
+            }
+          : null,
         from_location: gp.from_location,
         to_location: gp.to_location,
         invoice_number: gp.invoice_number,
@@ -718,11 +771,14 @@ gatePassesRouter.get("/fetch-by-id", async (req: Request, res: Response) => {
               pr_number: requisition.pr_number,
               po_number: requisition.po_number ?? null,
               title: requisition.title,
+              block: requisition.block ?? null,
               stage: requisition.stage,
               amount: Number(requisition.amount),
-              vendor_name: requisition.vendor_id
-                ? (vendorMap.get(requisition.vendor_id) ?? null)
-                : null,
+              invoice_number: requisition.invoice_number ?? null,
+              invoice_date: requisition.invoice_date ?? null,
+              invoice_amount:
+                requisition.invoice_amount != null ? Number(requisition.invoice_amount) : null,
+              vendor_name: vendor?.name ?? null,
             }
           : null,
       },

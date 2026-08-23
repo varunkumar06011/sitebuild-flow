@@ -24,6 +24,7 @@ import {
   fetchGatePassesForLinkage,
   fetchBatchesForLinkage,
   fetchWarehouses,
+  issueStructuralInventory,
 } from "@/lib/api/inventory";
 import { useRole } from "@/lib/role-context";
 import { requireAuth } from "@/lib/auth-guards";
@@ -58,6 +59,7 @@ function InventorySupervisorPage() {
   const { role } = useRole();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [domain, setDomain] = useState<"civil" | "structural">("civil");
   const [form, setForm] = useState({
     item_id: "",
     type: "",
@@ -203,8 +205,8 @@ function InventorySupervisorPage() {
       ];
 
   const { data: itemsData } = useQuery({
-    queryKey: ["inventory-items", search],
-    queryFn: () => fetchItems(search ? { search } : {}),
+    queryKey: ["inventory-items", domain, search],
+    queryFn: () => fetchItems({ domain, ...(search ? { search } : {}) }),
   });
   const items = itemsData?.data ?? [];
 
@@ -232,15 +234,24 @@ function InventorySupervisorPage() {
     }
     setSaving(true);
     try {
-      const result = await recordTransaction({
-        item_id: form.item_id,
-        type: form.type as any,
-        quantity: Number(form.quantity),
-        is_wastage: form.type === "out" ? form.is_wastage : undefined,
-        block_id: form.block_id || null,
-        reference: form.reference.trim() || undefined,
-        remarks: form.remarks.trim() || undefined,
-      });
+      const result =
+        domain === "structural" && form.type === "out"
+          ? await issueStructuralInventory({
+              itemId: form.item_id,
+              quantity: Number(form.quantity),
+              warehouseId: form.warehouse_id || null,
+              ...(form.reference.trim() ? { reference: form.reference.trim() } : {}),
+              ...(form.remarks.trim() ? { remarks: form.remarks.trim() } : {}),
+            })
+          : await recordTransaction({
+              item_id: form.item_id,
+              type: form.type as any,
+              quantity: Number(form.quantity),
+              is_wastage: form.type === "out" ? Boolean(form.is_wastage) : false,
+              block_id: form.block_id || null,
+              ...(form.reference.trim() ? { reference: form.reference.trim() } : {}),
+              ...(form.remarks.trim() ? { remarks: form.remarks.trim() } : {}),
+            });
       if (result.success) {
         toast.success("Movement logged");
         setForm({
@@ -282,6 +293,22 @@ function InventorySupervisorPage() {
         <Card className="p-6">
           <div className="space-y-5">
             {/* Item search + select */}
+            <div className="space-y-2">
+              <Label>Inventory domain</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["civil", "structural"] as const).map((value) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    variant={domain === value ? "default" : "outline"}
+                    onClick={() => setDomain(value)}
+                    className="capitalize"
+                  >
+                    {value}
+                  </Button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="isearch">Search item</Label>
               <div className="relative">

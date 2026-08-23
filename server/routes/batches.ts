@@ -26,7 +26,7 @@ batchesRouter.get("/fetch", async (req: Request, res: Response) => {
     let query = supabaseServer
       .from("batches")
       .select(
-        "id, batch_number, material, supplier, manufacturer, purchase_date, invoice, challan, mtc, lab_report, photos, status",
+        "id, organization_id, inventory_item_id, batch_number, material, supplier, manufacturer, purchase_date, manufacture_date, expiry_date, quantity_received, invoice, challan, mtc, lab_report, photos, status",
         { count: "exact" },
       )
       .order("purchase_date", { ascending: false })
@@ -63,6 +63,10 @@ batchesRouter.get("/fetch", async (req: Request, res: Response) => {
 const batchSchema = z.object({
   batch_number: z.string().min(1),
   material: z.string().min(1),
+  inventory_item_id: z.string().uuid().nullable().optional(),
+  manufacture_date: z.string().optional(),
+  expiry_date: z.string().optional(),
+  quantity_received: z.number().nonnegative().optional(),
   supplier: z.string().optional(),
   manufacturer: z.string().optional(),
   purchase_date: z.string().optional(),
@@ -110,7 +114,9 @@ batchesRouter.post("/create", async (req: Request, res: Response) => {
 batchesRouter.post("/update", async (req: Request, res: Response) => {
   try {
     const user = await requireSessionUser(req);
-    const data = z.object({ id: z.string().uuid(), ...batchSchema.partial().shape }).parse(req.body);
+    const data = z
+      .object({ id: z.string().uuid(), ...batchSchema.partial().shape })
+      .parse(req.body);
     const { id, ...updates } = data;
 
     const { error } = await supabaseServer.from("batches").update(updates).eq("id", id);

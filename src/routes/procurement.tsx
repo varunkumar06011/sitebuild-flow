@@ -1002,6 +1002,7 @@ function RequisitionDetail({
 
   // Inventory form state for Material Received stage
   const [invItemId, setInvItemId] = useState<string>("none");
+  const [orderedQty, setOrderedQty] = useState("");
   const [qtyReceived, setQtyReceived] = useState("");
   const [deliveryDate, setDeliveryDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
@@ -1495,7 +1496,17 @@ function RequisitionDetail({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="qty-received">Quantity received (optional)</Label>
+                    <Label htmlFor="qty-ordered">PO quantity *</Label>
+                    <Input
+                      id="qty-ordered"
+                      type="number"
+                      placeholder="e.g. 25000"
+                      value={orderedQty}
+                      onChange={(e) => setOrderedQty(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="qty-received">Quantity received *</Label>
                     <Input
                       id="qty-received"
                       type="number"
@@ -1531,8 +1542,24 @@ function RequisitionDetail({
                     toast.error("Delivery date is required");
                     return;
                   }
+                  if (invItemId !== "none" && (!orderedQty || Number(orderedQty) <= 0)) {
+                    toast.error("PO quantity is required when linking an inventory item");
+                    return;
+                  }
+                  if (invItemId !== "none" && (!qtyReceived || Number(qtyReceived) <= 0)) {
+                    toast.error("Quantity received is required when linking an inventory item");
+                    return;
+                  }
+                  if (orderedQty && Number(orderedQty) <= 0) {
+                    toast.error("PO quantity must be a positive number");
+                    return;
+                  }
                   if (qtyReceived && Number(qtyReceived) <= 0) {
                     toast.error("Quantity received must be a positive number");
+                    return;
+                  }
+                  if (orderedQty && qtyReceived && Number(qtyReceived) > Number(orderedQty)) {
+                    toast.error("Quantity received cannot exceed the PO quantity");
                     return;
                   }
                   confirmAdvance(
@@ -1541,6 +1568,7 @@ function RequisitionDetail({
                     () =>
                       advanceStage("Material Received", {
                         inventoryItemId: invItemId !== "none" ? invItemId : null,
+                        orderedQuantity: orderedQty ? Number(orderedQty) : undefined,
                         quantityReceived: qtyReceived ? Number(qtyReceived) : undefined,
                         deliveryDate: deliveryDate
                           ? new Date(deliveryDate).toISOString()
@@ -1715,10 +1743,10 @@ function RequisitionDetail({
                           reader.onload = async () => {
                             const base64 = (reader.result as string).split(",")[1] ?? "";
                             const result = await uploadFile({
-                                bucket: "documents",
-                                path,
-                                contentType: file.type || "application/octet-stream",
-                                fileData: base64,
+                              bucket: "documents",
+                              path,
+                              contentType: file.type || "application/octet-stream",
+                              fileData: base64,
                             });
                             setUploadingProof(false);
                             if (result.success) {
@@ -2480,10 +2508,10 @@ function DocumentSection({ req, onChanged }: { req: RequisitionRow; onChanged: (
     reader.onload = async () => {
       const base64 = (reader.result as string).split(",")[1] ?? "";
       const result = await uploadFile({
-          bucket: "documents",
-          path,
-          contentType: file.type || "application/octet-stream",
-          fileData: base64,
+        bucket: "documents",
+        path,
+        contentType: file.type || "application/octet-stream",
+        fileData: base64,
       });
       setUploading(false);
       if (result.success) {

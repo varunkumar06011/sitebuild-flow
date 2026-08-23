@@ -317,15 +317,17 @@ function InventoryPage() {
   const tree = useMemo(() => buildTree(treeData?.data ?? []), [treeData]);
 
   // Items
+  const [inventoryDomain, setInventoryDomain] = useState<"civil" | "structural">("civil");
   const [itemSearch, setItemSearch] = useState("");
   const [itemWorkCat, setItemWorkCat] = useState("all");
   const { data: itemsData } = useQuery({
-    queryKey: ["inventory-items", itemSearch, itemWorkCat],
+    queryKey: ["inventory-items", inventoryDomain, itemSearch, itemWorkCat],
     queryFn: () =>
       fetchItems({
-        data: itemSearch ? { search: itemSearch } : {},
+        domain: inventoryDomain,
+        ...(itemSearch ? { search: itemSearch } : {}),
         ...(itemWorkCat !== "all" ? { workCategory: itemWorkCat } : {}),
-      } as any),
+      }),
   });
   const items = itemsData?.data ?? [];
 
@@ -364,8 +366,8 @@ function InventoryPage() {
     queryKey: ["inventory-wastage", wastageFrom, wastageTo],
     queryFn: () =>
       fetchWastageReport({
-        fromDate: wastageFrom || undefined,
-        toDate: wastageTo || undefined,
+        ...(wastageFrom ? { fromDate: wastageFrom } : {}),
+        ...(wastageTo ? { toDate: wastageTo } : {}),
       }),
   });
   const wastageItems = wastageData?.data ?? [];
@@ -507,6 +509,7 @@ function InventoryPage() {
     reorder_level: "0",
     opening_stock: "0",
     work_category: "uncategorized",
+    domain: "civil" as "civil" | "structural" | "uncategorized",
   });
   const [itemSaving, setItemSaving] = useState(false);
 
@@ -532,7 +535,8 @@ function InventoryPage() {
       unit_of_measure: "",
       reorder_level: "0",
       opening_stock: "0",
-      work_category: "uncategorized",
+      work_category: inventoryDomain,
+      domain: inventoryDomain,
     });
     setItemDialogOpen(true);
   };
@@ -552,10 +556,13 @@ function InventoryPage() {
       const result = await createItem({
         category_id: itemForm.category_id,
         name: itemForm.name.trim(),
-        unit_of_measure: itemForm.unit_of_measure.trim() || undefined,
+        ...(itemForm.unit_of_measure.trim()
+          ? { unit_of_measure: itemForm.unit_of_measure.trim() }
+          : {}),
         reorder_level: Number(itemForm.reorder_level) || 0,
         opening_stock: Number(itemForm.opening_stock) || 0,
         work_category: itemForm.work_category,
+        domain: itemForm.domain,
       });
       if (result.success) {
         toast.success("Item created");
@@ -588,7 +595,29 @@ function InventoryPage() {
       title="Inventory"
       subtitle="Category tree, items, stock register & transaction ledger"
     >
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div
+          className="inline-flex rounded-lg border border-border p-1"
+          role="tablist"
+          aria-label="Inventory domain"
+        >
+          {(["civil", "structural"] as const).map((domain) => (
+            <button
+              key={domain}
+              type="button"
+              role="tab"
+              aria-selected={inventoryDomain === domain}
+              onClick={() => setInventoryDomain(domain)}
+              className={`rounded-md px-4 py-2 text-sm font-semibold capitalize transition-colors ${
+                inventoryDomain === domain
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {domain}
+            </button>
+          ))}
+        </div>
         <SectionTour sectionKey="inventory" steps={tourSteps} />
       </div>
       {/* B4: Instant consolidated report ΓÇö summary cards */}
@@ -1588,13 +1617,32 @@ function InventoryPage() {
                 onChange={(e) => setItemForm({ ...itemForm, opening_stock: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="iworkcat">Work Category *</Label>
-              <WorkCategorySelect
-                value={itemForm.work_category}
-                onChange={(val) => setItemForm({ ...itemForm, work_category: val })}
-                placeholder="Select work category..."
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="idomain">Inventory domain *</Label>
+                <Select
+                  value={itemForm.domain}
+                  onValueChange={(val) =>
+                    setItemForm({ ...itemForm, domain: val as "civil" | "structural" })
+                  }
+                >
+                  <SelectTrigger id="idomain">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="civil">Civil</SelectItem>
+                    <SelectItem value="structural">Structural</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="iworkcat">Work Category *</Label>
+                <WorkCategorySelect
+                  value={itemForm.work_category}
+                  onChange={(val) => setItemForm({ ...itemForm, work_category: val })}
+                  placeholder="Select work category..."
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

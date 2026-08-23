@@ -303,6 +303,7 @@ const updateStageSchema = z.object({
   newStage: z.string(),
   expectedStage: z.string(),
   inventoryItemId: z.string().uuid().nullable().optional(),
+  orderedQuantity: z.number().positive().optional(),
   quantityReceived: z.number().positive().optional(),
   deliveryDate: z.string().optional(),
   invoiceNumber: z.string().optional(),
@@ -384,7 +385,7 @@ requisitionsRouter.post("/update-stage", async (req: Request, res: Response) => 
       if (data.deliveryDate) {
         updatePayload["delivery_date"] = data.deliveryDate;
       }
-      if (data.quantityReceived) {
+      if (data.quantityReceived && !data.inventoryItemId) {
         updatePayload["quantity_received"] = data.quantityReceived;
       }
     }
@@ -428,17 +429,29 @@ requisitionsRouter.post("/update-stage", async (req: Request, res: Response) => 
       return;
     }
 
-    // Post-transition side effects
+    // Post-transition side effects. A PO changes no inventory; only a physical
+    // receipt with an ordered quantity creates a canonical inventory receipt.
     if (toStage === "Material Received" && data.inventoryItemId && data.quantityReceived) {
-      const { error: invError } = await supabaseServer.from("inventory_transactions").insert({
-        item_id: data.inventoryItemId,
-        type: "in",
-        quantity: data.quantityReceived,
-        reference: reqRow.pr_number,
-        remarks: `Material received for ${reqRow.title}${updatePayload["grn_number"] ? ` (GRN: ${updatePayload["grn_number"]})` : ""}`,
-        created_by: user.id,
-      });
-      if (invError) {
+      const { data: receiptId, error: invError } = await supabaseServer.rpc(
+        "receive_inventory_stock",
+        {
+          p_requisition_id: data.id,
+          p_item_id: data.inventoryItemId,
+          p_quantity: data.quantityReceived,
+          p_received_by: user.id,
+          p_grn_number: updatePayload["grn_number"] ?? null,
+          p_ordered_quantity: data.orderedQuantity ?? null,
+          p_warehouse_id: null,
+          p_location_id: null,
+          p_received_at: data.deliveryDate ?? new Date().toISOString(),
+          p_reference: reqRow.pr_number,
+          p_metadata: {
+            requisition_title: reqRow.title,
+            po_number: reqRow.po_number,
+          },
+        },
+      );
+      if (invError || !receiptId) {
         await supabaseServer
           .from("requisitions")
           .update({
@@ -451,8 +464,8 @@ requisitionsRouter.post("/update-stage", async (req: Request, res: Response) => 
         res.json({
           success: false,
           error:
-            "Inventory stock-in failed: " +
-            invError.message +
+            "Inventory receipt failed: " +
+            (invError?.message ?? "Unknown error") +
             ". Stage was not advanced — please retry.",
         });
         return;
@@ -508,7 +521,12 @@ requisitionsRouter.post("/update-stage", async (req: Request, res: Response) => 
         "approval_result",
         `Approved: ${reqRow.pr_number}`,
         `${reqRow.title} approved by ${user.name}. PO issued${poNumber ? ` as ${poNumber}` : ""}.`,
-        { requisition_id: reqRow.id, pr_number: reqRow.pr_number, po_number: poNumber, approved: true },
+        {
+          requisition_id: reqRow.id,
+          pr_number: reqRow.pr_number,
+          po_number: poNumber,
+          approved: true,
+        },
       );
     }
 
@@ -750,7 +768,7 @@ requisitionsRouter.get("/items", async (req: Request, res: Response) => {
 
     const { data: items } = await supabaseServer
       .from("requisition_items")
-      .select("id, description, quantity, unit, unit_price, amount, sort_order")
+      .select("id, description, inventory_item_id, quantity, unit, unit_price, amount, sort_order")
       .eq("requisition_id", requisitionId)
       .order("sort_order", { ascending: true });
 
@@ -758,6 +776,7 @@ requisitionsRouter.get("/items", async (req: Request, res: Response) => {
       (items ?? []).map((i: any) => ({
         id: i.id,
         description: i.description,
+        inventory_item_id: i.inventory_item_id ?? null,
         quantity: Number(i.quantity),
         unit: i.unit ?? null,
         unit_price: i.unit_price != null ? Number(i.unit_price) : null,
@@ -785,6 +804,7 @@ const saveItemsSchema = z.object({
   items: z.array(
     z.object({
       description: z.string().min(1),
+      inventory_item_id: z.string().uuid().nullable().optional(),
       quantity: z.number().min(0).default(0),
       unit: z.string().nullable().optional(),
       unit_price: z.number().min(0).default(0),
@@ -807,6 +827,7 @@ requisitionsRouter.post("/save-items", async (req: Request, res: Response) => {
       const rows = data.items.map((item, i) => ({
         requisition_id: data.requisitionId,
         description: item.description,
+        inventory_item_id: item.inventory_item_id ?? null,
         quantity: item.quantity,
         unit: item.unit ?? null,
         unit_price: item.unit_price,
